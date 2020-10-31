@@ -1,0 +1,345 @@
+$ v4l2-ctl --set-fmt-video=width=640,height=360,pixelformat=RGBP --stream-mmap --stream-count=1 --stream-to=grab-640x360-rgb565.raw
+>
+$ dmesg
+[   53.231991] tvivid test-vivid: tvivid_probe:
+[   53.327254] video4linux video0: tvidioc_querycap:
+[  860.299424] video4linux video0: tvidioc_querycap:
+[  860.303105] video4linux video0: tvidioc_querycap:
+[  860.325887] video4linux video0: tvivid_g_fmt_vid_cap:
+[  860.326415] video4linux video0: tvivid_s_fmt_vid_cap: width 640, height 360, bytesperline 0, sizeimage 0
+[  860.336604] video4linux video0: tvivid_queue_setup: num_buffers 4, sizeimage 460800
+[  860.345841] video4linux video0: tvivid_buf_prepare:
+[  860.346346] video4linux video0: tvivid_buf_prepare:
+[  860.346806] video4linux video0: tvivid_buf_prepare:
+[  860.347243] video4linux video0: tvivid_buf_prepare:
+[  860.347668] video4linux video0: tvivid_g_fmt_vid_cap:
+[  860.348359] video4linux video0: tvivid_buf_queue:
+[  860.348400] video4linux video0: tvivid_buf_queue:
+[  860.348432] video4linux video0: tvivid_buf_queue:
+[  860.348463] video4linux video0: tvivid_buf_queue:
+[  860.348494] video4linux video0: tvivid_start_streaming:
+[  860.361159] video4linux video0: tvivid_buf_prepare:
+[  860.361210] video4linux video0: tvivid_buf_queue:
+[  860.362323] video4linux video0: tvivid_stop_streaming:
+[  882.617728] tvivid test-vivid: tvivid_remove:
+[  882.622951] video4linux video0: tvivid_release:
+
+
+strace输出：
+execve("/usr/bin/v4l2-ctl", ["v4l2-ctl", "--set-fmt-video=width=640,height"..., "--stream-mmap", "--stream-count=1", "--stream-to=grab-640x360-rgb565."...], 0x7e91ec48 /* 23 vars */) = 0
+brk(NULL)                               = 0x1ec000
+uname({sysname="Linux", nodename="imx6ull-alpha", ...}) = 0
+mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x76f1c000
+access("/etc/ld.so.preload", R_OK)      = -1 ENOENT (No such file or directory)
+open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+open("/lib/tls/v7l/neon/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/tls/v7l/neon/vfp", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/lib/tls/v7l/neon/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/tls/v7l/neon", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/lib/tls/v7l/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/tls/v7l/vfp", 0x7eb46568)  = -1 ENOENT (No such file or directory)
+open("/lib/tls/v7l/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/tls/v7l", 0x7eb46568)      = -1 ENOENT (No such file or directory)
+open("/lib/tls/neon/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/tls/neon/vfp", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/lib/tls/neon/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/tls/neon", 0x7eb46568)     = -1 ENOENT (No such file or directory)
+open("/lib/tls/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/tls/vfp", 0x7eb46568)      = -1 ENOENT (No such file or directory)
+open("/lib/tls/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/tls", 0x7eb46568)          = -1 ENOENT (No such file or directory)
+open("/lib/v7l/neon/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/v7l/neon/vfp", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/lib/v7l/neon/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/v7l/neon", 0x7eb46568)     = -1 ENOENT (No such file or directory)
+open("/lib/v7l/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/v7l/vfp", 0x7eb46568)      = -1 ENOENT (No such file or directory)
+open("/lib/v7l/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/v7l", 0x7eb46568)          = -1 ENOENT (No such file or directory)
+open("/lib/neon/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/neon/vfp", 0x7eb46568)     = -1 ENOENT (No such file or directory)
+open("/lib/neon/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/neon", 0x7eb46568)         = -1 ENOENT (No such file or directory)
+open("/lib/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib/vfp", 0x7eb46568)          = -1 ENOENT (No such file or directory)
+open("/lib/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/lib", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+open("/usr/lib/tls/v7l/neon/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/tls/v7l/neon/vfp", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/usr/lib/tls/v7l/neon/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/tls/v7l/neon", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/usr/lib/tls/v7l/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/tls/v7l/vfp", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/usr/lib/tls/v7l/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/tls/v7l", 0x7eb46568)  = -1 ENOENT (No such file or directory)
+open("/usr/lib/tls/neon/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/tls/neon/vfp", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/usr/lib/tls/neon/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/tls/neon", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/usr/lib/tls/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/tls/vfp", 0x7eb46568)  = -1 ENOENT (No such file or directory)
+open("/usr/lib/tls/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/tls", 0x7eb46568)      = -1 ENOENT (No such file or directory)
+open("/usr/lib/v7l/neon/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/v7l/neon/vfp", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/usr/lib/v7l/neon/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/v7l/neon", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/usr/lib/v7l/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/v7l/vfp", 0x7eb46568)  = -1 ENOENT (No such file or directory)
+open("/usr/lib/v7l/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/v7l", 0x7eb46568)      = -1 ENOENT (No such file or directory)
+open("/usr/lib/neon/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/neon/vfp", 0x7eb46568) = -1 ENOENT (No such file or directory)
+open("/usr/lib/neon/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/neon", 0x7eb46568)     = -1 ENOENT (No such file or directory)
+open("/usr/lib/vfp/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+stat64("/usr/lib/vfp", 0x7eb46568)      = -1 ENOENT (No such file or directory)
+open("/usr/lib/libv4l2.so.0", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0(\0\1\0\0\0\224\24\0\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=43692, ...}) = 0
+mmap2(NULL, 107992, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76edb000
+mprotect(0x76ee2000, 65536, PROT_NONE)  = 0
+mmap2(0x76ef2000, 16384, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x7000) = 0x76ef2000
+close(3)                                = 0
+open("/lib/libdl.so.2", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0(\0\1\0\0\0<\t\0\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=9640, ...}) = 0
+mmap2(NULL, 73912, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76ec8000
+mprotect(0x76eca000, 61440, PROT_NONE)  = 0
+mmap2(0x76ed9000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1000) = 0x76ed9000
+close(3)                                = 0
+open("/lib/libv4lconvert.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+open("/usr/lib/libv4lconvert.so.0", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0(\0\1\0\0\0x\36\0\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=112592, ...}) = 0
+mmap2(NULL, 513296, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76e4a000
+mprotect(0x76e65000, 61440, PROT_NONE)  = 0
+mmap2(0x76e74000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1a000) = 0x76e74000
+mmap2(0x76e76000, 333072, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x76e76000
+close(3)                                = 0
+open("/lib/libjpeg.so.8", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+open("/usr/lib/libjpeg.so.8", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0(\0\1\0\0\0x\"\0\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=137500, ...}) = 0
+mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x76f1b000
+mmap2(NULL, 181356, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76e1d000
+mprotect(0x76e39000, 65536, PROT_NONE)  = 0
+mmap2(0x76e49000, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1c000) = 0x76e49000
+close(3)                                = 0
+open("/lib/librt.so.1", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\3\0\0\0\0\0\0\0\0\3\0(\0\1\0\0\0\0\27\0\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=22372, ...}) = 0
+mmap2(NULL, 86544, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76e07000
+mprotect(0x76e0c000, 61440, PROT_NONE)  = 0
+mmap2(0x76e1b000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x4000) = 0x76e1b000
+close(3)                                = 0
+open("/lib/libpthread.so.0", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\3\0\0\0\0\0\0\0\0\3\0(\0\1\0\0\0uF\0\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=107204, ...}) = 0
+mmap2(NULL, 143948, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76de3000
+mprotect(0x76df4000, 61440, PROT_NONE)  = 0
+mmap2(0x76e03000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x10000) = 0x76e03000
+mmap2(0x76e05000, 4684, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x76e05000
+close(3)                                = 0
+open("/lib/libstdc++.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\3\0\0\0\0\0\0\0\0\3\0(\0\1\0\0\0\260\317\6\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=1011052, ...}) = 0
+mmap2(NULL, 1083344, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76cda000
+mprotect(0x76dcb000, 61440, PROT_NONE)  = 0
+mmap2(0x76dda000, 28672, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0xf0000) = 0x76dda000
+mmap2(0x76de1000, 6096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x76de1000
+close(3)                                = 0
+open("/lib/libm.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0(\0\1\0\0\08<\0\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=423316, ...}) = 0
+mmap2(NULL, 487548, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76c62000
+mprotect(0x76cc9000, 61440, PROT_NONE)  = 0
+mmap2(0x76cd8000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x66000) = 0x76cd8000
+close(3)                                = 0
+open("/lib/libgcc_s.so.1", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0(\0\1\0\0\0\370\315\0\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=98260, ...}) = 0
+mmap2(NULL, 162480, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76c3a000
+mprotect(0x76c52000, 61440, PROT_NONE)  = 0
+mmap2(0x76c61000, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x17000) = 0x76c61000
+close(3)                                = 0
+open("/lib/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\3\0\0\0\0\0\0\0\0\3\0(\0\1\0\0\0\231i\1\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=894568, ...}) = 0
+mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x76f1a000
+mmap2(NULL, 963912, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76b4e000
+mprotect(0x76c25000, 61440, PROT_NONE)  = 0
+mmap2(0x76c34000, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0xd6000) = 0x76c34000
+mmap2(0x76c37000, 9544, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x76c37000
+close(3)                                = 0
+writev(2, [{iov_base="v4l2-ctl", iov_len=8}, {iov_base=": ", iov_len=2}, {iov_base="/usr/lib/libjpeg.so.8", iov_len=21}, {iov_base=": ", iov_len=2}, {iov_base="no version information available"..., iov_len=74}, {iov_base="\n", iov_len=1}], 6) = 108
+mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x76f19000
+set_tls(0x76f194c0)                     = 0
+mprotect(0x76c34000, 8192, PROT_READ)   = 0
+mprotect(0x76cd8000, 4096, PROT_READ)   = 0
+mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x76f18000
+mprotect(0x76dda000, 20480, PROT_READ)  = 0
+mprotect(0x76e03000, 4096, PROT_READ)   = 0
+mprotect(0x76e1b000, 4096, PROT_READ)   = 0
+mprotect(0x76ed9000, 4096, PROT_READ)   = 0
+mprotect(0x76f1d000, 4096, PROT_READ)   = 0
+set_tid_address(0x76f19068)             = 387
+set_robust_list(0x76f19070, 12)         = 0
+rt_sigaction(SIGRTMIN, {sa_handler=0x76de71c5, sa_mask=[], sa_flags=SA_RESTORER|SA_SIGINFO, sa_restorer=0x76b73111}, NULL, 8) = 0
+rt_sigaction(SIGRT_1, {sa_handler=0x76de7265, sa_mask=[], sa_flags=SA_RESTORER|SA_RESTART|SA_SIGINFO, sa_restorer=0x76b73111}, NULL, 8) = 0
+rt_sigprocmask(SIG_UNBLOCK, [RTMIN RT_1], NULL, 8) = 0
+ugetrlimit(RLIMIT_STACK, {rlim_cur=8192*1024, rlim_max=RLIM_INFINITY}) = 0
+brk(NULL)                               = 0x1ec000
+brk(0x211000)                           = 0x211000
+stat64("/dev/video0", {st_mode=S_IFCHR|0660, st_rdev=makedev(0x51, 0), ...}) = 0
+futex(0x76de1220, FUTEX_WAKE_PRIVATE, 2147483647) = 0
+futex(0x76de1224, FUTEX_WAKE_PRIVATE, 2147483647) = 0
+open("/sys/dev/char/81:0/uevent", O_RDONLY|O_LARGEFILE) = 3
+read(3, "MAJOR=81\nMINOR=0\nDEVNAME=video0\n", 8191) = 32
+close(3)                                = 0
+open("/dev/video0", O_RDWR|O_LARGEFILE) = 3
+ioctl(3, VIDIOC_QUERYCAP, {driver="tvivid_driver", card="tvivid_card", bus_info="tvivid_bus_info", version=4.9.88, capabilities=V4L2_CAP_VIDEO_CAPTURE|V4L2_CAP_STREAMING|V4L2_CAP_DEVICE_CAPS|V4L2_CAP_EXT_PIX_FORMAT, device_caps=V4L2_CAP_VIDEO_CAPTURE|V4L2_CAP_STREAMING|V4L2_CAP_EXT_PIX_FORMAT}) = 0
+ioctl(3, VIDIOC_QUERY_EXT_CTRL, 0x7eb46538) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_TRY_EXT_CTRLS, {ctrl_class=0 /* V4L2_CTRL_CLASS_??? */, count=0}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CTRL_FLAG_NEXT_CTRL|0 /* V4L2_CID_??? */}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_G_SELECTION, 0x7eb464b4) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCAP, {driver="tvivid_driver", card="tvivid_card", bus_info="tvivid_bus_info", version=4.9.88, capabilities=V4L2_CAP_VIDEO_CAPTURE|V4L2_CAP_STREAMING|V4L2_CAP_DEVICE_CAPS|V4L2_CAP_EXT_PIX_FORMAT, device_caps=V4L2_CAP_VIDEO_CAPTURE|V4L2_CAP_STREAMING|V4L2_CAP_EXT_PIX_FORMAT}) = 0
+fstat64(3, {st_mode=S_IFCHR|0660, st_rdev=makedev(0x51, 0), ...}) = 0
+open("/sys/dev/char/81:0/device", O_RDONLY|O_NONBLOCK|O_LARGEFILE|O_CLOEXEC|O_DIRECTORY) = 4
+fstat64(4, {st_mode=S_IFDIR|0755, st_size=0, ...}) = 0
+getdents64(4, /* 10 entries */, 32768)  = 312
+getdents64(4, /* 0 entries */, 32768)   = 0
+close(4)                                = 0
+ioctl(3, VIDIOC_QUERY_EXT_CTRL, 0x7eb46458) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CTRL_FLAG_NEXT_CTRL|0x40000000 /* V4L2_CID_??? */}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BRIGHTNESS}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_CONTRAST}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_SATURATION}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_HUE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=0x980904 /* V4L2_CID_??? */}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_VOLUME}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_BALANCE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_BASS}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_TREBLE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_MUTE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_LOUDNESS}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BLACK_LEVEL}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUTO_WHITE_BALANCE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_DO_WHITE_BALANCE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_RED_BALANCE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BLUE_BALANCE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_GAMMA}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_EXPOSURE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUTOGAIN}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_GAIN}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_HFLIP}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_VFLIP}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_HCENTER}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_VCENTER}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_POWER_LINE_FREQUENCY}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_HUE_AUTO}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_WHITE_BALANCE_TEMPERATURE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_SHARPNESS}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BACKLIGHT_COMPENSATION}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_CHROMA_AGC}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_COLOR_KILLER}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_COLORFX}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUTOBRIGHTNESS}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BAND_STOP_FILTER}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_ROTATE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BG_COLOR}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_CHROMA_GAIN}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_ILLUMINATORS_1}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_ILLUMINATORS_2}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_MIN_BUFFERS_FOR_CAPTURE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_MIN_BUFFERS_FOR_OUTPUT}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_ALPHA_COMPONENT}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_COLORFX_CBCR}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=0x8000000 /* V4L2_CID_??? */}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_G_FMT, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, fmt.pix={width=0, height=0, pixelformat=v4l2_fourcc('\x00', '\x00', '\x00', '\x00'), field=V4L2_FIELD_ANY, bytesperline=0, sizeimage=0, colorspace=0 /* V4L2_COLORSPACE_??? */}}) = 0
+ioctl(3, VIDIOC_S_FMT, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, fmt.pix={width=640, height=360, pixelformat=v4l2_fourcc('R', 'G', 'B', 'P') /* V4L2_PIX_FMT_RGB565 */, field=V4L2_FIELD_ANY, bytesperline=0, sizeimage=0, colorspace=0 /* V4L2_COLORSPACE_??? */} => fmt.pix={width=640, height=360, pixelformat=v4l2_fourcc('R', 'G', 'B', 'P') /* V4L2_PIX_FMT_RGB565 */, field=V4L2_FIELD_ANY, bytesperline=0, sizeimage=0, colorspace=0 /* V4L2_COLORSPACE_??? */}}) = 0
+fcntl64(3, F_GETFL)                     = 0x20002 (flags O_RDWR|O_LARGEFILE)
+ioctl(3, VIDIOC_SUBSCRIBE_EVENT, 0x7eb44860) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_G_INPUT, 0x7eb44880)    = -1 ENOTTY (Inappropriate ioctl for device)
+open("grab-640x360-rgb565.raw", O_RDWR|O_CREAT|O_TRUNC|O_LARGEFILE, 0666) = 4
+ioctl(3, VIDIOC_REQBUFS, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, memory=V4L2_MEMORY_MMAP, count=4 => 4}) = 0
+ioctl(3, VIDIOC_QUERYBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=0, memory=V4L2_MEMORY_MMAP, m.offset=0, length=460800, bytesused=0, flags=V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC, ...}) = 0
+ioctl(3, VIDIOC_QUERYBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=1, memory=V4L2_MEMORY_MMAP, m.offset=0x71000, length=460800, bytesused=0, flags=V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC, ...}) = 0
+ioctl(3, VIDIOC_QUERYBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=2, memory=V4L2_MEMORY_MMAP, m.offset=0xe2000, length=460800, bytesused=0, flags=V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC, ...}) = 0
+ioctl(3, VIDIOC_QUERYBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=3, memory=V4L2_MEMORY_MMAP, m.offset=0x153000, length=460800, bytesused=0, flags=V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC, ...}) = 0
+mmap2(NULL, 460800, PROT_READ|PROT_WRITE, MAP_SHARED, 3, 0) = 0x76add000
+mmap2(NULL, 460800, PROT_READ|PROT_WRITE, MAP_SHARED, 3, 0x71000) = 0x76a6c000
+mmap2(NULL, 460800, PROT_READ|PROT_WRITE, MAP_SHARED, 3, 0xe2000) = 0x769fb000
+mmap2(NULL, 460800, PROT_READ|PROT_WRITE, MAP_SHARED, 3, 0x153000) = 0x7698a000
+ioctl(3, VIDIOC_QBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=0, memory=V4L2_MEMORY_MMAP, m.offset=0, length=460800, bytesused=460800, flags=V4L2_BUF_FLAG_MAPPED|V4L2_BUF_FLAG_QUEUED|V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC, ...}) = 0
+ioctl(3, VIDIOC_QBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=1, memory=V4L2_MEMORY_MMAP, m.offset=0x71000, length=460800, bytesused=460800, flags=V4L2_BUF_FLAG_MAPPED|V4L2_BUF_FLAG_QUEUED|V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC, ...}) = 0
+ioctl(3, VIDIOC_QBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=2, memory=V4L2_MEMORY_MMAP, m.offset=0xe2000, length=460800, bytesused=460800, flags=V4L2_BUF_FLAG_MAPPED|V4L2_BUF_FLAG_QUEUED|V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC, ...}) = 0
+ioctl(3, VIDIOC_QBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=3, memory=V4L2_MEMORY_MMAP, m.offset=0x153000, length=460800, bytesused=460800, flags=V4L2_BUF_FLAG_MAPPED|V4L2_BUF_FLAG_QUEUED|V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC, ...}) = 0
+ioctl(3, VIDIOC_G_FMT, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, fmt.pix={width=0, height=0, pixelformat=v4l2_fourcc('\x00', '\x00', '\x00', '\x00'), field=V4L2_FIELD_ANY, bytesperline=0, sizeimage=0, colorspace=0 /* V4L2_COLORSPACE_??? */}}) = 0
+ioctl(3, VIDIOC_STREAMON, [V4L2_BUF_TYPE_VIDEO_CAPTURE]) = 0
+_newselect(4, NULL, NULL, [3], {tv_sec=0, tv_usec=0}) = 0 (Timeout)
+ioctl(3, VIDIOC_DQBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=0, memory=V4L2_MEMORY_MMAP, m.offset=0, length=460800, bytesused=460800, flags=V4L2_BUF_FLAG_MAPPED|V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC, timestamp = {tv_sec=0, tv_usec=0}, ...}) = 0
+clock_gettime(CLOCK_MONOTONIC, {tv_sec=860, tv_nsec=294935102}) = 0
+fstat64(4, {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
+write(4, "\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210"..., 458752) = 458752
+ioctl(3, VIDIOC_QBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=0, memory=V4L2_MEMORY_MMAP, m.offset=0, length=460800, bytesused=460800, flags=V4L2_BUF_FLAG_MAPPED|V4L2_BUF_FLAG_QUEUED|V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC, ...}) = 0
+write(2, "<", 1)                        = 1
+ioctl(3, VIDIOC_STREAMOFF, [V4L2_BUF_TYPE_VIDEO_CAPTURE]) = 0
+fcntl64(3, F_SETFL, O_RDWR|O_LARGEFILE) = 0
+write(2, "\n", 1)                       = 1
+ioctl(3, VIDIOC_STREAMOFF, [V4L2_BUF_TYPE_VIDEO_CAPTURE]) = 0
+munmap(0x76add000, 460800)              = 0
+munmap(0x76a6c000, 460800)              = 0
+munmap(0x769fb000, 460800)              = 0
+munmap(0x7698a000, 460800)              = 0
+ioctl(3, VIDIOC_REQBUFS, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, memory=V4L2_MEMORY_MMAP, count=0 => 0}) = 0
+write(4, "\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210\210"..., 2048) = 2048
+close(4)                                = 0
+close(3)                                = 0
+exit_group(0)                           = ?
++++ exited with 0 +++
+
+
+
+$ cat /sys/kernel/debug/tracing/trace
+# tracer: function_graph
+#
+# CPU  DURATION                  FUNCTION CALLS
+# |     |   |                     |   |   |   |
+ 0) + 59.667 us   |  tvidioc_querycap [tvivid]();
+ 0) + 57.333 us   |  tvidioc_querycap [tvivid]();
+ 0) + 60.333 us   |  tvivid_g_fmt_vid_cap [tvivid]();
+ 0) + 47.000 us   |  tvivid_s_fmt_vid_cap [tvivid]();
+ 0) + 66.000 us   |  tvivid_queue_setup [tvivid]();
+ 0) + 63.000 us   |  tvivid_buf_prepare [tvivid]();
+ 0) + 36.000 us   |  tvivid_buf_prepare [tvivid]();
+ 0) + 36.667 us   |  tvivid_buf_prepare [tvivid]();
+ 0) + 35.666 us   |  tvivid_buf_prepare [tvivid]();
+ 0) + 33.667 us   |  tvivid_g_fmt_vid_cap [tvivid]();
+ 0) + 46.000 us   |  tvivid_buf_queue [tvivid]();
+ 0) + 25.334 us   |  tvivid_buf_queue [tvivid]();
+ 0) + 23.667 us   |  tvivid_buf_queue [tvivid]();
+ 0) + 22.000 us   |  tvivid_buf_queue [tvivid]();
+ 0) ! 260.000 us  |  tvivid_start_streaming [tvivid]();
+ ------------------------------------------
+ 0)  v4l2-ct-387   =>  tvivid--388
+ ------------------------------------------
+
+ 0)               |  tvivid_kthread [tvivid]() {
+ ------------------------------------------
+ 0)  tvivid--388   =>  v4l2-ct-387
+ ------------------------------------------
+
+ 0) + 64.333 us   |  tvivid_buf_prepare [tvivid]();
+ 0) + 25.334 us   |  tvivid_buf_queue [tvivid]();
+ 0)               |  tvivid_stop_streaming [tvivid]() {
+ ------------------------------------------
+ 0)  v4l2-ct-387   =>  tvivid--388
+ ------------------------------------------
+
+ 0) @ 116003.3 us |  } /* tvivid_kthread [tvivid] */
+ ------------------------------------------
+ 0)  tvivid--388   =>  v4l2-ct-387
+ ------------------------------------------
+
+ 0) @ 107445.0 us |  } /* tvivid_stop_streaming [tvivid] */

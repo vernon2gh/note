@@ -1,0 +1,253 @@
+
+"""""""""""""""""""""""vim set""""""""""""""""""
+set number
+set showmatch
+set showmode
+set showcmd
+set cindent
+set noignorecase
+set scrolloff=5
+" 设置tab键为4个空格距离
+set tabstop=4
+" 设置自动缩进
+set autoindent
+" 设置自动缩进时，为4个空格距离
+set shiftwidth=4
+" 将tab键转换成空格
+"set expandtab
+set wrap
+
+syntax enable
+syntax on
+
+set encoding=utf-8 fileencodings=ucs-bom,utf-8,cp936
+
+" 定义快捷键的前缀
+let mapleader=";"
+
+" 设置高亮搜索
+set hlsearch
+" 在搜索时，输入的词句的逐字符高亮
+set incsearch
+
+" 启动源码折叠
+set fdm=indent
+" 默认打开文件时，不折叠
+set foldlevelstart=99
+
+" 当退出主编辑窗口时，自动退出其它插件窗口
+autocmd BufEnter * if 0 == len(filter(range(1, winnr('$')), 'empty(getbufvar(winbufnr(v:val), "&bt"))')) | qa! | endif
+
+" 打开终端
+nnoremap <leader>t :terminal ++rows=8<CR>
+
+"保存文件时, 自动删除行尾空格
+autocmd BufWritePre * %s/\s\+$//e
+
+"开启高亮光标行
+"set cursorline
+"hi CursorLine cterm=NONE ctermbg=darkgrey ctermfg=NONE
+
+"""""""""""""""""""""""markdown set""""""""""""""""""
+filetype plugin on
+let g:instant_markdown_slow = 0
+let g:instant_markdown_autostart = 0
+let g:instant_markdown_allow_unsafe_content = 1
+let g:instant_markdown_allow_external_content = 1
+
+"""""""""""""""""""""""Tlist set""""""""""""""""""
+"let Tlist_Auto_Open = 1
+"let Tlist_Exit_OnlyWindow = 1
+"let Tlist_Use_Right_Window = 1
+"let Tlist_WinHeight = 100
+"let Tlist_WinWidth = 30
+"noremap <C-F8> :Tlist<CR>
+
+"""""""""""""""""""""""cscope set""""""""""""""""""
+if has("cscope")
+	set csprg=/usr/bin/cscope
+
+    "add any database in current dir
+    if filereadable("cscope.out")
+        cs add cscope.out
+    "else search cscope.out elsewhere
+    else
+        let cscope_file=findfile("cscope.out", ".;")
+        let cscope_pre=matchstr(cscope_file, ".*/")
+        if !empty(cscope_file) && filereadable(cscope_file)
+            exe "cs add" cscope_file cscope_pre
+        endif
+    endif
+endif
+
+nmap <C-@>c :cs find c <C-R>=expand("<cword>")<CR><CR>
+nmap <C-@>d :cs find d <C-R>=expand("<cword>")<CR><CR>
+nmap <C-@>g :cs find g <C-R>=expand("<cword>")<CR><CR>
+nmap <C-@>s :cs find s <C-R>=expand("<cword>")<CR><CR>
+nmap <C-@>t :cs find t <C-R>=expand("<cword>")<CR><CR>
+nmap <C-@>e :cs find e <C-R>=expand("<cword>")<CR><CR>
+nmap <C-@>f :cs find f <C-R>=expand("<cfile>")<CR><CR>
+nmap <C-@>i :cs find i <C-R>=expand("<cfile>")<CR><CR>
+
+"""""""""""""""""""""""sdcv set""""""""""""""""""
+function! Mydict()
+  let expl=system('sdcv -n ' .
+        \  expand("<cword>"))
+  windo if
+        \ expand("%")=="diCt-tmp" |
+        \ q!|endif
+  rightbelow 30vsp diCt-tmp
+  setlocal buftype=nofile bufhidden=hide noswapfile
+  1s/^/\=expl/
+  1
+endfunction
+
+nmap <C-@>w :call Mydict()<CR>
+
+""""""""""""""""YouCompleteMe""""""""""""""""""""
+" 指定全局配置文件
+let g:ycm_global_ycm_extra_conf='~/.ycm_extra_conf.py'
+" 自动加载 .ycm_extra_conf.py 配置文件
+let g:ycm_confirm_extra_conf = 0
+" 输入两个字母以上，自动进行语义补全
+let g:ycm_semantic_triggers =  {
+			\ 'c,cpp,python,java,go,erlang,perl': ['re!\w{2}'],
+			\ 'cs,lua,javascript': ['re!\w{2}'],
+			\ }
+" 修改语义补全时的背景颜色为灰色
+highlight PMenu ctermfg=0 ctermbg=242 guifg=black guibg=darkgrey
+highlight PMenuSel ctermfg=242 ctermbg=8 guifg=darkgrey guibg=black
+
+" 函数申明
+nnoremap <leader>gc :YcmCompleter GoToDeclaration<CR>
+" 函数定义
+nnoremap <leader>gf :YcmCompleter GoToDefinition<CR>
+nnoremap <leader>gg :YcmCompleter GoToDefinitionElseDeclaration<CR>
+
+" 显示语法错误详情
+let g:ycm_enable_diagnostic_signs = 0
+let g:ycm_enable_diagnostic_highlighting = 0
+let g:ycm_echo_current_diagnostic = 0
+nmap <F4> :YcmDiags<CR>
+
+" YCM提供的跳跃功能采用了vim的jumplist，
+" 往前跳和往后跳的快捷键为Ctrl+O以及Ctrl+I
+
+""""""""""""""""""NERDTree"""""""""""""""""""
+" 自动打开NERDTree
+autocmd vimenter * NERDTree
+wincmd w
+autocmd VimEnter * wincmd w
+" 只剩下NERDTree窗口时，自动关闭NERDTree窗口
+" autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
+
+"""""""""""nerdtree-git-plugin"""""""""""""""
+let g:NERDTreeIndicatorMapCustom = {
+    \ "Modified"  : "M",
+    \ "Staged"    : "S",
+    \ "Untracked" : "unT",
+    \ "Renamed"   : "R",
+    \ "Unmerged"  : "unM",
+    \ "Deleted"   : "De",
+    \ "Dirty"     : "Di",
+    \ "Clean"     : "C",
+    \ 'Ignored'   : 'I',
+    \ "Unknown"   : "?"
+    \ }
+
+"""""""""""""""indent Line""""""""""""""""
+" 显示tab和空格
+set list
+" 设置tab和空格样式
+set lcs=tab:\|\ ,nbsp:%,trail:-
+
+""""""""vim-cpp-enhanced-highlight""""""""
+let g:cpp_class_scope_highlight = 1
+let g:cpp_member_variable_highlight = 1
+let g:cpp_class_decl_highlight = 1
+let g:cpp_experimental_simple_template_highlight = 1
+let g:cpp_concepts_highlight = 1
+
+""""""""""""""""rainbow""""""""""""""""""
+let g:rainbow_active = 1 "set to 0 if you want to enable it later via :RainbowToggle
+
+"""""""""""""""""airline""""""""""""""""""
+" 使用powerline打过补丁的字体
+let g:airline_powerline_fonts = 1
+
+if !exists('g:airline_symbols')
+    let g:airline_symbols = {}
+endif
+let g:airline_symbols.branch = ''
+
+" 启动标签行
+let g:airline#extensions#tabline#enabled = 1
+" 设置状态栏主题, 如 ayu_dark, base16_pop
+let g:airline_theme = 'base16_pop'
+
+" 切换到上/下一个标签
+nnoremap <leader>n :bn<CR>
+nnoremap <leader>p :bp<CR>
+
+""""""""""""""""LeaderF"""""""""""""""""
+let g:Lf_WildIgnore = {
+            \ 'dir': ['.svn','.git','.vscode'],
+            \ 'file': ['*.sw?','*.bak','*.o','*.so']
+            \}
+let g:Lf_CursorBlink = 1
+
+""""""""""""""nerdcommenter""""""""""""""
+"<leader>cc 注释一行
+"<leader>cu 取消注释
+"<leader>cm 注释(Visual)选中的一段代码
+
+let g:NERDSpaceDelims               = 1
+let g:NERDCompactSexyComs           = 1
+let g:NERDDefaultAlign              = 'left'
+let g:NERDCommentEmptyLines         = 1
+let g:NERDTrimTrailingWhitespace    = 1
+let g:NERDToggleCheckAllLines       = 1
+
+""""""""""""""""tagbar""""""""""""""""
+" tagbar宽度为30
+let g:tagbar_width = 30
+" 自动启动tagbar
+autocmd VimEnter * nested :TagbarOpen
+
+""""""""""""""""echodoc""""""""""""""""
+" 关闭YCM自动弹出函数原型
+set completeopt=menu,menuone
+let g:ycm_add_preview_to_completeopt = 0
+
+" 设置vim命令行高度为2，并且自动启动echodoc
+set cmdheight=2
+let g:echodoc_enable_at_startup = 1
+
+"""""""""""""""gutentags_plus"""""""""""""""
+" enable gtags module
+" let g:gutentags_modules = ['ctags', 'gtags_cscope']
+let g:gutentags_modules = ['gtags_cscope']
+
+" config project root markers.
+" gutentags will identify current project root by by root markers (.git/.svn)
+" and the following
+let g:gutentags_project_root = ['.root']
+
+" generate datebases in my cache directory, prevent gtags files polluting my project
+let g:gutentags_cache_dir = expand('~/.cache/tags')
+
+" change focus to quickfix window after search (optional).
+let g:gutentags_plus_switch = 1
+
+""""""""""""""""vim-preview""""""""""""""""
+" CTRL+w z to close the preview window
+"
+" <m-u> and <m-d> directly to scroll preview window
+" without switching window or leaving insert mode.
+nnoremap <leader>u :PreviewScroll -1<CR>
+nnoremap <leader>d :PreviewScroll +1<CR>
+
+" p/P, open/close
+autocmd FileType qf nnoremap <silent><buffer> p :PreviewQuickfix<cr>
+autocmd FileType qf nnoremap <silent><buffer> P :PreviewClose<cr>
+

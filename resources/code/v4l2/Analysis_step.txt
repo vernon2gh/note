@@ -1,0 +1,30 @@
+# 安装tvivid模块
+$ insmod tvivid.ko
+
+# 启动ftrace，跟踪内核层函数调用关系
+$ cd /sys/kernel/debug/tracing
+$ echo 0 > tracing_on
+$ echo function_graph > current_tracer
+$ cat current_tracer
+function_graph
+$ echo :mod:tvivid > set_ftrace_filter
+$ echo 1 > tracing_on
+$ cat trace
+# tracer: function_graph
+#
+# CPU  DURATION                  FUNCTION CALLS
+# |     |   |                     |   |   |   |
+
+# 执行v4l2-ctl -D命令，在命令前面加上strace -o xxx.txt，跟踪应用层函数调用关系，调用关系信息保存到xxx.txt文件中
+$ strace -o strace.txt v4l2-ctl -D
+# 获得内核层函数调用关系
+$ cat /sys/kernel/debug/tracing/trace
+
+$ strace -o strace.txt v4l2-ctl --list-formats
+$ cat /sys/kernel/debug/tracing/trace
+
+$ strace -o strace.txt v4l2-ctl --set-fmt-video=width=640,height=360,pixelformat=RGBP --stream-mmap --stream-count=1 --stream-to=grab-640x360-rgb565.raw
+$ cat /sys/kernel/debug/tracing/trace
+
+# 卸载tvivid模块
+$ rmmod tvivid
