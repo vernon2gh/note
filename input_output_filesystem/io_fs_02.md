@@ -61,9 +61,9 @@ const struct file_operations ext4_file_operations = {
 
 4. Table of inodes
 
-* each indo is a file/directory
+   each indo is a file/directory
 
-* includes meta-data and lists of associated data blocks
+   includes meta-data and lists of associated data blocks
 
 5. Data blocks(4kB each)
 
