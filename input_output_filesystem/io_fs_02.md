@@ -47,13 +47,13 @@ const struct file_operations ext4_file_operations = {
 
 1. Super block, stoing:
 
-* size and location of bitmaps
+   size and location of bitmaps
 
-* number and location of inodes
+   number and location of inodes
 
-* number and location of data blocks
+   number and location of data blocks
 
-* index of root inodes
+   index of root inodes
 
 2. Bitmap of free & used indoes
 
@@ -89,7 +89,7 @@ Inode diagram不足以描述足够多的磁盘块，因此可以透过间接 指
 
 ### 硬链接与软链接
 
-1. 硬链接，inodes号是一样
+* 硬链接，inodes号是一样
 
 ```bash
 ##　注意：创建a.txt 1分钟后，才创建硬链接b.txt
@@ -101,7 +101,7 @@ $ ls -il *.txt
 
 b.txt是a.txt的硬链接，所以在Table of inodes中，a.txt inodes number = b.txt inodes number
 
-2. 软链接，也叫符号链接，inodes号是不同的
+* 软链接，也叫符号链接，inodes号是不同的
 
 ```bash
 ##　注意：创建a.txt 1分钟后，才创建软链接c.txt
