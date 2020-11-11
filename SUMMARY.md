@@ -51,6 +51,7 @@
     * [mm5](memory_management/mm05.md)
 * input_output_filesystem
     * [io_fs_01](input_output_filesystem/io_fs_01.md)
+    * [io_fs_02](input_output_filesystem/io_fs_02.md)
 * solved issue
     * [linux_kernel](solvedIssue/linux_kernel.md)
     * [buildroot](solvedIssue/buildroot.md)
