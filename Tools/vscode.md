@@ -144,3 +144,59 @@
 
 参考网址 : [GNU GLOBAL Source Code Tag System](https://www.gnu.org/software/global/globaldoc.html)
 
+### 例子：cscope
+
+* ubuntu安装cscope
+
+  ```bash
+  $ sudo apt install cscope
+  ```
+
+* linux kernel生成cscope的数据库
+
+  ```bash
+  $ make ALLSOURCE_ARCHS=arm cscope # 只生成arm的数据库
+  或
+  $ cscope -b -q -k -f cscope.out   # 不建议使用，默认会生成所有arch的数据库
+  ```
+
+* 查询
+
+  **1. 通过vim进行查询**
+
+  ```bash
+  vim test.c
+  
+  # 在vim命令行模式，输入如下
+  :cscope add cscope.out
+  :cs find g <funcName> # 查找函数定义
+  :cs find c <funcName> # 查找函数调用
+  ```
+
+  **2. 通过vscode scope4code插件进行查询（推荐）**
+
+  同时进行如下配置：
+
+  ```bash
+  "scope4code.databasePath": "${workspaceRoot}/",
+  "scope4code.engineCommands": {
+  	"config_index": {
+          "cscope": {
+              "linux": 0
+          }
+      },
+      "config": [
+          {
+              "find_cmd": "find ${src_path} -type f -name *.c -o -type f -name *.h -o -type f -name *.cpp -o -type f -name *.cc -o -type f -name *.mm",
+              // "database_cmd": "cscope -b -q -k -f cscope.out",
+              "database_cmd": "make cscope",
+              "find_all_ref": "cscope -q -k -L0 ${text}",
+              "find_define": "cscope -q -k -L1 ${text}",
+              "find_callee": "cscope -q -k -L2 ${text}",
+              "find_caller": "cscope -q -k -L3 ${text}",
+              "find_text": "cscope -q -k -L4 ${text}"
+          }
+      ]
+  }
+  ```
+
