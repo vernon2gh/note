@@ -4,7 +4,7 @@
 
 为了将环境集成在一起，此处采用docker ubuntu 14.04，为x86_64安装编译与调试环境。
 
-x86_64 安装 x86_64-linux-gnu-gcc 4.8.4 和 qemu-system-x86_64 2.0.0 版本
+x86_64 安装 x86_64-linux-gnu-gcc 4.8.4/4.4 和 qemu-system-x86_64 2.0.0 版本
 
 ### 下载
 
@@ -59,6 +59,18 @@ if (buf_len > 2 * rsa->sizeof_g_packet) {
 $ ./configure
 $ make
 $ sudo make install
+
+# 默认gcc版本是４.8.4，可以编译linux kernel and buildroot，但是会出现很多warning
+# 所以使用gcc-4.4版本，就可以避免此warining
+$ apt-get install gcc-4.4 g++-4.4
+# 设置默认使用gcc-4.4
+$ update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.4 50
+$ update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 40
+$ update-alternatives --config gcc
+# 设置默认使用g++-4.4
+$ update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.4 50
+$ update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 40
+$ update-alternatives --config g++
 ```
 
 ### 保存docker image

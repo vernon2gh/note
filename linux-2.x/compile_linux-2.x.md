@@ -4,7 +4,7 @@
 
 为了将环境集成在一起，此处采用docker ubuntu 14.04，为x86_64安装编译与调试环境。
 
-x86_64 安装 x86_64-linux-gnu-gcc 4.8.4 和 qemu-system-x86_64 2.0.0 版本
+x86_64 安装 x86_64-linux-gnu-gcc 4.8.4/4.4 和 qemu-system-x86_64 2.0.0 版本
 
 ### 下载linux与buildroot
 
