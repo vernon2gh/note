@@ -40,7 +40,7 @@ $ docker build -f dockerfile_oldlinux -t oldlinux:latest .
 制作编译与调试linux 2.6.34/3.16/4.4/5.4的docker镜像，如下命令：
 
 ```bash
-$ docker build -f <dockerfile_2/3/4/5.x> -t linux:latest .
+$ docker build -f <dockerfile_linux2/3/4/5.x> -t <linux-2/3/4/5.x>:latest .
 ```
 
 **附加说明**
