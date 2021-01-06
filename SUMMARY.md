@@ -61,11 +61,7 @@
     * [buildroot](solvedIssue/buildroot.md)
     * [qemu](solvedIssue/qemu.md)
 * docker
-    * [make_oldlinux](docker/make_docker_image_compile_oldlinux.md)
-    * [make_linux-2.x](docker/make_docker_image_compile_linux-2.x.md)
-    * [make_linux-3.x](docker/make_docker_image_compile_linux-3.x.md)
-    * [make_linux-4.x](docker/make_docker_image_compile_linux-4.x.md)
-    * [make_linux-5.x](docker/make_docker_image_compile_linux-5.x.md)
+    * [make_images](docker/make_images.md)
 * qemu
     * [qemu_buildroot](qemu/qemu_buildroot.md)
     * [qemu_busybox.md](qemu/qemu_busybox.md)
