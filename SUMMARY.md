@@ -55,6 +55,7 @@
     * [io_fs_03](input_output_filesystem/io_fs_03.md)
     * [io_fs_04](input_output_filesystem/io_fs_04.md)
 * lock_and_lockup_detector
+    * [general_lock](lock_and_lockup_detector/general_lock.md)
     * [soft_lockup](lock_and_lockup_detector/soft_lockup.md)
 * kvm_in_action
     * [1_Introduction_to_Virtualization.md](kvm_in_action/kvm_virtualization_base/1_Introduction_to_Virtualization.md)
