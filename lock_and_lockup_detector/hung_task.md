@@ -1,20 +1,26 @@
-### 简介
+### 0. 简介
 
 The hung task which are bugs that cause the task to be stuck in uninterruptible "D" state indefinitely.
 
-### 启动Detect Hung Tasks
+### 1. 编译linux kernel
+
+打开Hung Tasks detector
 
 ```bash
 ## based on linux 5.4 version
+$ make x86_64_defconfig
 $ make menuconfig
 Kernel hacking  --->
 	Debug Lockups and Hangs  --->
 		[*] Detect Hung Tasks ## CONFIG_DETECT_HUNG_TASK
 			(120) Default timeout for hung task detection (in seconds)
 			[*]   Panic (Reboot) On Hung Tasks
+$ make
 ```
 
-### 查看Hung Tasks相关属性
+### 2. 启动linux kernel
+
+查看Hung Tasks相关属性
 
 ```bash
 $ cd /proc/sys/kernel/
@@ -26,7 +32,7 @@ hung_task_timeout_secs:120      ## hung tasks后的超时时间
 hung_task_warnings:10           ## 警告的次数
 ```
 
-### 例子
+### 3. 例子
 
 将`test.c`编译成`test.ko`
 
