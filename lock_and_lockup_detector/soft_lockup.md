@@ -127,6 +127,7 @@ crash> foreach UN bt > unbt.txt ## 将每一个CPU D状态进程的堆栈信息�
 但是 ubuntu默认没有安装带调试符号的vmlinux，可以参数ubuntu官方文档进行安装，如下：
 
 https://wiki.ubuntu.com/Debug%20Symbol%20Packages
+
 https://wiki.ubuntu.com/Kernel/Systemtap
 
 安装之后，执行如下命令，进行调试：

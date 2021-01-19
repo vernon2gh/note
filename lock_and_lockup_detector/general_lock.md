@@ -214,8 +214,8 @@ void mutex_unlock(struct mutex *lock)
 
 * 多个CPU相互等待lock A/B
 
-  ​        CPU1                                        CPU2
+  --------CPU1------------------------------CPU2---------
 
-  获取 lock A -> ok                   获取 lock B -> ok
+  获取 lock A -> ok ----------------- 获取 lock B -> ok
   
-  获取 lock B -> spin                获取 lock A -> spin
+  获取 lock B -> spin --------------- 获取 lock A -> spin

@@ -5,6 +5,7 @@ The hung task which are bugs that cause the task to be stuck in uninterruptible 
 ### 启动Detect Hung Tasks
 
 ```bash
+## based on linux 5.4 version
 $ make menuconfig
 Kernel hacking  --->
 	Debug Lockups and Hangs  --->
