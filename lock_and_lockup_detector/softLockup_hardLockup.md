@@ -50,7 +50,7 @@ hardlockup_panic:1 ## 当出现hard lockup后, 打印stack信息，同时是否�
 $ git am 0001-test-soft-lockup.patch
 $ make
 
-## 启动qemu，然后加载hardLockup.ko
+## 启动qemu，然后加载softLockup.ko
 $ insmod softLockup.ko &
 $ 
 [   53.602662] softlockup_init

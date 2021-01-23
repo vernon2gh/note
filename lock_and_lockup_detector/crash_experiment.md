@@ -1,6 +1,6 @@
 ### 1. 编译linux kernel
 
-添加[soft lockup的模拟代码](../resources/patch/lockup/0001-test-simulate-a-deadlock-case.patch)
+添加[dead lockup(soft lockup)的模拟代码](../resources/patch/lockup/0001-test-simulate-a-deadlock-case.patch)
 
 ```bash
 ## based on linux 5.4 version
