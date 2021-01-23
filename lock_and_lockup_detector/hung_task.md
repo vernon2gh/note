@@ -34,39 +34,18 @@ hung_task_warnings:10           ## 警告的次数
 
 ### 3. 例子
 
-将`test.c`编译成`test.ko`
+添加[hung task的模拟代码](../resources/patch/lockup/0001-test-hung-task.patch)
 
 ```bash
-$ cat test.c
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/sched.h>
-
-static noinline void hungtask(void)
-{
-	set_current_state(TASK_UNINTERRUPTIBLE);
-	schedule();
-}
-static int __init hungtask_init(void)
-{
-	hungtask();
-	return 0;
-}
-static void __exit hungtask_exit(void)
-{
-	pr_info("%s\n", __func__);
-}
-
-module_init(hungtask_init);
-module_exit(hungtask_exit);
-MODULE_AUTHOR("xxx");
-MODULE_LICENSE("GPL");
+## 打上测试hung task的补丁
+$ git am 0001-test-hung-task.patch
+$ make
 ```
 
 加载模块
 
 ```bash
-$ insmod test.ko &
+$ insmod hung_task.ko &
 ....
 $ 
 $ [  247.476952] INFO: task insmod:170 blocked for more than 122 seconds.

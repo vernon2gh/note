@@ -1,0 +1,49 @@
+From e5ea38dccd7d4507925138640a873764f6aebcd1 Mon Sep 17 00:00:00 2001
+From: vernon2gh <vernon2gm@gmail.com>
+Date: Sat, 23 Jan 2021 18:30:21 +0800
+Subject: [PATCH] test: soft lockup
+
+---
+ drivers/base/Makefile     |  1 +
+ drivers/base/softLockup.c | 20 ++++++++++++++++++++
+ 2 files changed, 21 insertions(+)
+ create mode 100644 drivers/base/softLockup.c
+
+diff --git a/drivers/base/Makefile b/drivers/base/Makefile
+index 157452080f3d..5bf04203373c 100644
+--- a/drivers/base/Makefile
++++ b/drivers/base/Makefile
+@@ -28,3 +28,4 @@ obj-y			+= test/
+ 
+ ccflags-$(CONFIG_DEBUG_DRIVER) := -DDEBUG
+ 
++obj-m			+= softLockup.o
+diff --git a/drivers/base/softLockup.c b/drivers/base/softLockup.c
+new file mode 100644
+index 000000000000..24d7f4a9c2fd
+--- /dev/null
++++ b/drivers/base/softLockup.c
+@@ -0,0 +1,20 @@
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/interrupt.h>
++
++static int __init softlockup_init(void)
++{
++	pr_info("%s\n", __func__);
++	preempt_disable();
++	for(;;);
++	return 0;
++}
++
++static void __exit softlockup_exit(void)
++{
++	pr_info("%s\n", __func__);
++}
++
++module_init(softlockup_init);
++module_exit(softlockup_exit);
++MODULE_LICENSE("GPL");
+-- 
+2.25.1
+

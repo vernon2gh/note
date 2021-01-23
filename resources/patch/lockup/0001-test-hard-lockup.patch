@@ -1,0 +1,49 @@
+From 718964e1cc43718524024bb8a81b732c22895225 Mon Sep 17 00:00:00 2001
+From: vernon2gh <vernon2gm@gmail.com>
+Date: Sat, 23 Jan 2021 21:46:35 +0800
+Subject: [PATCH] test: hard lockup
+
+---
+ drivers/base/Makefile     |  1 +
+ drivers/base/hardLockup.c | 20 ++++++++++++++++++++
+ 2 files changed, 21 insertions(+)
+ create mode 100644 drivers/base/hardLockup.c
+
+diff --git a/drivers/base/Makefile b/drivers/base/Makefile
+index 157452080f3d..b8697a06b9b1 100644
+--- a/drivers/base/Makefile
++++ b/drivers/base/Makefile
+@@ -28,3 +28,4 @@ obj-y			+= test/
+ 
+ ccflags-$(CONFIG_DEBUG_DRIVER) := -DDEBUG
+ 
++obj-m			+= hardLockup.o
+diff --git a/drivers/base/hardLockup.c b/drivers/base/hardLockup.c
+new file mode 100644
+index 000000000000..2cc157245bdb
+--- /dev/null
++++ b/drivers/base/hardLockup.c
+@@ -0,0 +1,20 @@
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/interrupt.h>
++
++static int __init hardlockup_init(void)
++{
++	pr_info("%s\n", __func__);
++	local_irq_disable();
++	for(;;);
++	return 0;
++}
++
++static void __exit hardlockup_exit(void)
++{
++	pr_info("%s\n", __func__);
++}
++
++module_init(hardlockup_init);
++module_exit(hardlockup_exit);
++MODULE_LICENSE("GPL");
+-- 
+2.25.1
+

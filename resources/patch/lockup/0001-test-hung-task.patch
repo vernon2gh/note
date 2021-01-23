@@ -1,0 +1,51 @@
+From 6e1331b9221b65b2c3fcb35b58726bd7d1e7f7ba Mon Sep 17 00:00:00 2001
+From: vernon2gh <vernon2gm@gmail.com>
+Date: Sat, 23 Jan 2021 22:03:25 +0800
+Subject: [PATCH] test: hung task
+
+---
+ drivers/base/Makefile    |  1 +
+ drivers/base/hung_task.c | 22 ++++++++++++++++++++++
+ 2 files changed, 23 insertions(+)
+ create mode 100644 drivers/base/hung_task.c
+
+diff --git a/drivers/base/Makefile b/drivers/base/Makefile
+index 157452080f3d..66038c4f696b 100644
+--- a/drivers/base/Makefile
++++ b/drivers/base/Makefile
+@@ -28,3 +28,4 @@ obj-y			+= test/
+ 
+ ccflags-$(CONFIG_DEBUG_DRIVER) := -DDEBUG
+ 
++obj-m			+= hung_task.o
+diff --git a/drivers/base/hung_task.c b/drivers/base/hung_task.c
+new file mode 100644
+index 000000000000..3806ac464664
+--- /dev/null
++++ b/drivers/base/hung_task.c
+@@ -0,0 +1,22 @@
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/sched.h>
++
++static noinline void hungtask(void)
++{
++	set_current_state(TASK_UNINTERRUPTIBLE);
++	schedule();
++}
++static int __init hungtask_init(void)
++{
++	hungtask();
++	return 0;
++}
++static void __exit hungtask_exit(void)
++{
++	pr_info("%s\n", __func__);
++}
++
++module_init(hungtask_init);
++module_exit(hungtask_exit);
++MODULE_LICENSE("GPL");
+-- 
+2.25.1
+

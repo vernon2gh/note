@@ -1,0 +1,65 @@
+From 5f7ba8df4fb453780e4546d637dce1a0112082c1 Mon Sep 17 00:00:00 2001
+From: Jeff Xie <huan.xie@suse.com>
+Date: Fri, 25 Dec 2020 16:46:10 +0800
+Subject: [PATCH] test: simulate a deadlock case
+
+---
+ drivers/base/devtmpfs.c | 6 ++++++
+ kernel/sched/core.c     | 8 ++++++--
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/base/devtmpfs.c b/drivers/base/devtmpfs.c
+index 6cdbf1531238..3549fea33a99 100644
+--- a/drivers/base/devtmpfs.c
++++ b/drivers/base/devtmpfs.c
+@@ -124,7 +124,10 @@ int devtmpfs_create_node(struct device *dev)
+ 	requests = &req;
+ 	spin_unlock(&req_lock);
+ 
++	spin_lock(&thread->alloc_lock);
+ 	wake_up_process(thread);
++	spin_unlock(&thread->alloc_lock);
++
+ 	wait_for_completion(&req.done);
+ 
+ 	kfree(tmp);
+@@ -154,7 +157,10 @@ int devtmpfs_delete_node(struct device *dev)
+ 	requests = &req;
+ 	spin_unlock(&req_lock);
+ 
++	spin_lock(&thread->alloc_lock);
+ 	wake_up_process(thread);
++	spin_unlock(&thread->alloc_lock);
++
+ 	wait_for_completion(&req.done);
+ 
+ 	kfree(tmp);
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 90e4b00ace89..91921b466dae 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2519,7 +2519,9 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
+ 	unsigned long flags;
+ 	int cpu, success = 0;
+ 
+-	preempt_disable();
++	pr_info("comm:%s %s:%d\n", p->comm, __func__, __LINE__);
++	spin_lock(&p->alloc_lock);
++	pr_info("comm:%s %s:%d\n", p->comm, __func__, __LINE__);
+ 	if (p == current) {
+ 		/*
+ 		 * We're waking current, this means 'p->on_rq' and 'task_cpu(p)
+@@ -2647,7 +2649,9 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
+ out:
+ 	if (success)
+ 		ttwu_stat(p, cpu, wake_flags);
+-	preempt_enable();
++	pr_info("comm:%s %s:%d\n", p->comm, __func__, __LINE__);
++	spin_unlock(&p->alloc_lock);
++	pr_info("comm:%s %s:%d\n", p->comm, __func__, __LINE__);
+ 
+ 	return success;
+ }
+-- 
+2.26.2
+

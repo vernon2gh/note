@@ -57,7 +57,8 @@
 * lock_and_lockup_detector
     * [general_lock](lock_and_lockup_detector/general_lock.md)
     * [hung_task](lock_and_lockup_detector/hung_task.md)
-    * [soft_lockup](lock_and_lockup_detector/soft_lockup.md)
+    * [softLockup_hardLockup](lock_and_lockup_detector/softLockup_hardLockup.md)
+    * [crash_experiment](lock_and_lockup_detector/crash_experiment.md)
 * kvm_in_action
     * [1_Introduction_to_Virtualization.md](kvm_in_action/kvm_virtualization_base/1_Introduction_to_Virtualization.md)
 * solved issue
