@@ -16,6 +16,12 @@
     * [touch_screen](linuxDriver/touch_screen.md)
     * [debugfs](linuxDriver/debugfs.md)
     * [v4l2](linuxDriver/v4l2.md)
+* linuxSystem
+    * common
+        * [procfs](linuxSystem/common/procfs.md)
+        * [cmd_ps](linuxSystem/common/cmd_ps.md)
+    * ubuntu
+        * [get_cmd_src](linuxSystem/ubuntu/get_cmd_src.md)
 * old linux
     * [TestEnvironment](oldlinux/TestEnvironment.md)
     * [load_setup](oldlinux/load_setup.md)
