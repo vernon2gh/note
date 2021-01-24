@@ -16,6 +16,11 @@
     * [touch_screen](linuxDriver/touch_screen.md)
     * [debugfs](linuxDriver/debugfs.md)
     * [v4l2](linuxDriver/v4l2.md)
+* linuxDebug
+    * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
+    * [i2c_tools](linuxDebug/i2c_tools.md)
+    * [objdump](linuxDebug/objdump.md)
+    * [gdb](linuxDebug/gdb.md)
 * linuxSystem
     * common
         * [procfs](linuxSystem/common/procfs.md)
@@ -86,13 +91,9 @@
         * [reference_website](qemu/demo_mini2440/reference_website.md)
 * tools
     * [getKernelSourceCodeList](Tools/getKernelSourceCodeList.md)
-    * [openocd_openjtag](Tools/openocd_openjtag.md)
     * [shell](Tools/shell.md)
     * [translating](Tools/translating.md)
     * [YouCompleteMe](Tools/YouCompleteMe.md)
-    * [i2c_tools](Tools/i2c_tools.md)
-    * [objdump](Tools/objdump.md)
-    * [gdb](Tools/gdb.md)
     * [vscode](Tools/vscode.md)
     * [share_file](Tools/share_file.md)
     * [binary](Tools/binary.md)
