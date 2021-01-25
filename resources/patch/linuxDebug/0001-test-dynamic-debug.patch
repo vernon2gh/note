@@ -1,0 +1,87 @@
+From 59f8ed54c824299c780029f4c0a730c2c7845408 Mon Sep 17 00:00:00 2001
+From: vernon2gh <vernon2gm@gmail.com>
+Date: Mon, 25 Jan 2021 17:54:55 +0800
+Subject: [PATCH] test: dynamic debug
+
+---
+ drivers/base/Makefile             |  1 +
+ drivers/base/dynamic_debug_test.c | 58 +++++++++++++++++++++++++++++++
+ 2 files changed, 59 insertions(+)
+ create mode 100644 drivers/base/dynamic_debug_test.c
+
+diff --git a/drivers/base/Makefile b/drivers/base/Makefile
+index c12c7f2f2a6f..9160e4c70444 100644
+--- a/drivers/base/Makefile
++++ b/drivers/base/Makefile
+@@ -23,3 +23,4 @@ ifeq ($(CONFIG_DEBUG_DRIVER),y)
+ EXTRA_CFLAGS += -DDEBUG
+ endif
+ 
++obj-m			+= dynamic_debug_test.o
+diff --git a/drivers/base/dynamic_debug_test.c b/drivers/base/dynamic_debug_test.c
+new file mode 100644
+index 000000000000..8d5678b291b1
+--- /dev/null
++++ b/drivers/base/dynamic_debug_test.c
+@@ -0,0 +1,58 @@
++#include <linux/delay.h>
++#include <linux/kernel.h>
++#include <linux/kthread.h>
++#include <linux/module.h>
++
++static struct task_struct *kthread1, *kthread2;
++
++static int work_func1(void *data)
++{
++	int i = 0;
++
++	while (!kthread_should_stop()) {
++		pr_debug("1 %d\n", i);
++
++		msleep(1000);
++		i++;
++		if (i == 10)
++			i = 0;
++	}
++
++	return 0;
++}
++
++static int work_func2(void *data)
++{
++	int i = 0;
++
++	while (!kthread_should_stop()) {
++		pr_debug("2 %d\n", i);
++
++		msleep(1000);
++		i++;
++		if (i == 10)
++			i = 0;
++	}
++
++	return 0;
++}
++
++static int myinit(void)
++{
++	kthread1 = kthread_create(work_func1, NULL, "mykthread1");
++	kthread2 = kthread_create(work_func2, NULL, "mykthread2");
++	wake_up_process(kthread1);
++	wake_up_process(kthread2);
++
++	return 0;
++}
++
++static void myexit(void)
++{
++	kthread_stop(kthread1);
++	kthread_stop(kthread2);
++}
++
++module_init(myinit);
++module_exit(myexit);
++MODULE_LICENSE("GPL");
+-- 
+2.25.1
+
