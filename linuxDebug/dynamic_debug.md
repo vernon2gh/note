@@ -57,8 +57,6 @@ $ echo "module dynamic_debug_test -p" > /sys/kernel/debug/dynamic_debug/control
 ## 以file为单位输出log
 $ echo "file dynamic_debug_test.c line 13 +p" > /sys/kernel/debug/dynamic_debug/control
 $ dmesg | tail
-[  119.756883] 2 8
-[  119.757013] 1 8
 [  209.855417] 1 8
 [  210.856516] 1 9
 [  211.857505] 1 0
@@ -74,10 +72,6 @@ $ echo "file dynamic_debug_test.c line 13 -p" > /sys/kernel/debug/dynamic_debug/
 ## 以function为单位输出log
 $ echo "func work_func2 +p" > /sys/kernel/debug/dynamic_debug/control
 $ dmesg | tail
-[  220.871596] 1 9
-[  221.872514] 1 0
-[  222.873492] 1 1
-[  223.874653] 1 2
 [  360.023953] 2 8
 [  361.024880] 2 9
 [  362.025961] 2 0
