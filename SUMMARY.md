@@ -31,6 +31,7 @@
         * [cmd_ps](linuxSystem/common/cmd_ps.md)
     * ubuntu
         * [get_cmd_src](linuxSystem/ubuntu/get_cmd_src.md)
+        * [record_ssh_info](linuxSystem/ubuntu/record_ssh_info.md)
 * old linux
     * [TestEnvironment](oldlinux/TestEnvironment.md)
     * [load_setup](oldlinux/load_setup.md)
