@@ -14,7 +14,7 @@
    auth	optional	record.so
    ```
 
-3. 通过[源码](../../resources/code/c/pam)编译，生成动态库 record.so，并且安装到系统中
+3. 通过[Makefile](../../resources/code/c/pam/Makefile)编译[源码](../../resources/code/c/pam/record.c)，生成动态库 record.so，并且安装到系统中
 
    ```bash
    $ cd pam/
