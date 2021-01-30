@@ -106,6 +106,20 @@ or
 $ git fetch <remote_url> <remote_branch>:<local_branch>
 ```
 
+## PATCH
+
+output `<commit>` patch only
+
+```bash
+$ git format-patch -1 <commit>
+```
+
+Output the patch of a certain range, such as the patch of `commit1~commit3`, excluding `commit1` patch
+
+```bash
+$ git format-patch <commit1>..<commit3>
+```
+
 ## TIPS
 
  tag
@@ -182,5 +196,11 @@ commit c02e774166119ff4830b5a2f4db48b97b74dd290
 
 commit b2dba726e7606b9f5374218c236c4e2d5efb7877
     Init
+```
+
+Displays the author of each line of a file
+
+```bash
+$ git blame <file>
 ```
 
