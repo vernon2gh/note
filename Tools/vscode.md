@@ -125,10 +125,14 @@
   ```bash
   $ global <funcName>    # 查找函数定义
   $ global -r <funcName> # 查找函数调用
+  或
+  ## -x : 使用标准ctags格式显示结果
+  $ global -x <funcName>
+  $ global -rx <funcName>
   ```
-
+  
   **2. 通过vim gtags-cscope 进行查询**
-
+  
   ```bash
   vim test.c
   
@@ -138,7 +142,7 @@
   :cs find g <funcName> # 查找函数定义
   :cs find c <funcName> # 查找函数调用
   ```
-
+  
   **3. 通过vscode C/C++ GNU Global插件进行查询（推荐）**
 
 
