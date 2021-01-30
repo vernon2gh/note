@@ -105,6 +105,7 @@
     * [markdown](Tools/markdown.md)
     * [Draw](Tools/Draw.md)
     * [git](Tools/git.md)
+    * [tig](Tools/tig.md)
 * weidongshan_Linux
     * [HelloWorld.md](weidongshan_Linux/01_hello/HelloWorld.md)
     * [gcc_use.md](weidongshan_Linux/02_options/gcc_use.md)
