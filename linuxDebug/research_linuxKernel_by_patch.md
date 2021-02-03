@@ -1,4 +1,4 @@
-### 步骤
+### 步骤 (以研究slub为例子进行说明)
 
 查找`slub.c`的第一个提交记录
 
@@ -27,6 +27,16 @@ $ git checkout slub
 $ git apply --check patches/0001-SLUB-core.patch
 $ git am patches/0001-SLUB-core.patch
 ```
+
+研究第一个patch一般会比较难入手，因为对slub不熟悉，不过也不用太担心，因为作者能够将patch push到linux kernel中，说明当初push到linux kernel时，他会提供很多说明/文档/演讲与maintainer进行解释，我们只要能够找到当时的资料足矣看懂此patch。
+
+如何寻找相关说明/文档/演讲？
+
+* 说明/文档 在linux kernel 源码注释与`Documentation/`
+
+* 演讲 可以 google 查找一下，说不定能找到作者的博客。
+
+* 网上其它人的博客/书对源码的解释等等
 
 将第二个patch打在`slub`分支，进行研究
 
