@@ -84,6 +84,7 @@
     * [qemu](solvedIssue/qemu.md)
 * docker
     * [make_images](docker/make_images.md)
+    * [shell_mount](docker/shell_mount.md)
 * qemu
     * [qemu_buildroot](qemu/qemu_buildroot.md)
     * [qemu_busybox.md](qemu/qemu_busybox.md)
