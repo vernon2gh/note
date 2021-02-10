@@ -30,6 +30,7 @@
     * common
         * [procfs](linuxSystem/common/procfs.md)
         * [cmd_ps](linuxSystem/common/cmd_ps.md)
+        * [makefile](linuxSystem/common/makefile.md)
     * ubuntu
         * [get_cmd_src](linuxSystem/ubuntu/get_cmd_src.md)
         * [record_ssh_info](linuxSystem/ubuntu/record_ssh_info.md)
