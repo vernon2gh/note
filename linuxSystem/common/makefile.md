@@ -24,7 +24,7 @@ ${MAKE}   ## make命令
 
 通常makefile会将其执行的命令行在执行前输出到屏幕上。如果将`@`添加到命令行前，这个命令将不被make回显出来。
 
-``bash
+```bash
 $ vim Makefile
 @echo test1
 echo  test2
