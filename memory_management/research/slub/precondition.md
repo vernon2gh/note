@@ -8,11 +8,16 @@
 
 * 如何搭建编译环境？人生苦短，我用docker
 
-在ubuntu下载linux kernel, 如下：
+在ubuntu下载linux kernel和rootfs, 如下：
 
 ```bash
 $ cd ~/workplaces
 $ git clone https://github.com/vernon2gh/linux.git -b slub
+
+$ git clone --recurse-submodules https://github.com/vernon2gh/minirootfs.git
+$ cd minirootfs/submodule/busybox/
+$ git fetch origin 1_14_stable:1_14_stable
+$ git checkout 1_14_stable
 ```
 
 在ubuntu启动docker，并将ubuntu ~/workplaces目录挂载docker /mnt目录
@@ -23,13 +28,24 @@ $ docker run -itd --name slub -v ~/workplaces:/mnt --privileged vernon2dh/slub b
 $ docker exec -it slub bash
 ```
 
-在docker运行如下命令，编译linux kernel
+在docker运行如下命令，编译linux kernel和rootfs
 
 ```bash
 # x86_64
 $ cd /mnt/linux
 $ make ARCH=x86_64 defconfig
 $ make
+
+$ cd /mnt/minirootfs/submodule/busybox/
+$ mkdir output
+$ make O=output/ menuconfig
+Busybox Settings  --->
+    Build Options  --->
+        [*] Build BusyBox as a static binary (no shared libs)
+$ make O=output/
+$ make O=output/ install
+$ cd /mnt/minirootfs
+$ ./make_image.sh ext2
 ```
 
 * 如何搭建运行环境？人生苦短，我用qemu
