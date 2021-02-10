@@ -147,6 +147,43 @@ apply patch to git repositories
 $ git am <patch>
 ```
 
+## SUB-MODULES
+
+Add sub-modules into a repository
+
+```bash
+$ git submodule add <repository URL> [path]
+$ git commit -m '
+```
+
+Cloning a repository that contains submodules
+
+```bash
+## The first method
+$ git clone <repository URL>
+$ git submodule update --init [--recursive]
+
+## The second method
+$ git clone --recurse-submodules <repository URL>
+```
+
+Update sub-modules
+
+```bash
+## The first method
+$ cd <sub-modules>
+$ git pull
+$ cd <main-repository>
+$ git add .
+$ git commit -m '
+
+## The second method
+$ cd <main-repository>
+$ git submodule update --remote [sub-modules]
+$ git add .
+$ git commit -m '
+```
+
 ## TIPS
 
  tag
