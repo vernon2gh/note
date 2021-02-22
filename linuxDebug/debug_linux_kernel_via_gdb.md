@@ -1,4 +1,4 @@
-### 0. ISSUE
+## ISSUE
 
 ```bash
 $ gdb vmlinux
@@ -7,7 +7,9 @@ Reading symbols from vmlinux...
 (gdb)
 ```
 
-### 1. 编译具有调试信息的vmlinux和*.ko
+## 步骤
+
+编译具有调试信息的vmlinux和*.ko
 
 ```bash
 $ cd linux/
@@ -30,7 +32,7 @@ Processor type and features  --->
 $ make                                          ## 默认编译生成bzImage, vmlinux, *.ko
 ```
 
-### 2. 查看是否已经具有调试符号
+查看是否已经具有调试符号
 
 ```bash
 $ file       vmlinux/*.ko ## with debug_info
@@ -38,7 +40,7 @@ $ nm         vmlinux/*.ko ## function() symbol
 $ objdump -h vmlinux/*.ko ## .debug_** Sections
 ```
 
-### 3. 开始调试内核
+开始调试内核
 
 ```bash
 ## terminal A
