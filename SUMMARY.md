@@ -22,6 +22,7 @@
     * [objdump](linuxDebug/objdump.md)
     * [gdb_useage](linuxDebug/gdb_useage.md)
     * [debug_linux_kernel_via_gdb](linuxDebug/debug_linux_kernel_via_gdb.md)
+    * [debug_linux_module_via_gdb](linuxDebug/debug_linux_module_via_gdb.md)
     * [early_boot](linuxDebug/early_boot.md)
     * [sequentially_execute](linuxDebug/sequentially_execute.md)
     * [dynamic_debug](linuxDebug/dynamic_debug.md)
