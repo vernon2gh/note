@@ -7,6 +7,7 @@
 因为linux kernel默认编译时，会有源码优化选项`-O2`，如果想要在调试时按顺序执行源码，需要指定`-O0`， 使得编译器不做源码优化，如下：
 
 ```bash
+## based on linux2.6.34 version
 ## 修改Makefile与fs/compat_ioctl.c
 $ vim Makefile
 -KBUILD_CFLAGS  += -g
