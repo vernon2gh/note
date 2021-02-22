@@ -20,7 +20,7 @@
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
     * [objdump](linuxDebug/objdump.md)
-    * [gdb](linuxDebug/gdb.md)
+    * [gdb_useage](linuxDebug/gdb_useage.md)
     * [early_boot](linuxDebug/early_boot.md)
     * [debug_symbols](linuxDebug/debug_symbols.md)
     * [sequentially_execute](linuxDebug/sequentially_execute.md)
