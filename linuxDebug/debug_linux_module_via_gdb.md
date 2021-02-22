@@ -98,7 +98,6 @@ loading @0xffffffffa0000000: /xxx/lk_modules/test/test.ko
 
 Breakpoint 1, call_func () at /xxx/lk_modules/test/test.c:8
 8               pr_debug("%s: \n", __func__);
-```
 
 ## terminal A
 $ insmod test.ko
