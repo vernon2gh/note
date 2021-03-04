@@ -7,14 +7,14 @@
 相关结构体：
 
 ```c
-spinlock: struct spinlock(
-	union {
-        struct raw spinlock rlock:
+typedef struct spinlock(
+    union {
+        struct raw_spinlock rlock:
     }
 } spinlock t:
 
-struct raw_ spinlock {
-    arch spinlock_t raw lock;
+struct raw_spinlock {
+    arch_spinlock_t raw_lock;
 }
 ```
 
@@ -77,7 +77,7 @@ wite_unlock(lock)   // 解写锁操作，解锁过程无竟争，因此必然会
 
 ## 信号量
 
-* Linux内核中应用最广泛的同步方式: 自旋锁、信号量( semaphore)
+* Linux内核中应用最广泛的同步方式: 自旋锁、信号量(semaphore)
 
 * 自旋锁和信号量是一种互补的关系，它们有各自适用的场景
 
@@ -123,13 +123,13 @@ wite_unlock(lock)   // 解写锁操作，解锁过程无竟争，因此必然会
 
 * 二值信号量类似于一个普通的锁，而多值信号量类似于一个允许一定并发性的锁
 
-* wait _list字段是当信号量为忙时，所有等待信号量的进程列表，而lock则是保护wait_list的自旋锁
+* wait_list字段是当信号量为忙时，所有等待信号量的进程列表，而lock则是保护wait_list的自旋锁
 
 相关API：
 
 ```c
-DEFINE_SEMAPHORE(sem) 　　　　　　　　　　　　　　　　// 静态定义一个名为sem信号量
-void sema_ init(struct semaphore *sem， int val) // 初始化一个信号量sem，计数器初值为val
+DEFINE_SEMAPHORE(sem)                          // 静态定义一个名为sem信号量
+void sema_init(struct semaphore *sem, int val) // 初始化一个信号量sem，计数器初值为val
 
 // 减少信号量sem的计数器(类似于获取锁)
 // 如果失败(计数器己经是0)，那么转入睡眠(状态为IASK_ UNINTERRUPTIBLE，不会被任何信号唤醒)并把当其进程挂到wait_list; 被唤醒后继续尝试获取锁
@@ -146,9 +146,10 @@ void up(struct semaphore *sem)
 
 ```c
 struct rw_semaphore {
-	long count;
+    long count;
     struct list_head wait_list;
     raw_spinlock_t wait_lock;
+
 #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
     struct optimistic_spin_queue osq;
     struct task_struct *owner;
@@ -181,6 +182,7 @@ struct mutex {
     atomic_t count;
     spinlock_t wait_lock;
     struct list_head wait_list;
+
 #ifdef CONFIG_MUTEX_SPIN_ON_OWNER
     struct task_struct *owner;
     struct optimistic_spin_queue osq;
@@ -217,5 +219,5 @@ void mutex_unlock(struct mutex *lock)
   --------CPU1------------------------------CPU2---------
 
   获取 lock A -> ok ----------------- 获取 lock B -> ok
-  
+
   获取 lock B -> spin --------------- 获取 lock A -> spin
