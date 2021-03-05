@@ -124,4 +124,5 @@
     * [ubuntu_corresponding_linuxkernel](other/ubuntu_corresponding_linuxkernel.md)
     * [ubuntu1004_sources_list](other/ubuntu1004_sources_list.md)
     * [interview](other/interview.md)
+    * [interview_c_base](other/interview_c_base.md)
 
