@@ -1,6 +1,6 @@
 # 文件系统的实现
 
-### EXT2/3/4的layout
+## EXT2/3/4的layout
 
 1. Super block, stoing:
 
@@ -12,15 +12,11 @@
 
    index of root inodes
 
-2. Bitmap of free & used indoes
+2. Bitmap of indoes
 
-3. Bitmap of free & used data blocks
+3. Bitmap of data blocks
 
-4. Table of inodes
-
-   each indo is a file/directory
-
-   includes meta-data and lists of associated data blocks
+4. Inodes table
 
 5. Data blocks(4kB each)
 
@@ -30,9 +26,9 @@ superblock记录文件系统的类型、block大小、block总数、free block�
 
 group描述符记录：block bitmap位置、inode bitmap位置、inode表位置、free block、free inode数量
 
-### 文件系统的一致性
+## 文件系统的一致性
 
-对一个文件增加4k大小，需要对indoes Bitmap、data blocks Bitmap 、Table of inodes、Data blocks进行修改。如果只修改了其中几项，突然断电了，文件系统就不一致。
+对一个文件增加4k大小，需要对indoes Bitmap、data blocks Bitmap 、Inodes table、Data blocks进行修改。如果只修改了其中几项，突然断电了，文件系统就不一致。
 
 例子：
 
@@ -90,7 +86,7 @@ $ ls -li
 12 -rw-r--r-- 1 root root     0 11月 13 19:13 yes
 ```
 
-### 掉电与文件系统一致性
+## 掉电与文件系统一致性
 
 1. 任何的软件技术都**无法保证掉电不丟数据，只能保证一致性**（元数据+数据的一致性 或者 仅元数据的一致性）
 2. dirty_expire_centisecs、DIRECT_IO、SYNC IO的调整，不影响丟/不丟数据，只影响丟多少数据
@@ -98,11 +94,9 @@ $ ls -li
 
 ### fsck
 
+fsck, 全称: file system consistency check
+
 针对早期文件系统，系统重新启动中，使用fsck提供一致性，修复前面的"断电"事故
-
-fsck, file system consistency check
-
-unclean shotdown后自动运行，或者手动运行; 检查superblock、inode和free block bitmap、所有inode的reachability（比如删除corrupted的inode）、验证目录的一致性
 
 例子：
 
@@ -129,18 +123,18 @@ $ dd if=Image bs=4096 skip=18 | hexdump -C -n 32
 00000020
 ```
 
-### 文件系统的日志
+### 日志
 
 针对ext2/ext3/ext4文件系统，对文件系统的修改进行日志管理，提供一致性，从而修复突然断电事故
 
-保存元数据+数据日志(data=journal) - 4个阶段：
+第一种方法：保存元数据+数据日志(data=journal) - 4个阶段：
 
 1. jonrnal write
 2. journal commit
 3. jonrnal checkpoint
 4. jonrnal free
 
-只保存元数据日志(data=writeback or data=ordered) - 5个阶段：
+第二种方法：只保存元数据日志(data=writeback or data=ordered) - 5个阶段：
 
 1. data write
 2. journal metadata write
@@ -148,15 +142,13 @@ $ dd if=Image bs=4096 skip=18 | hexdump -C -n 32
 4. jonrnal checkpoint metadata
 5. jonrnal free
 
-### Copy On Write文件系统
-
-针对btrfs文件系统
-
-每次写磁盘时，先将更新数据写入一个新的block，当新数据写入成功之后，再更新相关的数据结构指向新block
+### Copy On Write
 
 没有日志，用COW实现文件系统一致性
 
-### 文件系统的debug和dump
+如：针对btrfs文件系统，每次写磁盘时，先将更新数据写入一个新的block，当新数据写入成功之后，再更新相关的数据结构指向新block
+
+## 文件系统的debug和dump
 
 常用工具：mkfs、dumpe2f、blkcat、dd、debugfs、blktrace
 
@@ -178,14 +170,14 @@ Size of extra inode fields: 28
 EXTENTS:
 (0): 11591720
 
-## 通过/dev/sda1打印/home/vernon/test.txt内容
+## 打印/home/vernon/test.txt内容
+## 第一种方法：通过/dev/sda1
 $ blkcat /dev/sda1 11591720
 or
 $ dd if=/dev/sda1 of=out.txt skip=$((11591720*8)) bs=512c count=1
 
-## /dev/sda1 offset = 2048
-$ fdisk /dev/sda
-## 通过/dev/sda打印/home/vernon/test.txt内容
+## 第二种方法：通过/dev/sda
+$ fdisk /dev/sda ## 可知，/dev/sda1 offset = 2048
 $ dd if=/dev/sda of=out.txt skip=$((11591720*8+2048)) bs=512c count=1
 
 ## block number look for inode number

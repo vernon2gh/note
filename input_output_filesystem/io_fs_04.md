@@ -13,60 +13,21 @@ app --------------------------------------------> page cache -----> bio --------
 * O_SYNC app进行读写硬盘时，需要经过page cache缓冲，然后立刻读/写硬盘
 * O_DIRECT app进行读写硬盘时，不需要经过page cache，直接读/写硬盘
 
-### ftrace and blktrace
-
-* 读/写流程的ftrace
-
-```bash
-$ cat read.c
-#include <unistd.h>
-#include <fcntl.h>
-
-main()
-{
-    int fd;
-    char buf[4096];
-    sleep(30); //run ./funtion.sh to trace this process
-    fd = open("file", O_RDONLY);
-    read(fd, buf, 4096);
-    read(fd, buf, 4096);
-}
-
-$ cat ./funtion.sh
-#!/bin/bash
-
-debugfs=/sys/kernel/debug
-echo nop > $debugfs/tracing/current_tracer
-echo 0 > $debugfs/tracing/tracing_on
-echo `pidof read` > $debugfs/tracing/set_ftrace_pid
-echo function_graph > $debugfs/tracing/current_tracer
-echo vfs_read > $debugfs/tracing/set_graph_function
-echo 1 > $debugfs/tracing/tracing_on
-
-$ cat /sys/kernel/debug/tracing/trace
-```
-
-* blktrace
-
-```bash
-$ blktrace -d /dev/sda1 -o - | blkparse -i -
-
-$ dd if=main.c of=barry oflag=sync ## 注意：oflag=sync
-```
-
 ### IO调度算法
 
 IO调度算法有三种：
-* noop       : 最简单的调度器，把邻近bio进行合并处理
+* noop     : 最简单的调度器，把邻近bio进行合并处理
 * deadline : 保证读优先级的前提下，写不会饿死
-* cfq           : 考虑进程
+* cfq      : 考虑进程
+
+查询目前是用哪一种IO调度算法？
 
 ```bash
 $ cat /sys/block/sda/queue/scheduler
 noop deadline [cfq]
 ```
 
-CFQ和ionice
+设置IO调度算法与IO nice值
 
 ```bash
 $ echo cfq >  /sys/block/sda/queue/scheduler
@@ -86,7 +47,7 @@ $ mkdir A B
 
 $ cgexec -g blkio:A dd if=/dev/sda of=/dev/null & ## 将dd命令放在A cgroup运行
 $ cgexec -g blkio:B dd if=/dev/sda of=/dev/null & ## 将dd命令放在B cgroup运行
-$ echo 50 > B/blkio.weight ## 设置B cgroup的权重等于50
+$ echo 50 > B/blkio.weight                        ## 设置B cgroup的权重等于50
 $ iotop
 
 $ ls -l /dev/sda
@@ -107,13 +68,3 @@ $ iotop
 
 在cgroup v2，打通了 memory group 和 blkio group，能知道每个group的dirty情况
 
-### IO性能调试
-
-iotop, iostat
-
-```bash
-$ ionice -c 2 -n 0 cat /dev/sda > /dev/null &
-$ ionice -c 2 -n 7 cat /dev/sda > /dev/null &
-
-$ iostat -txz 1
-```

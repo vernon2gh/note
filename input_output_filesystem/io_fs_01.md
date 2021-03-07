@@ -36,7 +36,7 @@ read()后，进程进入睡眠状态，等待IO准备好之后，read()才返回
 
 read()后，进程不会进入睡眠状态，无论IO有没有准备好，read()都立即返回
 
-## 多路复用
+### 多路复用
 
 #### select：适用于监控少数fd，如 5个以下
 
@@ -69,7 +69,7 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 3. 当数据就绪时，epoll_wait()返回值代表有几个fd处于就绪状态，参数events存放就绪状态的fd
 4. 调用非阻塞类型的read()进行操作
 
-## Signal IO
+### Signal IO
 
 关键函数：
 
@@ -83,7 +83,7 @@ sighandler_t signal(int signum, sighandler_t handler);
 2. 当驱动程序发送SIGIO信号时，应用程序执行回调函数test_func()
 3. test_func()调用非阻塞类型的read()进行操作
 
-## 异步IO
+### 异步IO
 
 #### Glibc自带的AIO函数
 
@@ -106,7 +106,7 @@ sighandler_t signal(int signum, sighandler_t handler);
 3. 系统调用io_getevents()等待completions
 4. 系统调用io_destroy()释放上下文
 
-## Libevent
+### Libevent
 
 Libevent是一种事件驱动机制，注册回调函数，如果事件发生，回调函数被调用
 
@@ -119,7 +119,7 @@ Libevent是一种事件驱动机制，注册回调函数，如果事件发生，
 3. event_add()
 4. event_dispatch()
 
-## 模型对比
+### 模型对比
 
 | 模型                                                         | 特点                                                         |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
