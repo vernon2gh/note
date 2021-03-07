@@ -16,7 +16,7 @@
 
   IDLE：CPU0运行A进程，CPU1运行B进程，当A进程进入睡眠时，CPU0执行下一个ready状态 C进程。
 
-  fork and exec：CPU0运行A进程，CPU1空闲，当A进程执行fork() and exec()创建B进程（即：创建新stuct task）时，寻找空闲的CPU1并执行B进程。
+  fork and exec：CPU0运行A进程，CPU1空闲，当A进程执行fork() and exec()创建B进程（即：创建新struct task_struct）时，寻找空闲的CPU1并执行B进程。
 
 * 进程/线程负载均衡一般通过linux kernel自动完成，但是有时候需要将某进程/线程固定在某CPU，此时需要通过调用应用层函数或命令行工具进行设置。
 

@@ -6,7 +6,7 @@
 
 ```c
 struct task_struct {
-	...
+    ...
     pid_t pid;
     struct mm_struct *mm;
     struct fs_struct *fs;
@@ -94,10 +94,10 @@ int main(void)
 
 	pid = fork();
 
-	if (pid==-1)	{
+	if (pid==-1) {
 		perror("Cannot create new process");
 		exit(1);
-	} else 	if (pid==0) {
+	} else if (pid==0) {
 		printf("a\n");
 	} else {
 		printf("b\n");
@@ -126,11 +126,12 @@ int main(void)
 	if (pid==-1)	{
 		perror("Cannot create new process");
 		exit(1);
-	} else 	if (pid==0) {
+	} else if (pid==0) {
 		printf("child process id: %ld\n", (long) getpid());
 		pause();
 		_exit(0);
 	} else {
+
 #if 0 /* define 1 to make child process always a zomie */
 		printf("ppid:%d\n", getpid());
 		while(1);

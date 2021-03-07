@@ -133,7 +133,7 @@ pthread_create() -> clone(flag) -> do_fork(flag)
 
 linux使用 `fork()` 创建进程时，父进程与子进程共享同一个资源，即`struct task_strust` 指向同一个资源，并此时所有资源都以只读方式共享。只有 父进程或子进程 其中一个对资源进行**写操作**时，linux才会为 父进程或子进程 创建复制一份一模一样的资源，即 此时 父子进程 才各自拥有一份完全不同的`struct task_strust`，对资源都拥有读写权限。这就是进程写时拷贝(Copy-on-Write)技术。
 
-linux使用 `vfork()` 创建进程时，跟`fork()` 创建进程基本是一样的，唯一不同是`task_strust－>mm`成员是共享，如 进程中全局变量是共享。
+linux使用 `vfork()` 创建进程时，跟`fork()` 创建进程基本是一样的，唯一不同是`task_strust->mm`成员是共享，如 进程中全局变量是共享。
 
 linux使用`pthread_create()`创建线程时，进程内所有线程共享同一个资源，即 `struct task_strust` 指向同一个资源，所有资源都以读写方式共享。
 
@@ -223,7 +223,7 @@ int main(void)
 	if (pid==-1)	{
 		perror("Cannot create new process");
 		exit(1);
-	} else 	if (pid==0) {
+	} else if (pid==0) {
 		printf("child process id: %ld\n", (long) getpid());
 		pause();
 		_exit(0);
