@@ -27,6 +27,7 @@
     * [sequentially_execute](linuxDebug/sequentially_execute.md)
     * [dynamic_debug](linuxDebug/dynamic_debug.md)
     * [research_linuxKernel_by_patch](linuxDebug/research_linuxKernel_by_patch.md)
+    * [ftrace](linuxDebug/ftrace.md)
 * linuxSystem
     * common
         * [procfs](linuxSystem/common/procfs.md)
