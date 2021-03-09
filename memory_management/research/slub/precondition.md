@@ -37,15 +37,15 @@ $ make ARCH=x86_64 defconfig
 $ make
 
 $ cd /mnt/minirootfs/submodule/busybox/
-$ mkdir output
-$ make O=output/ menuconfig
+$ mkdir output_1_14
+$ make O=output_1_14/ menuconfig
 Busybox Settings  --->
     Build Options  --->
         [*] Build BusyBox as a static binary (no shared libs)
-$ make O=output/
-$ make O=output/ install
+$ make O=output_1_14/
+$ make O=output_1_14/ install
 $ cd /mnt/minirootfs
-$ ./make_image.sh ext2
+$ ./run.sh x86_64 slub
 ```
 
 * 如何搭建运行环境？人生苦短，我用qemu
