@@ -175,7 +175,7 @@ write*:mod:ext4
 
 ### 3.5 前端工具trace-cmd
 
-*function tracer*
+**function tracer**
 
 与前面直接读写`/sys/kernel/debug/tracing/xxx`一样，以 `__kmalloc` 为例，如下：
 
@@ -225,7 +225,7 @@ cpus=1
 
 * `--func-stack`：记录被跟踪函数的调用栈，类似 `echo 1 > options/func_stack_trace`
 
-更多详细参数解析，查看如下命令：
+**更多详细参数解析，查看如下命令：**
 
 ```bash
 $ trace-cmd -h        # 显示trace-cmd命令的帮助信息
