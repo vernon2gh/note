@@ -172,3 +172,63 @@ dev_attr_store
 dev_attr_show
 write*:mod:ext4
 ```
+
+### 3.5 前端工具trace-cmd
+
+*function tracer*
+
+与前面直接读写`/sys/kernel/debug/tracing/xxx`一样，以 `__kmalloc` 为例，如下：
+
+```bash
+## 不显示__kmalloc的调用栈
+$ trace-cmd record -p function -l __kmalloc
+  plugin 'function'
+Hit Ctrl^C to stop recording
+^C
+CPU0 data recorded at offset=0x1ef000
+    8192 bytes in size
+$ trace-cmd report
+cpus=1
+              sh-163   [000]   731.892712: function:             __kmalloc <-- security_prepare_creds
+             cat-248   [000]   731.895426: function:             __kmalloc <-- security_prepare_creds
+             cat-248   [000]   731.895687: function:             __kmalloc <-- load_elf_phdrs
+
+
+## 显示__kmalloc的调用栈
+$ trace-cmd record -p function -l __kmalloc --func-stack
+  plugin 'function'
+Hit Ctrl^C to stop recording
+^C
+CPU0 data recorded at offset=0x1ef000
+    4096 bytes in size
+$ trace-cmd report
+cpus=1
+              sh-163   [000]   820.854628: function:             __kmalloc <-- security_prepare_creds
+              sh-163   [000]   820.854857: kernel_stack:         <stack trace>
+=> ffffffffc0021061
+=> __kmalloc (ffffffff849d7445)
+=> security_prepare_creds (ffffffff84b59cba)
+=> prepare_creds (ffffffff8488d24c)
+=> copy_creds (ffffffff8488d4ba)
+=> copy_process (ffffffff84865c97)
+=> _do_fork (ffffffff84867384)
+=> __x64_sys_clone (ffffffff848678b6)
+=> do_syscall_64 (ffffffff84802538)
+=> entry_SYSCALL_64_after_hwframe (ffffffff8540007c)
+```
+
+参数解释：
+
+* `-p`：指定当前的 tracer，类似 `echo function > current_tracer`，支持 `available_tracers` 中的任意一个
+
+* `-l`：指定跟踪的函数，可以设置多个，类似 `echo <function_name> > set_ftrace_filter`
+
+* `--func-stack`：记录被跟踪函数的调用栈，类似 `echo 1 > options/func_stack_trace`
+
+更多详细参数解析，查看如下命令：
+
+```bash
+$ trace-cmd -h        # 显示trace-cmd命令的帮助信息
+$ trace-cmd record -h # 显示trace-cmd record子命令的帮助信息
+$ trace-cmd report -h # 显示trace-cmd repord子命令的帮助信息
+```
