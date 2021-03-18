@@ -72,6 +72,7 @@
     * [mm5](memory_management/mm05.md)
     * research_slub
         * [precondition](memory_management/research/slub/precondition.md)
+        * [proc_slabinfo](memory_management/research/slub/proc_slabinfo.md)
 * input_output_filesystem
     * [io_fs_01](input_output_filesystem/io_fs_01.md)
     * [io_fs_02](input_output_filesystem/io_fs_02.md)
