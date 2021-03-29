@@ -49,6 +49,9 @@
     * [mapping](linux-2.x/mapping.md)
     * [tree](linux-2.x/tree.md)
     * [syscall](linux-2.x/syscall.md)
+    * slub
+        * [precondition](linux-2.x/slub/precondition.md)
+        * [proc_slabinfo](linux-2.x/slub/proc_slabinfo.md)
 * linux-3.x
     * [compile_linux-3.x](linux-3.x/compile_linux-3.x.md)
 * linux-4.x
@@ -70,9 +73,6 @@
     * [mm3](memory_management/mm03.md)
     * [mm4](memory_management/mm04.md)
     * [mm5](memory_management/mm05.md)
-    * research_slub
-        * [precondition](memory_management/research/slub/precondition.md)
-        * [proc_slabinfo](memory_management/research/slub/proc_slabinfo.md)
 * input_output_filesystem
     * [io_fs_01](input_output_filesystem/io_fs_01.md)
     * [io_fs_02](input_output_filesystem/io_fs_02.md)
