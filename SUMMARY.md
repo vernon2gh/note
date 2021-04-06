@@ -54,6 +54,7 @@
         * [proc_slabinfo](linux-2.x/slub/proc_slabinfo.md)
         * [slub](linux-2.x/slub/slub.md)
         * [kmalloc](linux-2.x/slub/kmalloc.md)
+        * [kfree](linux-2.x/slub/kfree.md)
 * linux-3.x
     * [compile_linux-3.x](linux-3.x/compile_linux-3.x.md)
 * linux-4.x
