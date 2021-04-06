@@ -73,6 +73,7 @@ static __always_inline void *slab_alloc(struct kmem_cache *s,
 	void **object;
 	struct kmem_cache_cpu *c;
 
+	// 判断object是否存在？如果存在，将freelist指向下一个空闲的object；如果不存在，执行__slab_alloc()
 	c = __this_cpu_ptr(s->cpu_slab);
 	object = c->freelist;
 	if (unlikely(!object || !node_match(c, node)))
@@ -80,21 +81,14 @@ static __always_inline void *slab_alloc(struct kmem_cache *s,
 	else
 		c->freelist = get_freepointer(s, object);
 
+	// 判断gfpflags是否有__GFP_ZERO标志？如果有，将object清零；如果没有，不做任何操作；
 	if (unlikely(gfpflags & __GFP_ZERO) && object)
 		memset(object, 0, s->objsize);
 
+	// 最后返回object
 	return object;
 }
-```
 
-获得`kmem_cache_cpu`，并且将`kmem_cache_cpu`结构体的`freelist`指向第一个空闲的object 赋值给 object变量，然后判断object是否存在？如果object存在，将`freelist`指向下一个空闲的object；如果object不存在，执行`__slab_alloc()`获得object
-
-然后判断`gfpflags`是否有`__GFP_ZERO`标志？如果有，将object清零；如果没有，不做任何操作；最后返回object
-
-`__slab_alloc()`定义，如下：
-
-```c
-/* mm/slub.c */
 static void *__slab_alloc(struct kmem_cache *s, gfp_t gfpflags, int node,
 			  unsigned long addr, struct kmem_cache_cpu *c)
 {
@@ -148,7 +142,18 @@ new_slab:
 }
 ```
 
-注意：此函数需要配合slub分配器原理一起看，slub分配器原理链接在开头引用中
+通过检查如下变量是否为NULL，执行不同的情况下的object分配
+
+* `kmem_cache_cpu`结构体的`freelist`变量（指向slab的第一个空闲object）
+* `kmem_cache_cpu`结构体的`page`变量（如果slab存在，一直指向slab的第一个object）
+* `kmem_cache_node`结构体的`partial`链表（指向有部分空闲object的slab）
+
+可以分成4种情况，对应slub分配器原理的4种情况：
+
+* **第一种情况**：通过检查`freelist`变量、`page `变量 和 `partial`链表都等于 `NULL`
+* **第二种情况**：通过检查`freelist`变量不等于NULL
+* **第三种情况**：通过检查`freelist`变量等于NULL，同时`page `变量 和 `partial`链表不等于NULL
+* **第四种情况**：通过检查`freelist`变量等于NULL，但是`page `变量不等于NULL 和 `partial`链表等于NULL
 
 `deactivate_slab()`定义，如下：
 
