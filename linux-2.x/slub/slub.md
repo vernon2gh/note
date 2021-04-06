@@ -54,17 +54,25 @@ slab分配器有slab, slub, slob算法，从某一个linux kernel版本后，默
 
 **第一种情况**：释放的object属于`kmem_cache_cpu`结核体的`freelist`变量指向的slab
 
+直接把object释放到对应的slab中
+
 ![free_cpu](pic/free_cpu.svg)
 
 **第二种情况**：释放的object属于`kmem_cache_node`结构体的`full` 链表指向的slab
+
+先把object释放到对应的slab中，再把此slab移动到`partial`链表中
 
 ![free_node_full](pic/free_node_full.svg)
 
 **第三种情况**：释放的object属于`kmem_cache_node`结构体的`partial` 链表指向的slab，但是释放后，`partial`链表指向的slab不为空
 
+直接把object释放到对应的slab中
+
 ![free_node_partial_no_idle](pic/free_node_partial_no_idle.svg)
 
 **第四种情况**：释放的object属于`kmem_cache_node`结构体的`partial` 链表指向的slab，但是释放后，`partial`链表指向的slab为空
+
+先把object释放到对应的slab中，再把此slab从`partial`链表中删除，最后释放此slab
 
 ![free_node_partial_idle](pic/free_node_partial_idle.svg)
 
