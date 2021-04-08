@@ -130,4 +130,5 @@
     * [ubuntu1004_sources_list](other/ubuntu1004_sources_list.md)
     * [interview](other/interview.md)
     * [interview_c_base](other/interview_c_base.md)
+    * [know_dontknow](other/know_dontknow.md)
 
