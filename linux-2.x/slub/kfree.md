@@ -23,4 +23,4 @@ void kfree(const void *x)
 }
 ```
 
-如果`x`是NULL，直接返回；否则，通过`virt_to_head_page()`从`x`获得slab的首页地址`page`，然后调用`slab_free()`
+如果`x`是NULL，直接返回；否则，通过`virt_to_head_page()`从`x`获得slab的首页地址`page`，然后调用[slab_free()](slab_free.md)
