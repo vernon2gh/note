@@ -55,6 +55,9 @@
         * [slub](linux-2.x/slub/slub.md)
         * [kmalloc](linux-2.x/slub/kmalloc.md)
         * [kfree](linux-2.x/slub/kfree.md)
+        * [kmem_cache](linux-2.x/slub/kmem_cache.md)
+        * [slab_alloc](linux-2.x/slub/slab_alloc.md)
+        * [slab_free](linux-2.x/slub/slab_free.md)
 * linux-3.x
     * [compile_linux-3.x](linux-3.x/compile_linux-3.x.md)
 * linux-4.x

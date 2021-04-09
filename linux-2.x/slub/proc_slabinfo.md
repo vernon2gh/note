@@ -36,13 +36,13 @@ kmem_cache_node        0      0     64   64    1 : tunables    0    0    0 : sla
 
 对`/proc/slabinfo`每一列的详细解释，如下:
 
-* 第1列  name        ：kmem_cache名字，即 `kmem_cache->name`
-* 第2列  active_objs ：目前已经使用的object数量
-* 第3列  num_objs    ：全部object数量
-* 第4列  objsize     ：object的大小
-* 第5列  objperslab  ：每一个slab的object数量
-* 第6列  pagesperslab：每一个slab的page数量
-* 第13列 num_slabs   ：slabs的数量
+* 第1列  name              : kmem_cache名字，即 `kmem_cache->name`
+* 第2列  active_objs     : 目前已经使用的object数量
+* 第3列  num_objs       : 全部object数量
+* 第4列  objsize            : 一个object的大小，包括meta数据
+* 第5列  objperslab      : 每一个slab的object数量
+* 第6列  pagesperslab : 每一个slab的page数量
+* 第13列 num_slabs     : slabs的数量
 
 ## 2. 内核层实现
 
