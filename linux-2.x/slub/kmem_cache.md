@@ -1,6 +1,6 @@
-## 简介
+## 0. 简介
 
-`kmem_cache_xxx()`是linux kernel提供的申请内存的API，一般用法：
+`kmem_cache_xxx()`是linux kernel提供的申请小内存(8B, 16B, 32B...4096B, 8192B)的API，一般用法：
 
 ```c
 #include <linux/slab.h>
@@ -16,9 +16,9 @@ kmem_cache_destroy(cachep);
 
 通过`kmem_cache_free()`释放之前申请到的object，然后调用`kmem_cache_destroy()`释放kmem_cache类型的变量
 
-我们平时通过`kmalloc()`申请小内存时，就是通过`kmem_cache_xxx()`实现的
+我们平时通过`kmalloc()/kfree()`申请/释放小内存时，就是通过kmem_cache实现的
 
-## 分析kmem_cache源码
+## 1. 分析源码
 
 我们使用`kmem_cache_xxx()`时会通过`#include <linux/slab.h>`导入函数的原型，但是在导入函数原型前，需要通过配置`CONFIG_SLUB`、`CONFIG_SLOB`来选择小内存分配算法，如下：
 
@@ -33,7 +33,9 @@ kmem_cache_destroy(cachep);
 #endif
 ```
 
-通过查找`.config`或`include/generated/autoconf.h`，可知目前使用slub分配器对`kmem_cache_xxx()`进行小内存分配。
+通过查找`.config`或`include/generated/autoconf.h`，可知目前使用slub分配器进行小内存分配。
+
+### 1.1 创建kmem_cache
 
 `kmem_cache_create()`定义，如下：
 
@@ -63,7 +65,7 @@ static int kmem_cache_open(struct kmem_cache *s, gfp_t gfpflags,
 	s->align = align;
 	s->flags = kmem_cache_flags(size, flags, name, ctor);
 
-	if (!calculate_sizes(s, -1))        // 初始化objsize变量
+	if (!calculate_sizes(s, -1))        // 初始化size变量
 		goto error;
 
 	set_min_partial(s, ilog2(s->size)); // 初始化min_partial变量
@@ -80,6 +82,8 @@ static int kmem_cache_open(struct kmem_cache *s, gfp_t gfpflags,
 ```
 
 首先通过`kmalloc()`申请kmem_cache，再调用`kmem_cache_open()`进行初始化，然后将kmem_cache放入slab_caches链表，并且调用`sysfs_slab_add()`创建`/proc/slabinfo`相关条目，最后返回kmem_cache
+
+### 1.2 删除kmem_cache
 
 `kmem_cache_destroy()`定义，如下：
 
@@ -113,6 +117,8 @@ static inline int kmem_cache_close(struct kmem_cache *s)
 
 首先将kmem_cache从slab_caches链表中删除，然后调用`kmem_cache_close()`释放kmem_cache相关资源，最后调用`sysfs_slab_remove()`删除`/proc/slabinfo`相关条目
 
+### 1.3 从kmem_cache中分配object
+
 `kmem_cache_alloc()`定义，如下：
 
 ```c
@@ -126,6 +132,8 @@ void *kmem_cache_alloc(struct kmem_cache *s, gfp_t gfpflags)
 ```
 
 调用[slab_alloc()](slab_alloc.md)从slab中分配一个object并且返回。如果没有可用的slab，使用`gfpflags`标志分配新slab
+
+### 1.4 从kmem_cache中释放object
 
 `kmem_cache_free()`定义，如下：
 
