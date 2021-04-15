@@ -29,7 +29,7 @@ Reading symbols from vmlinux...
 创建launch.json
 
 ```json
-$ cat .vscode/launch.json 
+$ cat .vscode/launch.json
 {
     "version": "0.2.0",
     "configurations": [
@@ -70,7 +70,7 @@ $ qemu-system-x86_64 -nographic -M pc -kernel bzImage -drive file=rootfs.ext4,if
 创建`settings.json`
 
 ```bash
-$ cat .vscode/settings.json 
+$ cat .vscode/settings.json
 {
     "C_Cpp.default.compileCommands": "compile_commands.json",
     "json.maxItemsComputed": 15000
@@ -87,8 +87,8 @@ $ cat .vscode/settings.json
 ## based linux5.4
 $ cd linux
 $ make ARCH=x86 x86_64_defconfig
-$ make ARCH=x86
-$ ./scripts/gen_compile_commands.py
+$ make ARCH=x86                     ## 编译生成bzImage以及autoconf.h
+$ ./scripts/gen_compile_commands.py ## 生成compile_commands.json
 ```
 
 **B. 第二种情况**
@@ -101,7 +101,8 @@ $ ./scripts/gen_compile_commands.py
 ## based linux2.6.34
 $ cd linux
 $ make ARCH=x86 x86_64_defconfig
-$ compiledb -n --command-style make ARCH=x86 ## 使用compiledb命令生成, 不用执行编译步骤
+$ compiledb -n --command-style make ARCH=x86 ## 生成compile_commands.json
+$ make ARCH=x86                              ## 编译生成bzImage以及autoconf.h
 
 $ compiledb -h
 Usage: compiledb [OPTIONS] COMMAND [ARGS]...
