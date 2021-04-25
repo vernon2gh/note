@@ -214,7 +214,7 @@ vim test.c
 ```bash
 "scope4code.databasePath": "${workspaceRoot}/",
 "scope4code.engineCommands": {
-	"config_index": {
+    "config_index": {
         "cscope": {
             "linux": 0
         }
@@ -222,13 +222,13 @@ vim test.c
     "config": [
         {
             "find_cmd": "find ${src_path} -type f -name *.c -o -type f -name *.h -o -type f -name *.cpp -o -type f -name *.cc -o -type f -name *.mm",
-            // "database_cmd": "cscope -b -q -k -f cscope.out",
+            // "database_cmd": "cscope -b -q -k -f ${database_path}/cscope.out",
             "database_cmd": "make ARCH=x86 cscope",
-            "find_all_ref": "cscope -q -k -L0 ${text}",
-            "find_define": "cscope -q -k -L1 ${text}",
-            "find_callee": "cscope -q -k -L2 ${text}",
-            "find_caller": "cscope -q -k -L3 ${text}",
-            "find_text": "cscope -q -k -L4 ${text}"
+            "find_all_ref": "cscope -q -k -f ${database_path}/cscope.out -L0 ${text}",
+            "find_define": "cscope -q -k -f ${database_path}/cscope.out -L1 ${text}",
+            "find_callee": "cscope -q -k -f ${database_path}/cscope.out -L2 ${text}",
+            "find_caller": "cscope -q -k -f ${database_path}/cscope.out -L3 ${text}",
+            "find_text": "cscope -q -k -f ${database_path}/cscope.out -L4 ${text}"
         }
     ]
 }
