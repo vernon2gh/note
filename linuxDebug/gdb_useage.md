@@ -84,3 +84,10 @@
 (gdb) quit
 ```
 
+### 10. 查看函数调用栈，栈帧的内容
+
+```
+(gdb) bt
+(gdb) frame <number>
+```
+
