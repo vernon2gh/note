@@ -101,7 +101,7 @@ $ arm-linux-gnueabihf-objdump -S clk.o > clk.dump
 
 **PC在clk_core_prepare()函数偏移0x1c位置，即0x80512434**
 
-可以通过vmlinux.dump分析，也可以通过clk.dump分析，二选一即可
+可以通过vmlinux.dump分析，也可以通过clk.dump分析，也可以通过 addr2line 或 gdb 分析，四选一即可
 
 ### 2.1 通过vmlinux.dump分析
 
@@ -158,6 +158,23 @@ $ arm-linux-gnueabihf-objdump -S clk.o > clk.dump
 clk_core_prepare函数地址是0x000029a8，0x000029a8 + 0x1c = 0x000029c4
 
 可知，读core->prepare_count值时，出现Oops
+
+### 2.3 通过addr2line分析
+
+只要提供出错的PC绝对地址给addr2line，就可以直接得到哪一个文件以及哪一行源码出错
+
+```bash
+$ xxx-addr2line -e vmlinux 0x80512434
+```
+
+### 2.4 通过gdb分析
+
+只要提供出错的PC相对地址给gdb，就可以直接得到哪一个文件以及哪一行源码出错
+
+```bash
+$ xxx-gdb vmlinux
+(gdb) list *(clk_core_prepare+0x1c)
+```
 
 ## 3. 解决问题
 
