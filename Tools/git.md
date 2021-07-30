@@ -100,16 +100,16 @@ Clone remote server git repositories
 $ git clone <remote_url>
 ```
 
-Push code to remote server
+Push code/tags to remote server
 
 ```bash
-$ git push <remote_url> <local_branch>[:<remote_branch>]
+$ git push [--tags] <remote_url> <local_branch>[:<remote_branch>]
 ```
 
-Pull code from remote server
+Pull code/tags from remote server
 
 ```bash
-$ git pull <remote_url> <remote_branch>[:<local_branch>]
+$ git pull [--tags] <remote_url> <remote_branch>[:<local_branch>]
 or
 $ git fetch <remote_url> <remote_branch>:<local_branch>
 ```
