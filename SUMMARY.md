@@ -88,6 +88,8 @@
     * [hung_task](lock_and_lockup_detector/hung_task.md)
     * [softLockup_hardLockup](lock_and_lockup_detector/softLockup_hardLockup.md)
     * [crash_experiment](lock_and_lockup_detector/crash_experiment.md)
+* risc-v
+    * [rv32_to_rv64](risc-v/rv32_to_rv64.md)
 * kvm_in_action
     * [1_Introduction_to_Virtualization.md](kvm_in_action/kvm_virtualization_base/1_Introduction_to_Virtualization.md)
 * solved issue

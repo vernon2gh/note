@@ -10,9 +10,11 @@
 
 ```
 (gdb) layout src    # 显示源代码窗口
-(gdb) layout regs   # 显示寄存器窗口
 (gdb) layout asm    # 显示汇编代码窗口
-(gdb) layout split  # 显示源代码和汇编代码
+(gdb) layout regs   # 显示寄存器窗口
+
+(gdb) info registers     # shows all the registers
+(gdb) info registers eax # shows just the register eax
 ```
 
 * 查看窗口信息
@@ -32,6 +34,8 @@
 ```
 (gdb) refresh
 ```
+
+Reference : https://stackoverflow.com/questions/5429137/how-to-print-register-values-in-gdb
 
 ### 2. 启动程序，直到遇到断点
 
@@ -90,4 +94,17 @@
 (gdb) bt
 (gdb) frame <number>
 ```
+
+### 11. 查看内存的值
+
+比如：查看内存地址0x2000000的值
+
+```
+(gdb) x 0x2000000
+0x2000000:      0x00000001
+(gdb) p *0x2000000
+$3 = 1
+```
+
+Reference : https://sourceware.org/gdb/current/onlinedocs/gdb/Memory.html#Memory
 
