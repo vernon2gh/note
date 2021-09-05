@@ -90,6 +90,18 @@
     * [crash_experiment](lock_and_lockup_detector/crash_experiment.md)
 * risc-v
     * [rv32_to_rv64](risc-v/rv32_to_rv64.md)
+* [MIT_6.S081](mit_6s081/README.md)
+    * [6.S081_Operating_System_Engineering](mit_6s081/6.S081_Operating_System_Engineering.md)
+    * [Schedule.md](mit_6s081/Schedule.md)
+    * Class
+      * [Overview](mit_6s081/Class/Overview.md)
+      * [Administrivia](mit_6s081/Class/Administrivia.md)
+    * Labs
+      * [Tools](mit_6s081/Labs/Tools.md)
+      * [Guidance](mit_6s081/Labs/Guidance.md)
+    * xv6
+      * [xv6](mit_6s081/xv6/xv6.md)
+    * [References.md](mit_6s081/References.md)
 * kvm_in_action
     * [1_Introduction_to_Virtualization.md](kvm_in_action/kvm_virtualization_base/1_Introduction_to_Virtualization.md)
 * solved issue
