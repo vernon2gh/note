@@ -22,8 +22,8 @@ Reference : https://groups.google.com/a/groups.riscv.org/g/sw-dev/c/htm0CuRsLH4
 Premise: 
 
 * 代码段(text segment), 通常是指用来存放程序执行代码的一块内存区域
-* 数据段(data segment), 通常是指用来存放程序中已初始化的全局变量的一块内存区域。
-* bss段(bss segment), 通常是指用来存放程序中未初始化的全局变量的一块内存区域。
+* 数据段(data segment), 通常是指用来存放程序中已初始化的全局变量的一块内存区域 与 初始化为非0的静态全局/局部变量
+* bss段(bss segment), 通常是指用来存放程序中未初始化的全局变量的一块内存区域 与 未初始化的静态全局/局部变量 或 初始化为0的静态全局/局部变量
 * 堆(heap), 存放进程运行中被动态分配的内存
 * 栈(stack), 存放局部变量
 * sbss, On some computer architectures, the application binary interface also supports an sbss segment for "small data". Typically, these data items can be accessed using shorter instructions that may only be able to access a certain range of addresses. 
