@@ -128,6 +128,7 @@
     * [translating](Tools/translating.md)
     * [YouCompleteMe](Tools/YouCompleteMe.md)
     * [vscode](Tools/vscode.md)
+    * [vim](Tools/vim.md)
     * [share_file](Tools/share_file.md)
     * [binary](Tools/binary.md)
     * [markdown](Tools/markdown.md)
