@@ -99,6 +99,9 @@
     * Labs
       * [Tools](mit_6s081/Labs/Tools.md)
       * [Guidance](mit_6s081/Labs/Guidance.md)
+      * [startup](mit_6s081/Labs/startup.md)
+      * [syscall](mit_6s081/Labs/syscall.md)
+      * [page_table](mit_6s081/Labs/page_table.md)
     * xv6
       * [xv6](mit_6s081/xv6/xv6.md)
     * [References.md](mit_6s081/References.md)
