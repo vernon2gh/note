@@ -4,7 +4,7 @@
 
 ## 代码
 
-`kernel/kernel.ld` 指定入口函数为 `_entry(kernel/entry.S)`，同时指定 `kernel Image` 的物理内存 起始地址为 `0x80000000`
+`kernel/kernel.ld`指定入口函数为`_entry(kernel/entry.S)`，同时指定`kernel Image`的物理内存 起始地址为`0x80000000`
 
 直至第一个用户程序的调用流程，如下：
 
