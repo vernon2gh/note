@@ -26,7 +26,9 @@
 
 当用户空间调用`write()`时，通过`ecall`陷入内核空间。注意：`write()`实现函数由汇编语言编写而成（`user/usys.S`，此文件需要编译后才自动产生）
 
-接着调用`usertrap() -> syscall()`，通过系统启用号（如：`SYS_write`），调用`sys_write()`，通过寄存器`x0~x2`得到由用户空间传递到内核空间的参数，调用`filewrite() -> pipewrite() -> copyin(user_pagetable)`，然后通过用户空间页表将用户空间虚拟地址转换成对应的物理地址，最后将物理地址的内容复制到内核空间的虚拟地址
+接着调用`uservec() -> usertrap() -> syscall()`，通过系统启用号（如：`SYS_write`），调用`sys_write()`，通过寄存器`x0~x2`得到由用户空间传递到内核空间的参数，调用`filewrite() -> pipewrite() -> copyin(user_pagetable)`，然后通过用户空间页表将用户空间虚拟地址转换成对应的物理地址，最后将物理地址的内容复制到内核空间的虚拟地址
 
 如果将用户空间页表内容 **映射**到 内核空间页表（不是复制），调用`copyin()`时，就不需要通过用户空间页表将用户空间虚拟地址转换成对应的物理地址，直接将用户空间虚拟地址的内容复制到内核空间的虚拟地址
+
+最后，从 内核空间 返回到 用户空间，调用`sys_write() -> syscall() -> usertrapret() -> userret()`, 返回到`ecall`下一条指令继续执行
 
