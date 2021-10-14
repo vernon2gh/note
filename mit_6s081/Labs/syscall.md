@@ -10,10 +10,9 @@
 
 2. 添加系统调用号（`syscall.h`）
 
-3. 使用`ecall`指令从用户空间陷入内核空间（`usys.pl`）
+3. 使用`ecall`指令从用户空间陷入内核空间（`usys.pl`），详细解释看 [traps 文档](traps.md)
 
 4. 进入内核空间的系统调用总入口`syscall()`， 然后调用内核空间的系统调用接口（`syscall.c`）
 
 5. 实现系统调用接口（`sysproc.c`）
-
 
