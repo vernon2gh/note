@@ -339,3 +339,24 @@ bzip2压缩后myls.1.bz2是3070字节。
 如： `tar xjvf dira.tar.bz2`    解压到当前目录 
 
 如： `tar xjvf dira.tar.bz2 -C  /home/book`   解压到/home/book
+
+### 8. 自动输入密码
+
+```bash
+$ sudo apt install expect
+
+$ vim test
+#!/bin/expect
+set timeout 30
+
+spawn sudo su - root
+expect "password:"
+send "123\n"
+
+interact
+
+$ expect test
+```
+
+> 参考：[Shell脚本交互：自动输入密码](https://www.codeleading.com/article/4318624006/)
+

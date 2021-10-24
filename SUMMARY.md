@@ -37,6 +37,7 @@
         * [get_cmd_src](linuxSystem/ubuntu/get_cmd_src.md)
         * [record_ssh_info](linuxSystem/ubuntu/record_ssh_info.md)
         * [log](linuxSystem/ubuntu/log.md)
+        * [run_custom_script](linuxSystem/ubuntu/run_custom_script.md)
 * old linux
     * [TestEnvironment](oldlinux/TestEnvironment.md)
     * [load_setup](oldlinux/load_setup.md)
