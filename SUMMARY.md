@@ -134,6 +134,8 @@
     * [shell](Tools/shell.md)
     * [translating](Tools/translating.md)
     * [YouCompleteMe](Tools/YouCompleteMe.md)
+    * [cscope](Tools/cscope.md)
+    * [global](Tools/global.md)
     * [vscode](Tools/vscode.md)
     * [vim](Tools/vim.md)
     * [share_file](Tools/share_file.md)
@@ -142,6 +144,7 @@
     * [Draw](Tools/Draw.md)
     * [git](Tools/git.md)
     * [tig](Tools/tig.md)
+    * [tmux](Tools/tmux.md)
 * weidongshan_Linux
     * [HelloWorld.md](weidongshan_Linux/01_hello/HelloWorld.md)
     * [gcc_use.md](weidongshan_Linux/02_options/gcc_use.md)
