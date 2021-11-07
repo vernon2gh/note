@@ -46,3 +46,13 @@ dw (delete word)
 cw (change word)
 ```
 
+## 一些常见的配置
+
+在`/etc/vim/vimrc.local`中加入如下配置：
+
+```bash
+set number   " display line number
+set hlsearch " hight light search
+autocmd BufWritePre * %s/\s\+$//e " when save file, auto delete line tail space
+```
+
