@@ -16,6 +16,7 @@
     * [touch_screen](linuxDriver/touch_screen.md)
     * [debugfs](linuxDriver/debugfs.md)
     * [v4l2](linuxDriver/v4l2.md)
+    * [mmap](linuxDriver/mmap.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
@@ -33,6 +34,7 @@
         * [procfs](linuxSystem/common/procfs.md)
         * [cmd_ps](linuxSystem/common/cmd_ps.md)
         * [makefile](linuxSystem/common/makefile.md)
+        * [file_descriptor](linuxSystem/common/fd.md)
     * ubuntu
         * [get_cmd_src](linuxSystem/ubuntu/get_cmd_src.md)
         * [record_ssh_info](linuxSystem/ubuntu/record_ssh_info.md)
@@ -109,8 +111,10 @@
     * xv6
       * [xv6](mit_6s081/xv6/xv6.md)
     * [References.md](mit_6s081/References.md)
+* seL4
+    * [cspace](seL4/cspace.md)
 * kvm_in_action
-    * [1_Introduction_to_Virtualization.md](kvm_in_action/kvm_virtualization_base/1_Introduction_to_Virtualization.md)
+    * [1_Introduction_to_Virtualization](kvm_in_action/kvm_virtualization_base/1_Introduction_to_Virtualization.md)
 * solved issue
     * [linux_kernel](solvedIssue/linux_kernel.md)
     * [buildroot](solvedIssue/buildroot.md)

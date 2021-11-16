@@ -8,9 +8,11 @@ proc - process information pseudo-filesystem
 $ man proc
 ```
 
-### 1. /proc/[pid]/stat
+在proc文件系统中有对每个进程维护一个目录/proc/[pid]/，其中`/proc/self` 指向 打开此文件的进程
 
-在proc文件系统中有对每个进程维护一个目录/proc/[pid]/，其中的/proc/[pid]/stat文件展示了该进程的状态
+### 1. stat
+
+`/proc/[pid]/stat`文件展示了该进程的状态
 
 ```bash
 $ cat /proc/1/stat
@@ -35,7 +37,7 @@ $ vim fs/proc/array.c
 static int do_task_stat(struct seq_file *m, struct pid_namespace *ns,
 			struct pid *pid, struct task_struct *task, int whole)
 {
-	....	
+	....
 	seq_put_decimal_ull(m, "", pid_nr_ns(pid, ns)); // 进程的PID
 	seq_puts(m, " (");
 	proc_task_name(m, task, false);                 // 进程的名称
@@ -46,5 +48,25 @@ static int do_task_stat(struct seq_file *m, struct pid_namespace *ns,
 	seq_put_decimal_ull(m, " ", task->policy);      // 进程调度策略
 	...
 }
+```
+
+### 2. pagemap
+
+`/proc/[pid]/pagemap`文件展示了该进程的 物理帧与虚拟页的映射关系
+
+```
+## Documentation/vm/pagemap.txt
+
+    ...
+    * Bits 0-54  page frame number (PFN) if present
+    * Bits 0-4   swap type if swapped
+    * Bits 5-54  swap offset if swapped
+    * Bit  55    pte is soft-dirty (see Documentation/vm/soft-dirty.txt)
+    * Bit  56    page exclusively mapped (since 4.2)
+    * Bits 57-60 zero
+    * Bit  61    page is file-page or shared-anon (since 3.5)
+    * Bit  62    page swapped
+    * Bit  63    page present
+    ...
 ```
 
