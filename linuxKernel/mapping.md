@@ -1,5 +1,7 @@
 > linux kernel有链表、队列、映射、二叉树等内建数据结构，并且封装一系列API给linux kernel开发人员使用，本章讲解映射。
 
+> base linux-2.6.34
+
 ### 简介
 
 linux kernel 映射，就是通过 uid 找到 value，即 uid-value 集合，用`struct idr`结构体进行定义。

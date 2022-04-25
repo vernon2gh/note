@@ -1,5 +1,7 @@
 > linux kernel有链表、队列、映射、二叉树等内建数据结构，并且封装一系列API给linux kernel开发人员使用，本章讲解队列。
 
+> base linux-2.6.34
+
 ### 简介
 
 linux kernel 队列 定义如下：

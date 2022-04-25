@@ -1,22 +1,25 @@
 # Summary
 
 * [Introduction](README.md)
-* linuxDriver
-    * [i2c_peripherals_driver](linuxDriver/i2c_peripherals_driver.md)
-    * [spi_peripherals_driver](linuxDriver/spi_peripherals_driver.md)
-    * [gpio_subsystem](linuxDriver/gpio_subsystem.md)
-    * [IRQ_driver](linuxDriver/IRQ_driver.md)
-    * [blockIO_unblockIO_async](linuxDriver/blockIO_unblockIO_async.md)
-    * [linux_own_driver](linuxDriver/linux_own_driver.md)
-    * [misc_device](linuxDriver/misc_device.md)
-    * [input_device](linuxDriver/input_device.md)
-    * [timer](linuxDriver/timer.md)
-    * [atomic_spinlock_semaphore_mutex](linuxDriver/atomic_spinlock_semaphore_mutex.md)
-    * [lcd](linuxDriver/lcd.md)
-    * [touch_screen](linuxDriver/touch_screen.md)
-    * [debugfs](linuxDriver/debugfs.md)
-    * [v4l2](linuxDriver/v4l2.md)
-    * [mmap](linuxDriver/mmap.md)
+* linuxKernel
+    * old linux
+        * [compile_linux0.11](linuxKernel/oldlinux/compile_linux0.11.md)
+        * [TestEnvironment](linuxKernel/oldlinux/TestEnvironment.md)
+        * [load_setup](linuxKernel/oldlinux/load_setup.md)
+        * [get_hard_data](linuxKernel/oldlinux/get_hard_data.md)
+    * [list](linuxKernel/list.md)
+    * [fifo](linuxKernel/fifo.md)
+    * [mapping](linuxKernel/mapping.md)
+    * [tree](linuxKernel/tree.md)
+    * [syscall](linuxKernel/syscall.md)
+    * [bitmap](linuxKernel/bitmap.md)
+    * slub
+        * [proc_slabinfo](linuxkernel/slub/proc_slabinfo.md)
+        * [slub](linuxKernel/slub/slub.md)
+        * [kmalloc_kfree](linuxKernel/slub/kmalloc_kfree.md)
+        * [kmem_cache](linuxKernel/slub/kmem_cache.md)
+        * [slab_alloc](linuxKernel/slub/slab_alloc.md)
+        * [slab_free](linuxKernel/slub/slab_free.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
@@ -42,34 +45,22 @@
         * [log](linuxSystem/ubuntu/log.md)
         * [run_custom_script](linuxSystem/ubuntu/run_custom_script.md)
         * [install_tools](linuxSystem/ubuntu/install_tools.md)
-* old linux
-    * [TestEnvironment](oldlinux/TestEnvironment.md)
-    * [load_setup](oldlinux/load_setup.md)
-    * [get_hard_data](oldlinux/get_hard_data.md)
-    * [compile_linux0.11](oldlinux/compile_linux0.11.md)
-* linux-2.x
-    * [compile_linux-2.x](linux-2.x/compile_linux-2.x.md)
-    * [list](linux-2.x/list.md)
-    * [fifo](linux-2.x/fifo.md)
-    * [mapping](linux-2.x/mapping.md)
-    * [tree](linux-2.x/tree.md)
-    * [syscall](linux-2.x/syscall.md)
-    * slub
-        * [precondition](linux-2.x/slub/precondition.md)
-        * [proc_slabinfo](linux-2.x/slub/proc_slabinfo.md)
-        * [slub](linux-2.x/slub/slub.md)
-        * [kmalloc_kfree](linux-2.x/slub/kmalloc_kfree.md)
-        * [kmem_cache](linux-2.x/slub/kmem_cache.md)
-        * [slab_alloc](linux-2.x/slub/slab_alloc.md)
-        * [slab_free](linux-2.x/slub/slab_free.md)
-* linux-3.x
-    * [compile_linux-3.x](linux-3.x/compile_linux-3.x.md)
-* linux-4.x
-    * [compile_linux-4.x](linux-4.x/compile_linux-4.x.md)
-* linux-5.x
-    * [compile_linux-5.x](linux-5.x/compile_linux-5.x.md)
-    * [syscall](linux-5.x/syscall.md)
-    * [bitmap](linux-5.x/bitmap.md)
+* linuxDriver
+    * [i2c_peripherals_driver](linuxDriver/i2c_peripherals_driver.md)
+    * [spi_peripherals_driver](linuxDriver/spi_peripherals_driver.md)
+    * [gpio_subsystem](linuxDriver/gpio_subsystem.md)
+    * [IRQ_driver](linuxDriver/IRQ_driver.md)
+    * [blockIO_unblockIO_async](linuxDriver/blockIO_unblockIO_async.md)
+    * [linux_own_driver](linuxDriver/linux_own_driver.md)
+    * [misc_device](linuxDriver/misc_device.md)
+    * [input_device](linuxDriver/input_device.md)
+    * [timer](linuxDriver/timer.md)
+    * [atomic_spinlock_semaphore_mutex](linuxDriver/atomic_spinlock_semaphore_mutex.md)
+    * [lcd](linuxDriver/lcd.md)
+    * [touch_screen](linuxDriver/touch_screen.md)
+    * [debugfs](linuxDriver/debugfs.md)
+    * [v4l2](linuxDriver/v4l2.md)
+    * [mmap](linuxDriver/mmap.md)
 * process_thread_scheduler
     * [scheduler01](process_thread_scheduler/scheduler01.md)
     * [scheduler02](process_thread_scheduler/scheduler02.md)
@@ -93,8 +84,6 @@
     * [hung_task](lock_and_lockup_detector/hung_task.md)
     * [softLockup_hardLockup](lock_and_lockup_detector/softLockup_hardLockup.md)
     * [crash_experiment](lock_and_lockup_detector/crash_experiment.md)
-* risc-v
-    * [rv32_to_rv64](risc-v/rv32_to_rv64.md)
 * [MIT_6.S081](mit_6s081/README.md)
     * [6.S081_Operating_System_Engineering](mit_6s081/6.S081_Operating_System_Engineering.md)
     * [Schedule.md](mit_6s081/Schedule.md)
@@ -112,17 +101,6 @@
     * xv6
       * [xv6](mit_6s081/xv6/xv6.md)
     * [References.md](mit_6s081/References.md)
-* seL4
-    * [cspace](seL4/cspace.md)
-* kvm_in_action
-    * [1_Introduction_to_Virtualization](kvm_in_action/kvm_virtualization_base/1_Introduction_to_Virtualization.md)
-* solved issue
-    * [linux_kernel](solvedIssue/linux_kernel.md)
-    * [buildroot](solvedIssue/buildroot.md)
-    * [qemu](solvedIssue/qemu.md)
-* docker
-    * [make_images](docker/make_images.md)
-    * [shell_mount](docker/shell_mount.md)
 * qemu
     * [qemu_buildroot](qemu/qemu_buildroot.md)
     * [qemu_busybox.md](qemu/qemu_busybox.md)
@@ -150,17 +128,13 @@
     * [git](Tools/git.md)
     * [tig](Tools/tig.md)
     * [tmux](Tools/tmux.md)
-* weidongshan_Linux
-    * [HelloWorld.md](weidongshan_Linux/01_hello/HelloWorld.md)
-    * [gcc_use.md](weidongshan_Linux/02_options/gcc_use.md)
-    * [Makefile.md](weidongshan_Linux/04_test_Makefile/Makefile.md)
-    * [general_Makefile_parse.md](weidongshan_Linux/05_general_Makefile/Makefile_parse.md)
-    * [general_Makefile_use.md](weidongshan_Linux/05_general_Makefile/Makefile_use.md)
-    * [file_IO.md](weidongshan_Linux/06_fileio/file_IO.md)
 * other
     * [ubuntu_corresponding_linuxkernel](other/ubuntu_corresponding_linuxkernel.md)
     * [ubuntu1004_sources_list](other/ubuntu1004_sources_list.md)
     * [interview](other/interview.md)
     * [interview_c_base](other/interview_c_base.md)
     * [know_dontknow](other/know_dontknow.md)
+    * [docker](other/docker.md)
+    * [buildroot](other/buildroot.md)
+    * [rv32_to_rv64](other/rv32_to_rv64.md)
 
