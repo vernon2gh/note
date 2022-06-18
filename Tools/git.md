@@ -186,7 +186,7 @@ $ git commit -m '
 
 ## TIPS
 
- tag
+tag
 
 ```bash
 ## view
@@ -262,9 +262,39 @@ commit b2dba726e7606b9f5374218c236c4e2d5efb7877
     Init
 ```
 
-Displays the author of each line of a file
+The remote repository has new commits, but the local repository also has new commits. How to synchronize the new commits of the remote repository to the local repository?
+
+```bash
+$ git rebase <branch>
+```
+
+When we need to actively merge new feature branches
+
+```bash
+$ git merge <branch>
+```
+
+Displays the commit of each line of a file
 
 ```bash
 $ git blame <file>
 ```
 
+当我们想要知道commit A是在哪一个新merge feature合入时，如何找到对应的merge commit ？
+
+> https://blog.csdn.net/qq_39734650/article/details/116658540
+
+```bash
+## ~/.gitconfig
+[alias]
+	find-merge = "!sh -c 'commit=$0 && branch=${1:-HEAD} && (git rev-list $commit..$branch --ancestry-path | cat -n; git rev-list $commit..$branch --first-parent | cat -n) | sort -k2 -s | uniq -f1 -d | sort -n | tail -1 | cut -f2'"
+	show-merge = "!sh -c 'merge=$(git find-merge $0 $1) && [ -n \"$merge\" ] && git show $merge'"
+
+$ git find-merge <commit A>
+```
+
+当我们想要研究某一个新merge feature时，merge commit会显示feature commit范围，比如 （A，F]，其中不包括A，包括F。如何显示此feature所有commit ？
+
+```bash
+$ git log --online --graph <merge commit>
+```
