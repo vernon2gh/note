@@ -20,6 +20,7 @@
         * [kmem_cache](linuxKernel/slub/kmem_cache.md)
         * [slab_alloc](linuxKernel/slub/slab_alloc.md)
         * [slab_free](linuxKernel/slub/slab_free.md)
+    * [folio](linuxKernel/folio.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
