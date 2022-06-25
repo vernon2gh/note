@@ -23,7 +23,9 @@
 ```
 
 > `_Generic(v, typeA : A, typeB : B)` 用法：
+
 > 当 `v` 的类型为 `typeA`，返回 `A`
+
 > 当 `v` 的类型为 `typeB`，返回 `B`
 
 `struct folio` 的出现，
