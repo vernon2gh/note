@@ -21,6 +21,7 @@
         * [slab_alloc](linuxKernel/slub/slab_alloc.md)
         * [slab_free](linuxKernel/slub/slab_free.md)
     * [folio](linuxKernel/folio.md)
+    * [aarch64_boot](linuxKernel/aarch64_boot.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
