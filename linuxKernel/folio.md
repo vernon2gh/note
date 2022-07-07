@@ -1,6 +1,6 @@
 开局一张图，后面全靠...
 
-![folio outline](../resources/picture/folio.excalidraw.svg)
+![folio outline](picture/folio.excalidraw.svg)
 
 `Linux Kernel` 中任何操作内存的步骤都是通过 `struct page` 进行，比如 `slab` 分配器 或 `page cahce`，通过 `page` 分配器申请物理内存时，都是返回物理内存对应的 `struct page`
 
