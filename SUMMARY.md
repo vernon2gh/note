@@ -2,6 +2,7 @@
 
 * [Introduction](README.md)
 * linuxKernel
+    * [tips](linuxKernel/tips.md)
     * old linux
         * [compile_linux0.11](linuxKernel/oldlinux/compile_linux0.11.md)
         * [TestEnvironment](linuxKernel/oldlinux/TestEnvironment.md)
@@ -23,7 +24,7 @@
     * [folio](linuxKernel/folio.md)
     * [aarch64_boot](linuxKernel/aarch64_boot.md)
     * [page_table](linuxKernel/page_table.md)
-    * [linux_tracing_system](linuxKernel/linux_tracing_system.md)
+    * [tracing_system](linuxKernel/tracing_system.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
