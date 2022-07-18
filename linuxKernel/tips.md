@@ -1,4 +1,6 @@
-### Linux Kernel 如何得到某一个 `.c` 对应的 `.o/.i/.s/.lst` 文件？
+## tips
+
+* Linux Kernel 如何得到某一个 `.c` 对应的 `.o/.i/.s/.lst` 文件？
 
 ```bash
 $ make some/path/file.o
