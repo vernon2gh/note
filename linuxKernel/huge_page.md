@@ -31,6 +31,10 @@ huge page优点：
 
 2. 通过/sys/kernel/mm/hugepages/配置
 
+> Documentation/ABI/testing/sysfs-kernel-mm-hugepages
+>
+> Documentation/admin-guide/mm/hugetlbpage.rst
+
 `$ echo <pages> > /sys/kernel/mm/hugepages/hugepages-xxx/nr_hugepages`
 
 指定预分配huge page的大小为 xxxx，页数为 pages。比如：
@@ -76,10 +80,6 @@ full_scans             max_ptes_swap          scan_sleep_millisecs
 ## 源码解析
 
 > base linux v5.19-rc6
->
-> Documentation/ABI/testing/sysfs-kernel-mm-hugepages
->
-> Documentation/admin-guide/mm/hugetlbpage.rst
 
 > huge page 与 gigantic page 区别：
 >
