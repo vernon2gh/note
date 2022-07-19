@@ -120,8 +120,8 @@ hugetlb_sysctl_handler
 ```
 
 执行 echo <pages> > nr_hugepages,
-当pages比目前支持的huge page页数多，调用alloc_pool_huge_page()逐个申请huge page加入huge page分配器；
-当pages比目前支持的huge page页数少，调用remove_pool_huge_page()逐个从huge page分配器中删除多余的huge page
+当pages比目前支持的huge page页数多，调用alloc_pool_huge_page()逐个申请huge page加入huge page内存池；
+当pages比目前支持的huge page页数少，调用remove_pool_huge_page()逐个从huge page内存池中删除多余的huge page
 
 ```c
 alloc_pool_huge_page
@@ -131,7 +131,7 @@ alloc_pool_huge_page
 
 循环从不同node调用alloc_fresh_huge_page()分配一页huge page，
 如果分配一页huge page成功，将调用put_page()将此huge page从page分配器中删除，
-并且加入到huge page分配器中（nr_hugepages++）
+并且加入到huge page内存池中（nr_hugepages++）
 
 alloc_fresh_huge_page()，调用hstate_is_gigantic()判断想要分配的内存是否属于gigantic page？
 如果是，调用alloc_gigantic_page()，如果支持从CMA分配内存，直接从CMA分配内存; 否则，从page分配器（buddy算法）中分配内存。
@@ -144,7 +144,7 @@ remove_pool_huge_page
 ```
 
 循环从不同node调用list_entry()获得空闲一页huge page，
-然后调用remove_hugetlb_page()将此页huge page从huge page分配器中删除（nr_hugepages--），
+然后调用remove_hugetlb_page()将此页huge page从huge page内存池中删除（nr_hugepages--），
 最后将此页huge page返回，返回后将huge page加入page_list链表中。
 
 ```c
