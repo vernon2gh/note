@@ -58,6 +58,40 @@ int main(void)
 }
 ```
 
+调用流程：用户空间接口 ~ 系统调用接口
+
+```bash
+$ strace ./a.out
+statfs("/dev/shm/", {f_type=TMPFS_MAGIC, f_bsize=4096, f_blocks=1018431, f_bfree=1018431, f_bavail=1018431, f_files=1018431, f_ffree=1018430, f_fsid={val=[0, 0]}, f_namelen=255, f_frsize=4096, f_flags=ST_VALID|ST_NOSUID|ST_NODEV|ST_NOATIME}) = 0
+futex(0x7f3150c48390, FUTEX_WAKE_PRIVATE, 2147483647) = 0
+openat(AT_FDCWD, "/dev/shm/shmtest", O_RDWR|O_CREAT|O_NOFOLLOW|O_CLOEXEC, 0777) = 3
+ftruncate(3, 4096)                      = 0
+fstat(3, {st_mode=S_IFREG|0755, st_size=4096, ...}) = 0
+write(1, "st_size 0x1000\n", 15st_size 0x1000
+)        = 15
+mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, 3, 0) = 0x7f3150e81000
+write(1, "buf 0x11\n", 9buf 0x11
+)               = 9
+munmap(0x7f3150e81000, 4096)            = 0
+unlink("/dev/shm/shmtest")              = 0
+```
+
+调用流程：系统调用接口 ~ 内核空间
+
+```c
+/* user space ->    kernel space           : file */
+shm_open()    -> SYSCALL_DEFINE4(openat    : fs/open.c
+shm_unlink()  -> SYSCALL_DEFINE1(unlink    : fs/namei.c
+
+ftruncate()   -> SYSCALL_DEFINE2(ftruncate : fs/open.c
+fstat()       -> SYSCALL_DEFINE2(fstat     : fs/stat.c
+
+mmap()        -> SYSCALL_DEFINE6(mmap      : arch/x86/kernel/sys_x86_64.c
+                       |                     arch/arm64/kernel/sys.c
+                 ksys_mmap_pgoff()         : mm/mmap.c
+munmap()      -> SYSCALL_DEFINE2(munmap    : mm/mmap.c
+```
+
 ## System V 共享内存
 
 函数原型:
@@ -106,4 +140,31 @@ int main(void)
 
 	return 0;
 }
+```
+
+调用流程：用户空间接口 ~ 系统调用接口
+
+```bash
+$ strace ./a.out
+stat("filename", {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
+write(1, "main: 0xae00\n", 13main: 0xae00
+)          = 13
+shmget(0x11, 4096, IPC_CREAT|0666)      = 1
+shmat(1, NULL, 0)                       = 0x7fecbb13d000
+write(1, "buf 0x12\n", 9buf 0x12
+)               = 9
+shmdt(0x7fecbb13d000)                   = 0
+shmctl(1, IPC_RMID, NULL)               = 0
+```
+
+调用流程：系统调用接口 ~ 内核空间
+
+```c
+/* user space ->    kernel space          : file */
+    ftok()    -> SYSCALL_DEFINE2(stat     : fs/stat.c
+
+    shmget()  -> SYSCALL_DEFINE3(shmget   : ipc/shm.c
+    shmctl()  -> SYSCALL_DEFINE3(shmctl
+    shmat()   -> SYSCALL_DEFINE3(shmat
+    shmdt()   -> SYSCALL_DEFINE1(shmdt
 ```
