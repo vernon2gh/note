@@ -27,6 +27,7 @@
     * [tracing_system](linuxKernel/tracing_system.md)
     * [huge_page](linuxKernel/huge_page.md)
     * [share_memory](linuxKernel/shm.md)
+    * [brk](linuxKernel/brk.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
