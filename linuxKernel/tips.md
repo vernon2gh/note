@@ -8,3 +8,7 @@ $ make some/path/file.i
 $ make some/path/file.s
 $ make some/path/file.lst ## assembler code with the C source
 ```
+
+* printk 打印格式
+
+`%ps` 打印函数指针对应的函数名字

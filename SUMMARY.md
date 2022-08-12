@@ -14,6 +14,7 @@
     * [tree](linuxKernel/tree.md)
     * [syscall](linuxKernel/syscall.md)
     * [bitmap](linuxKernel/bitmap.md)
+    * [xarray](linuxKernel/xarray.md)
     * slub
         * [proc_slabinfo](linuxkernel/slub/proc_slabinfo.md)
         * [slub](linuxKernel/slub/slub.md)
