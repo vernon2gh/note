@@ -85,11 +85,6 @@ shm_unlink()  -> SYSCALL_DEFINE1(unlink    : fs/namei.c
 
 ftruncate()   -> SYSCALL_DEFINE2(ftruncate : fs/open.c
 fstat()       -> SYSCALL_DEFINE2(fstat     : fs/stat.c
-
-mmap()        -> SYSCALL_DEFINE6(mmap      : arch/x86/kernel/sys_x86_64.c
-                       |                     arch/arm64/kernel/sys.c
-                 ksys_mmap_pgoff()         : mm/mmap.c
-munmap()      -> SYSCALL_DEFINE2(munmap    : mm/mmap.c
 ```
 
 ## System V 共享内存
