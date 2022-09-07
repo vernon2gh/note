@@ -30,6 +30,7 @@
     * [mmap](linuxKernel/mmap.md)
     * [share_memory](linuxKernel/shm.md)
     * [huge_page](linuxKernel/huge_page.md)
+    * [page_fault](linuxKernel/page_fault.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
