@@ -186,8 +186,19 @@ vma_gap_update()
 
 ## 零散知识点
 
-calc_vm_prot_bits()/alc_vm_flag_bits() 将 mmap prot (PROT_XXX) 权限,
-mmap flags (MAP_XXX) 标志转换成 vm_flags (VM_XXX) 标志
+`calc_vm_prot_bits()`/`alc_vm_flag_bits()` 将 mmap prot (PROT_XXX) 权限,
+mmap flags (MAP_XXX) 标志转换成 vm_flags (VM_XXX) 标志，保存在 `vma->vm_flags`
+
+> arch/arm64/mm/mmap.c
+
+`vm_get_page_prot(vm_flags)` 得到 PTE 真实权限，保存在 `vma->vm_page_prot`
+（与体系架构相关）
+
+> arch/arm64/mm/fault.c
+
+在 `do_page_fault()` 获得 `Page Fault` 的类型，然后在 `__do_page_fault()`
+将 `Page Fault` 的类型 与 `vma->vm_flags` 进行对比，如果不一致，说明权限不足，退出。
+比如：`buf = mmap(READ_ONLY)`，但是对 buf 进行写操作
 
 当 mmap flags 没有 MAP_FIXED 标志时，指定的虚拟地址 vaddr 有最低值要求，必须大于等于4096。
 为什么？因为 Linux 默认将虚拟地址 NULL 当成 panic，所以不能对虚拟地址 NULL 进行映射。

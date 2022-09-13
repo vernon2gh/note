@@ -22,6 +22,7 @@
         * [kmem_cache](linuxKernel/slub/kmem_cache.md)
         * [slab_alloc](linuxKernel/slub/slab_alloc.md)
         * [slab_free](linuxKernel/slub/slab_free.md)
+    * [vmalloc](linuxKernel/vmalloc.md)
     * [folio](linuxKernel/folio.md)
     * [aarch64_boot](linuxKernel/aarch64_boot.md)
     * [page_table](linuxKernel/page_table.md)
@@ -31,6 +32,7 @@
     * [share_memory](linuxKernel/shm.md)
     * [huge_page](linuxKernel/huge_page.md)
     * [page_fault](linuxKernel/page_fault.md)
+    * [rmap](linuxKernel/rmap.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
