@@ -222,4 +222,4 @@ folio_referenced()
 
 ### 参考
 
-![页面回收的基本概念](http://www.wowotech.net/memory_management/page_reclaim_basic.html)
+[页面回收的基本概念](http://www.wowotech.net/memory_management/page_reclaim_basic.html)
