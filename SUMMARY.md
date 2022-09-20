@@ -33,6 +33,7 @@
     * [huge_page](linuxKernel/huge_page.md)
     * [page_fault](linuxKernel/page_fault.md)
     * [rmap](linuxKernel/rmap.md)
+    * [page_reclaim](linuxKernel/page_reclaim.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
