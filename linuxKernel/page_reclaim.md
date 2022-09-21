@@ -18,7 +18,8 @@
 
 ### 回收内存方式
 
-* `kswapd` 周期回收内存
+* 当系统内存低于一定水位时，唤醒 `kswapd` 内核线程进行周期性回收内存。
+  `kswapd` 是一个内核线程，在系统初始化过程中调用 `kswapd_init()` 来创建
 * 紧急回收内存，如 `__alloc_pages_direct_reclaim()`
 * 应用层手动触动回收内存，如 `/proc/sys/vm/drop_caches`
 
@@ -49,7 +50,7 @@ kswapd()
             shrink_node()
 ```
 
-`kswapd_init()` 为每一个 node 创建一个 kswapd 内核线程，后台运行
+`kswapd_init()` 为每一个 node 创建一个 kswapd 内核线程
 
 `kswapd()` 从指定的 node 中回收内存
 
