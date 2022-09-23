@@ -101,6 +101,9 @@ struct page {
 };
 ```
 
+`page->mapping` 存储 anon_vma 地址，
+`page->index` 存储 `Page Frame` 在进程虚拟地址空间中的页偏移
+
 ### 情景分析
 
 场景一：执行一个全新的进程（即执行exec()），当 `Anonymous VMA0` 发生 Page Fault 后
@@ -194,8 +197,9 @@ anon_vma_prepare()
 ```
 
 然后调用 `page_add_anon_rmap() / page_add_new_anon_rmap() --> __page_set_anon_rmap()`
-在 `page->mapping` 存储 anon_vma 地址，这样才是将 RMAP 通路打通，让 page 与 anon_vma 关联起来。
-只有这样才能通过 page 找到 anon_vma，进而找到 VMA，从而完成对应的 PTE unmap 操作
+在 `page->mapping` 存储 anon_vma 地址以及 `page->index` 存储 `Page Frame` 
+在进程虚拟地址空间中的页偏移，这样才是将 RMAP 通路打通，让 page 与 anon_vma 关联起来。
+只有这样才能通过 page 找到 anon_vma，进而找到 VMA 中的某一页，从而完成对应的 PTE unmap 操作
 
 * anon_vma_fork
 
@@ -270,7 +274,7 @@ page_add_new_anon_rmap() --+
 ```
 
 `page->mapping` 存储 anon_vma 地址，
-`page->index` 存储 `Page Frame` 在 VMA 中的偏移
+`page->index` 存储 `Page Frame` 在进程虚拟地址空间中的页偏移
 
 * 为 `File Page` 创建反向映射
 
