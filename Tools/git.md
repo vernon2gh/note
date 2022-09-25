@@ -184,6 +184,23 @@ $ git add .
 $ git commit -m '
 ```
 
+## EMAIL
+
+使用基于 gmail 的 `git send-email` 功能，需要完成如下：
+
+1. gmail 开启 IMAP 与 应用专用密码，
+   参考 [通过其他电子邮件平台查看 Gmail](https://support.google.com/mail/answer/7126229)
+2. 执行 `apt install git-email`，安装 `git send-email` 功能,
+   详细配置参考 `git help send-email` 的 `EXAMPLES` 小节
+3. Shell 终端能够访问 gmail 服务器
+
+完成以上三点后，就能够使用 `git send-email` 进行发送邮件，如下：
+
+
+```bash
+$ git send-email --to xxx xxx.patch
+```
+
 ## TIPS
 
 tag
