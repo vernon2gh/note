@@ -1,5 +1,26 @@
 Base aarch64
 
+### PTE 对应的低12位在硬件中的含义
+
+* P (Present) : 当此位为1时，即该 page 存在当前物理内存中，否则，不存在
+* A (Access)  : 当该 page 被访问（读/写）后，硬件自动将此位设置为1，
+                需要软件手动对此位进行清0。
+                这样，软件可以统计出该 page 被访问的次数，当内存不足时，
+                作为该 page 是否可以被回收的依据。
+* D (Dirty)   : 当该 page 被写入后，硬件自动将此位设置为1，
+                当内存不足时，如果需要回收该 page，就需要将该 page 的内容 flush
+                到硬盘中，最后软件手动对此位进行清0
+* R/W (Read/Write)          : 当此位为1时，表示该 page 是 Writable，
+                              否则，ReadOnly
+* U/S (User/Supervisor)     : 当此位为1时，表示该 page 属于 User，
+                              否则，属于 Supervisor
+* PCD (Page Cache Disabled) : 当此位为1时，表示该 page 是 disable cache，
+                              否则，enable cache
+* PWT (Page Write Through)  : 当此位为1时，表示该 page 对应的 cache 采用 write through，
+                              否则，write back
+
+### linux kernel 实现
+
 > `arch/arm64/include/asm/pgtable-types.h`
 >
 > `include/asm-generic/pgtable-nop4d.h`
