@@ -35,6 +35,7 @@
     * [page_fault](linuxKernel/page_fault.md)
     * [rmap](linuxKernel/rmap.md)
     * [page_reclaim](linuxKernel/page_reclaim.md)
+    * [page_cache](linuxKernel/page_cache.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
