@@ -161,7 +161,7 @@ VMA0 <-- AVC0 --> AV0
 VMA0.anon_vma_chain = AVC0
 AV0.rb_root = AVC0
              /    \
-        AVC_x01  AVC_x12
+        AVC_x01  AVC_x02
 ---------------------------------------------------
 子进程
         +-- AVC_x01 --> AV0
