@@ -186,20 +186,39 @@ $ git commit -m '
 
 ## EMAIL
 
+> 前提：Shell 终端能够访问 gmail 服务器
+
 使用基于 gmail 的 `git send-email` 功能，需要完成如下：
 
 1. gmail 开启 IMAP 与 应用专用密码，
    参考 [通过其他电子邮件平台查看 Gmail](https://support.google.com/mail/answer/7126229)
 2. 执行 `apt install git-email`，安装 `git send-email` 功能,
    详细配置参考 `git help send-email` 的 `EXAMPLES` 小节
-3. Shell 终端能够访问 gmail 服务器
 
-完成以上三点后，就能够使用 `git send-email` 进行发送邮件，如下：
+完成以上两点后，就能够使用 `git send-email` 进行发送邮件
 
+如果想要给 Linux Kernel 提交 patch，需要按照以下步骤来执行：
 
-```bash
-$ git send-email --to xxx xxx.patch
-```
+1. 修改源码，编译运行，测试，确保能够正常运行 patch 对应的功能
+
+2. 提交源码，如下：
+
+   ```bash
+   $ git add xxx
+   $ git commit -s -m '
+   module name: fix some bugs
+
+   why and how
+   '
+   ```
+
+3. 通过 `git format-patch` 生成 patch
+
+4. 通过 `./scripts/checkpatch.pl xxx.patch` 检查 patch 格式是否符合要求
+
+5. 通过 `./scripts/get_maintainer.pl xxx.patch` 获得 maintainer 邮箱地址
+
+6. 通过 `git send-email --to xxx --cc xxx xxx.patch` 来发送 patch 给 maintainer
 
 ## TIPS
 
