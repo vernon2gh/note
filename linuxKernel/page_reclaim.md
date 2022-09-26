@@ -26,13 +26,11 @@
 三者的函数调用关系如下：
 
 ```c
-  kswapd  __alloc_pages_direct_reclaim()  /proc/sys/vm/drop_caches
-     \       /                                         |
-    shrink_node()                                      |
-         |                                             |
-    shrink_lruvec()                                    |
-         |                                             |
-    shrink_slab() <------------------------------------+
+     kswapd or __alloc_pages_direct_reclaim()  /proc/sys/vm/drop_caches
+            |                                          |
+       shrink_node()                                   |
+       /          \                                    |
+shrink_lruvec()  shrink_slab() <-----------------------+
 ```
 
 ### 详细解析
