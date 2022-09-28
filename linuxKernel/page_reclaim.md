@@ -151,6 +151,7 @@ shrink_page_list(&page_list)
             folio_test_clear_referenceds()
     // PAGEREF_RECLAIM
     try_to_unmap()
+    pageout()
     if folio is large
         destroy_large_folio(folio)
     else
@@ -171,7 +172,7 @@ LRU active/inactive 链表中
 
 如果是LRU inactive链表，从 LRU inactive 链表中获得一定数量的页，并且从 LRU inactive
 链表中删除，然后依次获得每一页，如果有 referenced，将页设置成 active 属性，否则，
-通过反向映射 RMAP 取消所有映射，并且将页回收到 buddy 子系统中。
+通过反向映射 RMAP 取消所有映射（如果是脏页，执行 writeback 动作），并且将页回收到 buddy 子系统中。
 最后将 active 链表（有 active 属性的页）加入对应的 LRU active 链表中
 
 ```c
