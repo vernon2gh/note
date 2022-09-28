@@ -4,9 +4,6 @@
 
 反向映射 `RMAP` 是一种物理地址反向映射虚拟地址的方法。
 
-对于 `Anonymous Page` 与 `File Page` 创建反向映射，采用不同的方法，
-下面主要介绍 `Anonymous Page` 创建反向映射的过程。
-
 * 映射
 
 页表用于虚拟地址到物理地址映射，记录映射关系，
@@ -39,9 +36,57 @@ Page Frame --------> RMAP --+
 内存回收，先查找哪一个 `Page Frame` 可以进行回收，然后通过反向映射查找
 此 `Page Frame` 的所有映射关系，并且取消映射
 
-### 数据结构
+对于 `Anonymous Page` 与 `File Page` 创建反向映射，采用不同的方法，
 
-反向映射有四个关键的结构体：
+### `File Page` 创建反向映射
+
+```c
+page_add_file_rmap()
+```
+
+对 `page->_mapcount` 加一
+
+#### 数据结构
+
+* `struct address_space`
+
+```c
+struct address_space {
+    ...
+    struct rb_root_cached	i_mmap;
+    ...
+};
+```
+
+* 涉及到的 `struct page` 成员
+
+```c
+struct page {
+    ...
+    struct address_space *mapping;
+    pgoff_t index;
+    ...
+};
+```
+
+`page->mapping` 存储 address_space 地址，如 `folio_mapping()`
+`page->index` 存储 `Page Frame` 在进程虚拟地址空间中的页偏移
+
+#### 情景分析
+
+[待补充]
+
+### `Anonymous Page` 创建反向映射
+
+```c
+page_add_anon_rmap() ------+
+                           +--> __page_set_anon_rmap()
+page_add_new_anon_rmap() --+
+```
+
+#### 数据结构
+
+`Anonymous Page` 反向映射有四个关键的结构体：
 
 * `struct vm_area_struct`，简称 VMA
 
@@ -49,10 +94,10 @@ Page Frame --------> RMAP --+
 
 ```c
 struct vm_area_struct {
-	...
-	struct list_head anon_vma_chain;
-	struct anon_vma *anon_vma;
-	...
+    ...
+    struct list_head anon_vma_chain;
+    struct anon_vma *anon_vma;
+    ...
 };
 ```
 
@@ -63,8 +108,8 @@ AV 用于管理 `Anonymous VMA`，当有 `Anonymous Page` 需要 unmap 处理时
 
 ```c
 struct anon_vma {
-	...
-	struct rb_root_cached rb_root;
+    ...
+    struct rb_root_cached rb_root;
 };
 ```
 
@@ -82,29 +127,29 @@ VMA <------> AVC <---------------> AV
 
 ```c
 struct anon_vma_chain {
-	struct vm_area_struct *vma;
-	struct anon_vma *anon_vma;
-	struct list_head same_vma;
-	struct rb_node rb;
-	...
+    struct vm_area_struct *vma;
+    struct anon_vma *anon_vma;
+    struct list_head same_vma;
+    struct rb_node rb;
+    ...
 };
 ```
 
-* RMAP 涉及的 `struct page` 成员
+* 涉及到的 `struct page` 成员
 
 ```c
 struct page {
-	...
-	struct address_space *mapping;
-	pgoff_t index;
-	...
+    ...
+    struct address_space *mapping;
+    pgoff_t index;
+    ...
 };
 ```
 
-`page->mapping` 存储 anon_vma 地址，
+`page->mapping` 存储 anon_vma 地址，如 `folio_anon_vma()`
 `page->index` 存储 `Page Frame` 在进程虚拟地址空间中的页偏移
 
-### 情景分析
+#### 情景分析
 
 场景一：执行一个全新的进程（即执行exec()），当 `Anonymous VMA0` 发生 Page Fault 后
 分配一个 Page Frame，同时为 RMAP 构建如下数据关系，并且将此Page Frame对应的
@@ -197,7 +242,7 @@ anon_vma_prepare()
 ```
 
 然后调用 `page_add_anon_rmap() / page_add_new_anon_rmap() --> __page_set_anon_rmap()`
-在 `page->mapping` 存储 anon_vma 地址以及 `page->index` 存储 `Page Frame` 
+在 `page->mapping` 存储 anon_vma 地址以及 `page->index` 存储 `Page Frame`
 在进程虚拟地址空间中的页偏移，这样才是将 RMAP 通路打通，让 page 与 anon_vma 关联起来。
 只有这样才能通过 page 找到 anon_vma，进而找到 VMA 中的某一页，从而完成对应的 PTE unmap 操作
 
@@ -236,53 +281,28 @@ try_to_unmap()
 
 rmap_walk_anon()
     anon_vma = folio_anon_vma()
-    anon_vma_interval_tree_foreach() to get avc on av->rb_root
+    anon_vma_interval_tree_foreach() to get avc from av->rb_root
         vma = avc->vma
+        address = vma_address(page, vma)
+        try_to_unmap_one()
+
+rmap_walk_file()
+    mapping = folio_mapping()
+    vma_interval_tree_foreach() to get vma from mapping->i_mmap
         address = vma_address(page, vma)
         try_to_unmap_one()
 
 try_to_unmap_one()
     page_vma_mapped_walk()
         check_pte()
+    ptep_clear_flush()
+    if page is dirty
+        folio_mark_dirty()
     page_remove_rmap()
     folio_put()
 ```
 
 ### 零散知识点
-
-* 如何从 `struct page` 找到 VMA ？
-
-> include/linux/mm_types.h
->
-> mm/util.c
-
-```c
-struct page {
-	struct address_space *mapping;
-}
-```
-
-当 struct page 对应是匿名页时，mapping 存储 anon_vma 地址，如 `folio_anon_vma()`，
-当 struct page 对应是文件页时，mapping 存储 address_space 地址，如 `folio_mapping()`
-
-* 为 `Anonymous Page` 创建反向映射
-
-```c
-page_add_anon_rmap() ------+
-                           +--> __page_set_anon_rmap()
-page_add_new_anon_rmap() --+
-```
-
-`page->mapping` 存储 anon_vma 地址，
-`page->index` 存储 `Page Frame` 在进程虚拟地址空间中的页偏移
-
-* 为 `File Page` 创建反向映射
-
-```c
-page_add_file_rmap()
-```
-
-对 `page->_mapcount` 加一
 
 * 进程，Anonymous VMA 与 AV 关系
 
@@ -303,15 +323,15 @@ Anonymous VMA  : AV            = 一对一关系
 
 ```c
 dup_mmap()
-	if (tmp->vm_flags & VM_WIPEONFORK) {
-		/*
-		 * VM_WIPEONFORK gets a clean slate in the child.
-		 * Don't prepare anon_vma until fault since we don't
-		 * copy page for current vma.
-		 */
-		tmp->anon_vma = NULL;
-	} else if (anon_vma_fork(tmp, mpnt))
-		goto fail_nomem_anon_vma_fork;
+    if (tmp->vm_flags & VM_WIPEONFORK) {
+        /*
+         * VM_WIPEONFORK gets a clean slate in the child.
+         * Don't prepare anon_vma until fault since we don't
+         * copy page for current vma.
+         */
+        tmp->anon_vma = NULL;
+    } else if (anon_vma_fork(tmp, mpnt))
+        goto fail_nomem_anon_vma_fork;
 ```
 
 ### 参考

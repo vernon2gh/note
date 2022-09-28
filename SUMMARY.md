@@ -34,6 +34,7 @@
     * [huge_page](linuxKernel/huge_page.md)
     * [page_fault](linuxKernel/page_fault.md)
     * [rmap](linuxKernel/rmap.md)
+    * [lru](linuxKernel/lru.md)
     * [page_reclaim](linuxKernel/page_reclaim.md)
     * [page_cache](linuxKernel/page_cache.md)
 * linuxDebug
