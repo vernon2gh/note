@@ -53,10 +53,12 @@ page_add_file_rmap()
 ```c
 struct address_space {
     ...
-    struct rb_root_cached	i_mmap;
+    struct rb_root_cached i_mmap;
     ...
 };
 ```
+
+将所有属于同一个 inode 的 VMA 都链接在 `address_space->i_mmap`
 
 * 涉及到的 `struct page` 成员
 
@@ -70,11 +72,49 @@ struct page {
 ```
 
 `page->mapping` 存储 address_space 地址，如 `folio_mapping()`
+
 `page->index` 存储 `Page Frame` 在进程虚拟地址空间中的页偏移
 
 #### 情景分析
 
-[待补充]
+* 一个文件只有一个 `struct inode` 结构体，文件的唯一标识
+* 一个文件只有一个 `struct address_space` 结构体，
+  系统启动后，`inode->i_mapping` 指向 address_space，
+  其他结构体的 address_space 指针都是从这里来复制的
+* 一个进程打开一个文件就有一个 `struct file` 结构体，
+  如：多个进程打开同一个文件，就有多个 `struct file` 结构体
+
+```c
+struct inode {
+    struct address_space *i_mapping;
+};
+
+struct file {
+    struct address_space *f_mapping; // 进程打开文件后，从 inode->i_mapping 复制到这里
+};
+
+struct folio {
+    struct address_space *mapping;   // 当 folio 存储 file 内容时，mapping 指向 address_space，
+                                     // 从 inode->i_mapping 复制到这里
+    pgoff_t index;
+};
+
+struct address_space {
+    struct inode          *host;   // 属于哪一个 inode
+    struct xarray         i_pages; // 将属于同一个 inode 的 page 都链接在这里，即 page cache
+    struct rb_root_cached i_mmap;  // 将属于同一个 inode 的 VMA 都链接在这里
+};
+```
+
+`mmap()` 能够将文件的一部分区域映射到进程虚拟地址空间的一个 VMA
+
+如果有5个进程，每个进程 mmap 同一个文件两次（文件的两个不同区域），
+那么就有10个 VMA，都链接在同一个 inode 的 `address_space->i_mmap` 中
+
+当进行文件页的内存回收时，通过（RMAP） `folio->mapping` 找到属于哪一个 address_space，
+然后通过 `address_space->i_mmap` 遍历找到所有属于同一个 inode 的 VMA，
+同时进行判断 VMA 在 `folio->index` 偏移处的 PFN 与 folio 对应的 FPN 是否相同？
+如果是，解除 VMA 在 `folio->index` 偏移处的映射关系
 
 ### `Anonymous Page` 创建反向映射
 
@@ -147,6 +187,7 @@ struct page {
 ```
 
 `page->mapping` 存储 anon_vma 地址，如 `folio_anon_vma()`
+
 `page->index` 存储 `Page Frame` 在进程虚拟地址空间中的页偏移
 
 #### 情景分析
@@ -303,6 +344,14 @@ try_to_unmap_one()
 ```
 
 ### 零散知识点
+
+* 文件，struct inode，struct address_space 与 struct file 关系
+
+```
+文件         : struct inode         = 一对一关系
+struct inode : struct address_space = 一对一关系
+struct inode : struct file          = 一对多关系
+```
 
 * 进程，Anonymous VMA 与 AV 关系
 
