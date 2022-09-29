@@ -93,8 +93,8 @@ struct file {
     struct address_space *f_mapping; // 进程打开文件后，从 inode->i_mapping 复制到这里
 };
 
-struct folio {
-    struct address_space *mapping;   // 当 folio 存储 file 内容时，mapping 指向 address_space，
+struct page {
+    struct address_space *mapping;   // 当 page 存储 file 内容时，mapping 指向 address_space，
                                      // 从 inode->i_mapping 复制到这里
     pgoff_t index;
 };
@@ -111,10 +111,10 @@ struct address_space {
 如果有5个进程，每个进程 mmap 同一个文件两次（文件的两个不同区域），
 那么就有10个 VMA，都链接在同一个 inode 的 `address_space->i_mmap` 中
 
-当进行文件页的内存回收时，通过（RMAP） `folio->mapping` 找到属于哪一个 address_space，
+当进行文件页的内存回收时，通过（RMAP） `page->mapping` 找到属于哪一个 address_space，
 然后通过 `address_space->i_mmap` 遍历找到所有属于同一个 inode 的 VMA，
-同时进行判断 VMA 在 `folio->index` 偏移处的 PFN 与 folio 对应的 FPN 是否相同？
-如果是，解除 VMA 在 `folio->index` 偏移处的映射关系
+同时进行判断 VMA 在 `page->index` 偏移处的 PFN 与 folio 对应的 FPN 是否相同？
+如果是，解除 VMA 在 `page->index` 偏移处的映射关系
 
 ### `Anonymous Page` 创建反向映射
 
