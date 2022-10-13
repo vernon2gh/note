@@ -358,9 +358,9 @@ try_to_unmap_one()
 `try_to_unmap_one()` 将此页对应的页表项进行清零，然后判断原来页表项是否为脏，
 如果是，设置脏页标志，方便后面进行回写操作。
 
-1. 如果此页是匿名页，并且没有 swapbacked，将原来页表项写回，并且标志有 swapbacked，
+* 如果此页是匿名页，并且没有 swapbacked，将原来页表项写回，并且标志有 swapbacked，
 下一次进行内存回收时，就能够进行回收。
-2. 如果此页是匿名页，并且有 swapbacked，从 page.private 获得 swp_entry_t，写入
+* 如果此页是匿名页，并且有 swapbacked，从 page.private 获得 swp_entry_t，写入
 此页对应的页表项中
 
 最后，删除此页对应的反向映射关系，并且 put 此页
