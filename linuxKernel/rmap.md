@@ -310,8 +310,6 @@ anon_vma_clone()
 
 * try_to_unmap
 
-尝试删除 Page Frame 的所有页表映射
-
 ```c
 try_to_unmap()
     rmap_walk[_locked]()
@@ -332,16 +330,49 @@ rmap_walk_file()
     vma_interval_tree_foreach() to get vma from mapping->i_mmap
         address = vma_address(page, vma)
         try_to_unmap_one()
+```
 
+`try_to_unmap()` 尝试删除 Page Frame 的所有页表映射
+
+```c
 try_to_unmap_one()
     page_vma_mapped_walk()
         check_pte()
-    ptep_clear_flush()
+    ptep_get_and_clear()/ptep_clear_flush()
+
     if page is dirty
         folio_mark_dirty()
+
+    if is anon page
+        if not swapbacked
+            set_pte_at()
+            folio_set_swapbacked()
+        page_private() // get swp_entry_t from page.private
+        swp_entry_to_pte() // pte low 3 bits is zero
+        set_pte_at()
+
     page_remove_rmap()
     folio_put()
 ```
+
+`try_to_unmap_one()` 将此页对应的页表项进行清零，然后判断原来页表项是否为脏，
+如果是，设置脏页标志，方便后面进行回写操作。
+
+1. 如果此页是匿名页，并且没有 swapbacked，将原来页表项写回，并且标志有 swapbacked，
+下一次进行内存回收时，就能够进行回收。
+2. 如果此页是匿名页，并且有 swapbacked，从 page.private 获得 swp_entry_t，写入
+此页对应的页表项中
+
+最后，删除此页对应的反向映射关系，并且 put 此页
+
+```c
+handle_pte_fault()
+	if (!pte_present(vmf->orig_pte))
+		return do_swap_page(vmf);
+```
+
+当发生 Page Fault 时，如果此页不存在在内存中（PTE的第1/59位为0），代表是 swap page，
+从 swap space 读出来
 
 ### 零散知识点
 
