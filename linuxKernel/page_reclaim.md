@@ -122,14 +122,26 @@ shrink_page_list(&page_list)
     references = folio_check_references(folio, sc)
             folio_referenced()
             folio_test_clear_referenceds()
+
+    // if support demote
+    list_add(&folio->lru, &demote_pages)
+    list_splice_init(&demote_pages, page_list)
+
+    // if is anon page, have swapbacked, but not swapcache
+    add_to_swap()
+        folio_alloc_swap()
+        add_to_swap_cache()
+            set_page_private() // set swp_entry_t to page.private
+
     // PAGEREF_RECLAIM
     try_to_unmap()
     pageout()
-    if folio is large
-        destroy_large_folio(folio)
-    else
-        list_add(&folio->lru, &free_pages)
+    __remove_mapping()
+        __delete_from_swap_cache()
+        __filemap_remove_folio()
+    list_add(&folio->lru, &free_pages)
     free_unref_page_list(&free_pages)
+
     // PAGEREF_ACTIVATE
     folio_set_active(folio)
 ```
@@ -144,9 +156,17 @@ shrink_page_list(&page_list)
 LRU active/inactive 链表中
 
 如果是LRU inactive链表，从 LRU inactive 链表中获得一定数量的页，并且从 LRU inactive
-链表中删除，然后依次获得每一页，如果有 referenced，将页设置成 active 属性，否则，
-通过反向映射 RMAP 取消所有映射（如果是脏页，执行 writeback 动作），并且将页回收到 buddy 子系统中。
-最后将 active 链表（有 active 属性的页）加入对应的 LRU active 链表中
+链表中删除，然后依次获得每一页
+
+1. 如果有 referenced，将页设置成 active 属性，将 active 链表（有 active 属性的页）
+加入对应的 LRU active 链表中，否则，
+2. 如果支持 demote 功能，将此页进行 demote 操作，否则，
+3. 如果是匿名页，有 swapbacked，但是不存在 swapcache，为此匿名页分配 swap space，
+并且将此匿名页加入 swap cache中，同时将 swp_entry_t 保存在 page.private 中
+4. 来到此处的页都属于 page cache 或 swap cache
+
+通过反向映射 RMAP 取消所有映射（如果是脏页，执行 writeback 动作），
+从 address_space.xarray 中删除此页，并且将页回收到 buddy 子系统中。
 
 ```c
 shrink_slab()
@@ -167,13 +187,40 @@ do_shrink_slab()
 
 `shrink_slab()` 回收 slab cache
 
-如果没有使能 mem_cgroup 功能以及 mem_cgroup 不是 root_mem_cgroup，
+如果 enable mem_cgroup 功能以及 mem_cgroup 不是 root_mem_cgroup，
 调用 `shrink_slab_memcg()` 从 shrinker_idr 中查找 shrinker，最后调用 `do_shrink_slab()`
 
 否则，直接从 shrinker_list 链表中查找 shrinker，最后同时调用 `do_shrink_slab()`
 
-`do_shrink_slab()` 调用用户注册的回调函数，`count_objects()` 返回能够回收的个数，
-`scan_objects()` 进行回收，返回值为扫描期间释放的个数
+`do_shrink_slab()` 调用用户注册的 shrinker 回调函数，
+`shrinker.count_objects` 返回能够回收的个数，
+`shrinker.scan_objects` 进行回收，返回值为扫描期间释放的个数
+
+比如：
+当 mount 某个文件系统类型的 block 时，会创建 super block，即 `alloc_super()` 注册
+一个 shrinker（主要是：`shrinker.scan_objects` 回调函数）。
+
+如果在系统内存资源不够的情况下，进行内存回收，调用 `shrink_slab()` 来遍历所有注册的
+shrinker，然后调用 `shrinker.scan_objects` 回调函数 将文件系统目前空闲的 inode cache、
+dentry cache 释放回 slab 中。
+
+如果释放后，slab 刚好能有空闲的一整页，就可以将此空闲页释放回 buddy 子系统中
+
+Q: 如何判断文件系统的 inode cache 能够空闲能够释放？
+
+A: inode->i_count 等于 0，并且此 inode 对应的 address_space.xarray 为空时，
+即此 inode cache 能够释放的，源码如下：
+
+```c
+super_cache_scan()
+    prune_icache_sb()
+        inode_lru_isolate()
+            atomic_read(&inode->i_count)
+            mapping_empty(&inode->i_data)
+```
+
+其中，在回收 page cache 时，调用 `__remove_mapping()` 会将 page cache 从
+addresss_space.xarray 中删除
 
 ```c
 folio_mark_accessed()
