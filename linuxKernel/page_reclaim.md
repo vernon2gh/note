@@ -158,12 +158,12 @@ LRU active/inactive 链表中
 如果是LRU inactive链表，从 LRU inactive 链表中获得一定数量的页，并且从 LRU inactive
 链表中删除，然后依次获得每一页
 
-1. 如果有 referenced，将页设置成 active 属性，将 active 链表（有 active 属性的页）
+* 如果有 referenced，将页设置成 active 属性，将 active 链表（有 active 属性的页）
 加入对应的 LRU active 链表中，否则，
-2. 如果支持 demote 功能，将此页进行 demote 操作，否则，
-3. 如果是匿名页，有 swapbacked，但是不存在 swapcache，为此匿名页分配 swap space，
+* 如果支持 demote 功能，将此页进行 demote 操作，否则，
+* 如果是匿名页，有 swapbacked，但是不存在 swapcache，为此匿名页分配 swap space，
 并且将此匿名页加入 swap cache中，同时将 swp_entry_t 保存在 page.private 中
-4. 来到此处的页都属于 page cache 或 swap cache
+* 来到此处的页都属于 page cache 或 swap cache
 
 通过反向映射 RMAP 取消所有映射（如果是脏页，执行 writeback 动作），
 从 address_space.xarray 中删除此页，并且将页回收到 buddy 子系统中。
