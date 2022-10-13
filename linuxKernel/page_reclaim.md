@@ -95,33 +95,6 @@ shrink_node()
 `mem_cgroup_lruvec()` 获得指定 mem_cgroup 的 lruvec
 
 ```c
-shrink_slab()
-    if mem_cgroup is enabled and the mem_cgroup is not root_mem_cgroup
-        shrink_slab_memcg()
-            info = shrinker_info_protected()
-            for_each_set_bit(info->map)
-                idr_find(&shrinker_idr)
-                do_shrink_slab()
-    else
-        list_for_each_entry(&shrinker_list)
-            do_shrink_slab()
-
-do_shrink_slab()
-    shrinker->count_objects()
-    shrinker->scan_objects()
-```
-
-`shrink_slab()` 回收 slab cache
-
-如果没有使能 mem_cgroup 功能以及 mem_cgroup 不是 root_mem_cgroup，
-调用 `shrink_slab_memcg()` 从 shrinker_idr 中查找 shrinker，最后调用 `do_shrink_slab()`
-
-否则，直接从 shrinker_list 链表中查找 shrinker，最后同时调用 `do_shrink_slab()`
-
-`do_shrink_slab()` 调用用户注册的回调函数，`count_objects()` 返回能够回收的个数，
-`scan_objects()` 进行回收，返回值为扫描期间释放的个数
-
-```c
 shrink_lruvec()
     for_each_evictable_lru(lru)
         shrink_list()
@@ -174,6 +147,33 @@ LRU active/inactive 链表中
 链表中删除，然后依次获得每一页，如果有 referenced，将页设置成 active 属性，否则，
 通过反向映射 RMAP 取消所有映射（如果是脏页，执行 writeback 动作），并且将页回收到 buddy 子系统中。
 最后将 active 链表（有 active 属性的页）加入对应的 LRU active 链表中
+
+```c
+shrink_slab()
+    if mem_cgroup is enabled and the mem_cgroup is not root_mem_cgroup
+        shrink_slab_memcg()
+            info = shrinker_info_protected()
+            for_each_set_bit(info->map)
+                idr_find(&shrinker_idr)
+                do_shrink_slab()
+    else
+        list_for_each_entry(&shrinker_list)
+            do_shrink_slab()
+
+do_shrink_slab()
+    shrinker->count_objects()
+    shrinker->scan_objects()
+```
+
+`shrink_slab()` 回收 slab cache
+
+如果没有使能 mem_cgroup 功能以及 mem_cgroup 不是 root_mem_cgroup，
+调用 `shrink_slab_memcg()` 从 shrinker_idr 中查找 shrinker，最后调用 `do_shrink_slab()`
+
+否则，直接从 shrinker_list 链表中查找 shrinker，最后同时调用 `do_shrink_slab()`
+
+`do_shrink_slab()` 调用用户注册的回调函数，`count_objects()` 返回能够回收的个数，
+`scan_objects()` 进行回收，返回值为扫描期间释放的个数
 
 ```c
 folio_mark_accessed()
