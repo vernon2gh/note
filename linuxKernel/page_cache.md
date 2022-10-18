@@ -17,18 +17,16 @@ Page Cache，然后再一次从 xarray 查找是否有符合要求的 Page Cache
 ### 详细解析
 
 ```c
-page_cache_alloc()
-    __page_cache_alloc()
-        filemap_alloc_folio()
+filemap_alloc_folio() // page_cache_alloc()
+    folio_alloc()
 ```
 
-`page_cache_alloc()` 从 buddy 子系统分配一页 page cache
+`filemap_alloc_folio()` 从 buddy 子系统分配一页 page cache
 
 ```c
-add_to_page_cache_lru()
-    filemap_add_folio()
-        __filemap_add_folio()
-        folio_add_lru()
+filemap_add_folio() // add_to_page_cache_lru()
+    __filemap_add_folio()
+    folio_add_lru()
 
 __filemap_add_folio()
     folio_ref_add()
@@ -44,17 +42,16 @@ folio_add_lru()
             folio_batch_init()
 ```
 
-`add_to_page_cache_lru()` 将 page cache 加入对应的 xarray 以及 LRU 链表中
+`filemap_add_folio()` 将 page cache 加入对应的 xarray 以及 LRU 链表中
 
 ```c
-pagecache_get_page()
+filemap_get_folio() // pagecache_get_page()
     __filemap_get_folio()
         mapping_get_entry()
             xas_load()
-    folio_file_page()
 ```
 
-`pagecache_get_page()` 从对应的 xarray 中获得 page cache
+`filemap_get_folio()` 从对应的 xarray 中获得 page cache
 
 ### 零散知识点
 
