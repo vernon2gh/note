@@ -91,7 +91,7 @@ ubuntu 默认安装 Python2 版本的 offlineimap，官方已经停止维持，�
 neomutt 是 mutt 的下游产品，添加更多功能
 
 因为刚刚开始，所以准备先用 offlineimap + mutt，后面慢慢优化，
-更新到 neomutt + offlineimap3
+更新到 offlineimap3 + neomutt
 
 ## mutt 颜色配置
 
