@@ -146,6 +146,7 @@
     * [git](Tools/git.md)
     * [tig](Tools/tig.md)
     * [tmux](Tools/tmux.md)
+    * [mail_client](Tools/mail_client.md)
 * other
     * [ubuntu_corresponding_linuxkernel](other/ubuntu_corresponding_linuxkernel.md)
     * [ubuntu1004_sources_list](other/ubuntu1004_sources_list.md)
