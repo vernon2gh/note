@@ -1,0 +1,12 @@
+#!/usr/bin/expect
+
+set timeout 60
+
+spawn sudo pgyvpn
+expect "密码："
+send "xxx\n"
+
+expect "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+send "10\n"
+
+interact

@@ -1,0 +1,60 @@
+# ================  IMAP ====================
+set folder = ~/Mail
+set spoolfile = "+INBOX"
+
+# ================  SMTP  ====================
+set smtp_url = "smtp://xxx@smtp.gmail.com:587/"
+set smtp_pass = "xxx"
+set ssl_force_tls = yes # Require encrypted connection
+
+# ================  Composition  ====================
+set editor = "vi"
+set edit_headers = yes  # See the headers when editing
+set charset = UTF-8     # value of $LANG; also fallback for send_charset
+# Sender, email address, and sign-off line must match
+unset use_domain        # because joe@localhost is just embarrassing
+set realname = "xxx"
+set from = "xxx@gmail.com"
+set use_from = yes
+
+# ================  Others  ====================
+set sort = threads
+set sort_aux = reverse-last-date-received
+
+# ==============  Patch color  =================
+color   body    red             black    "^-.*"
+color   body    green           black    "^[+].*"
+color   body    brightwhite     black    "^diff --git.*"
+color   body    brightwhite     black    "^index [a-f0-9].*"
+color   body    brightwhite     black    "^\-\-\- a.*"
+color   body    brightwhite     black    "^[\+]{3} b.*"
+color   body    brightyellow    black    "^@@.*"
+color   body    brightmagenta   black    "^(Signed-off-by).*"
+color   body    brightmagenta   black    "^(Reported-by).*"
+color   body    brightmagenta   black    "^(Suggested-by).*"
+color   body    brightmagenta   black    "^(Acked-by).*"
+color   body    brightmagenta   black    "^(Reviewed-by).*"
+color   body    brightmagenta   black    "^\-\-\-$"
+color   body    white           black    "^( \#define).*"
+color   body    white           black    "^( \#include).*"
+color   body    white           black    "^( \#if).*"
+color   body    white           black    "^( \#el).*"
+color   body    white           black    "^( \#endif).*"
+
+color   body    green           black    "LGTM"
+color   body    brightmagenta   black    "-- Commit Summary --"
+color   body    brightmagenta   black    "-- File Changes --"
+color   body    brightmagenta   black    "-- Patch Links --"
+color   body    green           black    "^Merged #.*"
+color   body    red             black    "^Closed #.*"
+color   body    brightblue      black    "^Reply to this email.*"
+
+# ==============  Quoted Color  =================
+set quote_regexp = "^([ \t]*[>])+"
+
+color   quoted  blue            black
+color   quoted1 magenta         black
+color   quoted2 cyan            black
+color   quoted3 yellow          black
+color   quoted4 red             black
+

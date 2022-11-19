@@ -1,0 +1,31 @@
+#!/bin/sh
+#chkconfig: 345 90 10
+#description: pgyvpn
+
+case $1 in
+	start)
+		/usr/sbin/pgyvpn -a >/dev/null 2>&1 &
+		/usr/share/pgyvpn/script/pgyvpn_monitor >/dev/null 2>&1 &
+		;;
+	stop)
+		killall pgyvpn_svr 2>/dev/null
+		killall pgyvpn_oraysl 2>/dev/null
+
+		#prevent pgyvpn_svr server is alive
+		for i in $(seq 1 4)
+		do
+			pgyvpn_svr_pid=$(pidof pgyvpn_svr)
+			[ -z "$pgyvpn_svr_pid" ] && {
+				break
+			}
+			sleep 1
+		done
+		pgyvpn_svr_pid=$(pidof pgyvpn_svr)
+		[ -z "$pgyvpn_svr_pid" ] || killall -9 pgyvpn_svr 2> /dev/null
+
+		;;
+	*)
+		echo "Usage: $0 (start|stop)"
+		;;
+esac
+
