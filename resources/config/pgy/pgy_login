@@ -3,7 +3,7 @@
 set timeout 60
 
 spawn sudo pgyvpn
-expect "密码："
+expect "password for xxx:"
 send "xxx\n"
 
 expect "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
