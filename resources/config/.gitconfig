@@ -12,3 +12,5 @@
 	smtpUser = xxx@gmail.com
 	smtpPass = xxx
 	smtpServerPort = 587
+[core]
+	editor = vim
