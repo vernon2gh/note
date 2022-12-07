@@ -18,10 +18,16 @@
 
 ### 回收内存方式
 
-* 当系统内存低于一定水位时，唤醒 `kswapd` 内核线程进行周期性回收内存。
+> Linux Kernel 有三个内存水位线，分别是 high、low、min
+
+* 当系统内存低于 low 水位线时，唤醒 `kswapd` 内核线程进行周期性回收内存。
   `kswapd` 是一个内核线程，在系统初始化过程中调用 `kswapd_init()` 来创建
-* 紧急回收内存，如 `__alloc_pages_direct_reclaim()`
+* 当系统内存低于 min 水位线时，进行紧急回收内存，如 `__alloc_pages_direct_reclaim()`
 * 应用层手动触动回收内存，如 `/proc/sys/vm/drop_caches`
+
+当进行内存回收时，需要回收到什么时候才停止？
+
+内存水位线达到 high 并且能够分配指定 order 阶的页时，内存回收结束，kswapd 重新进入睡眠状态。
 
 三者的函数调用关系如下：
 

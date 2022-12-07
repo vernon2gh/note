@@ -62,7 +62,7 @@ filemap_get_folio() // pagecache_get_page()
 
 * 对 page cache 进行 writeback 操作后，会自动将 Page Cache 回收给 buddy 子系统吗？
 
-不会，只有当目前系统中内存低于一定水位时，触发内存回收机制时，才会将 Page Cache 回收
+不会，只有当目前系统中内存低于 low 水位时，触发内存回收机制时，才会将 Page Cache 回收
 给 buddy 子系统
 
 ### 参考
