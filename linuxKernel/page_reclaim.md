@@ -273,6 +273,12 @@ folio_referenced()
 
 将页从 LRU active 链表移到到 inactive 链表，同理所得
 
+* /proc/vmstat
+
+pageoutrun 代表 kswapd 启动次数
+
+allocstall 代表 direct reclaim 启动次数
+
 ### 参考
 
 [页面回收的基本概念](http://www.wowotech.net/memory_management/page_reclaim_basic.html)
