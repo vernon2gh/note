@@ -28,3 +28,10 @@ $ tmux list-buffers                             # 查看缓冲区
 $ tmux save-buffer -b [buffer_name] [save_path] # 将缓冲区保存到文件中
 ```
 
+后台执行
+
+```bash
+$ ctrl-b d    # 退出 session
+$ tmux attach # 重新进入 session
+```
+

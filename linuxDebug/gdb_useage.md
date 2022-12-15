@@ -108,3 +108,6 @@ $3 = 1
 
 Reference : https://sourceware.org/gdb/current/onlinedocs/gdb/Memory.html#Memory
 
+### 12. 在启动 GDB 时自动执行一些命令
+
+在 `~/.gdbinit` 文件中添加需要自动执行的命令
