@@ -1,17 +1,17 @@
 此文章主要介绍各种`vscode`插件
 
-### C/C++
+### clangd
 
-`vscode` `C/C++`插件默认可以浏览`C`源码，但是浏览一些大型开源软件会很卡(如`linux kernel`)，所以需要一些配置才能让其顺畅浏览
+`vscode` `C/C++` 插件默认可以浏览`C`源码，但是浏览一些大型开源软件会很卡(如`linux kernel`)，
+使用 `clangd` 插件能够顺畅浏览大型开源软件(如`linux kernel`)
 
-首先，配置`xxx.code-workspace`的`settings`属性，如下:
+首先，安装 clangd 软件，默认会自动下载。如果没有自动下载，执行如下命令手动下载：
 
+```bash
+$ sudo apt install clangd
 ```
-"C_Cpp.default.compileCommands": "compile_commands.json",
-"json.maxItemsComputed": 15000
-```
 
-然后，生成`compile_commands.json`
+然后，生成 `compile_commands.json`
 
 A. 在`linux4.19 or laster`中，`linux kernel`自带可以生成`compile_commands.json`的`python`脚本
 
@@ -23,7 +23,8 @@ $ make ARCH=x86                     ## 编译生成bzImage以及autoconf.h
 $ ./scripts/gen_compile_commands.py ## 生成compile_commands.json
 ```
 
-B. 旧版本的`linux kernel`没有自带可以生成`compile_commands.json`的`python`脚本，比如`linux2.6.34`，我们可以使用`compiledb`命令进行生成
+B. 旧版本的`linux kernel`没有自带可以生成`compile_commands.json`的`python`脚本，
+比如`linux2.6.34`，我们可以使用`compiledb`命令进行生成
 
 更多关于`compiledb`详细解释，请看[官方](https://github.com/nickdiego/compiledb)
 
@@ -36,6 +37,17 @@ $ make ARCH=x86                              ## 编译生成bzImage以及autocon
 ```
 
 最后，打开`vscode`，直接对函数调用和结构体进行跳转以及自动补全
+
+> 在浏览 linux kernel 源码时，x86_64 架构的 compile_commands.json 能够直接被 clangd 解释，
+> 但是 arm64 架构的 compile_commands.json 无法被  clangd 解释，因为 clangd 无法解释 `-mabi=lp64` 标志，
+> 所以我们需要为 arm64 架构添加一些额外的配置，如下:
+
+```bash
+## Linux directory
+$ cat .clangd
+CompileFlags:
+	Remove: -mabi=lp64
+```
 
 ### Native Debug
 
