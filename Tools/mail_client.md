@@ -10,7 +10,7 @@
 Linux 邮件客户端有 TUI 或 GUI 类型，其中 TUI 类型比较著名的是 mutt、neomutt 等等，
 GUI 类型比较著名的是 Thunderbird 等等
 
-我的目的只是单纯想回复 Linux Mail List 的某一个邮件，所以选择 mutt
+我的目的只是单纯想回复 LKML 的某一个邮件，所以选择 mutt
 
 ## mutt
 
@@ -92,6 +92,21 @@ neomutt 是 mutt 的下游产品，添加更多功能
 
 因为刚刚开始，所以准备先用 offlineimap + mutt，后面慢慢优化，
 更新到 offlineimap3 + neomutt
+
+## wget + mutt
+
+有时候我们想要回复 LKML 的邮件，但是又没有将邮件抄送给我们，
+我们要如何回复 LKML 的邮件？
+
+在 LKML 找到对应想要回复的邮件对应的 raw 链接，即 mbox 文件。
+然后通过 wget 下载 mbox 文件，导入到 mutt 中
+
+```bash
+$ wget https://lore.kernel.org/xxx/raw
+$ mutt -f raw
+```
+
+此时已经进入到 mutt，能够按照正常操作回复此邮件了
 
 ## mutt 颜色配置
 
