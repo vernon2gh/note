@@ -80,6 +80,9 @@
     * [debugfs](linuxDriver/debugfs.md)
     * [v4l2](linuxDriver/v4l2.md)
     * [mmap](linuxDriver/mmap.md)
+* function_parse
+    * [do_mas_align_munmap](function_parse/do_mas_align_munmap.md)
+    * [do_brk_flags](function_parse/do_brk_flags.md)
 * process_thread_scheduler
     * [scheduler01](process_thread_scheduler/scheduler01.md)
     * [scheduler02](process_thread_scheduler/scheduler02.md)

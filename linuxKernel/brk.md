@@ -62,9 +62,11 @@ SYSCALL_DEFINE1(brk
 其中第一次设置 brk 属于增加 brk 的一种特殊情况。
 
 当收缩 brk 时，通过 mas_find() 找到 brk 对应的 VMA，
-然后调用 do_mas_align_munmap() 对需要收缩的那部分 VMA 进行 unmap
+然后调用 [do_mas_align_munmap()](../function_parse/do_mas_align_munmap.md)
+对需要收缩的那部分 VMA 进行 unmap
 
 当增加 brk 时，通过 mas_find() 检查新 brk 值是否在 stack_guard_gap 区域中。
 如果是，越界，直接退出。
 否则，代表能够增加 brk，调用 mas_prev() 找到 brk 对应的 VMA，
-然后调用 do_brk_flags() 进行增加 brk 的一系列操作
+然后调用 [do_brk_flags()](../function_parse/do_brk_flags.md)
+进行增加 brk 的一系列操作

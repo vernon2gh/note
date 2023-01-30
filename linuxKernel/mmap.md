@@ -84,7 +84,8 @@ do_mmap() 调用 get_unmapped_area() 查找空闲的虚拟地址空间，
 mmap_region() 将空闲的虚拟地址空间扩展到旧 VMA 或 创建新 VMA 并且加入到 maple tree 中
 
 munmap(addr) 从 maple tree 中以 addr 为 index 找到对应的 vma，
-然后调用 do_mas_align_munmap() 将 vma 进行 unmap
+然后调用 [do_mas_align_munmap()](../function_parse/do_mas_align_munmap.md)
+将 vma 进行 unmap
 
 ## 零散知识点
 
