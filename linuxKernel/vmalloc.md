@@ -13,6 +13,10 @@ vmalloc()
 `vmalloc()` 从 vmalloc 区域申请虚拟内存，并且从 buddy 分配器申请物理内存后，然后
 调用 `vmap_pages_range()` 将物理内存映射到虚拟内存中，此虚拟内存空间不会出现 `Page Fault`
 
+(x86_64) 如果进程 A 陷入内核空间，通过 vmalloc() 分配内存 memA，如上解释不会出现 Page Fault。
+但是进程 B 后面再陷入内核空间，并且也访问内存 memA，这时候内核会发生 Page Fault 来同步内核页表，
+而不是发生 Page Fault 来申请物理内存。
+
 ### 零散知识点
 
 * 为什么 `vmalloc()` 申请的虚拟内存大小 总是比 申请的物理内存小？
