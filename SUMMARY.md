@@ -39,6 +39,8 @@
     * [page_cache](linuxKernel/page_cache.md)
     * [rcu](linuxKernel/rcu.md)
     * [kvm](linuxKernel/kvm.md)
+    * [page mapcount](linuxKernel/_mapcount.md)
+    * [page refcount](linuxKernel/_refcount.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
