@@ -1,6 +1,6 @@
 ## Page Fault
 
-Page Fault 一般分为两大类别：
+### Page Fault 一般分为两大类别
 
 * 缺页异常
     1. `mmap()` 通常仅仅申请虚拟地址空间，未分配/映射物理内存，在进程首次访问时触发
@@ -10,11 +10,11 @@ Page Fault 一般分为两大类别：
     5. 由程序错误引起，访问进程的非法地址区域，SIGSEGV 信号杀死进程
 
 * 没有访问权限
-    1. 写时复制 `copy on write`，创建子进程时以只读方式共享匿名页和文件页，
+    1. 写时复制 `copy on write`，创建子进程时以只读方式共享私有匿名页/文件页，
     当进行写操作时，触发异常，进行数据复制和页表映射
     2. 由程序错误引起，SIGSEGV 信号杀死进程
 
-Page Fault 大体处理流程：
+### Page Fault 大体处理流程
 
 * 与具体硬件架构相关，如 ARM64
 
@@ -87,7 +87,7 @@ handle_mm_fault()
             do_wp_page() // copy on write
 ```
 
-Page Fault 详细处理流程：
+### Page Fault 详细处理流程
 
 * 匿名页
 
@@ -148,7 +148,7 @@ do_shared_fault()
 
 `do_wp_page()` 用于处理 写时复制 `copy on write`，包括以下二种情况：
 
-1. 创建子进程时，父子进程会以只读方式共享私有的匿名页和文件页，
+1. 创建子进程时，父子进程会以只读方式共享私有匿名页/文件页，
 当进行写操作时，触发 Page Fault，从而复制物理页，并创建映射
 2. 进程创建私有文件映射，当进行读操作时，触发 Page Fault，将文件页读入到 page cache 中，
 并以只读模式创建映射。当发生写操作时，触发 Page Fault，进行 COW
@@ -186,7 +186,7 @@ wp_page_copy()
         update_mmu_cache()
 ```
 
-* 零散知识点
+### 零散知识点
 
 基于ARM64，
 Exception Level 0 代表 用户态，
