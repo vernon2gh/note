@@ -180,27 +180,16 @@ write*:mod:ext4
 与前面直接读写`/sys/kernel/debug/tracing/xxx`一样，以 `__kmalloc` 为例，如下：
 
 ```bash
-## 不显示__kmalloc的调用栈
+## 过滤__kmalloc()
 $ trace-cmd record -p function -l __kmalloc
-  plugin 'function'
-Hit Ctrl^C to stop recording
-^C
-CPU0 data recorded at offset=0x1ef000
-    8192 bytes in size
 $ trace-cmd report
 cpus=1
               sh-163   [000]   731.892712: function:             __kmalloc <-- security_prepare_creds
              cat-248   [000]   731.895426: function:             __kmalloc <-- security_prepare_creds
              cat-248   [000]   731.895687: function:             __kmalloc <-- load_elf_phdrs
 
-
-## 显示__kmalloc的调用栈
+## 过滤__kmalloc()，显示调用栈
 $ trace-cmd record -p function -l __kmalloc --func-stack
-  plugin 'function'
-Hit Ctrl^C to stop recording
-^C
-CPU0 data recorded at offset=0x1ef000
-    4096 bytes in size
 $ trace-cmd report
 cpus=1
               sh-163   [000]   820.854628: function:             __kmalloc <-- security_prepare_creds
@@ -215,13 +204,23 @@ cpus=1
 => __x64_sys_clone (ffffffff848678b6)
 => do_syscall_64 (ffffffff84802538)
 => entry_SYSCALL_64_after_hwframe (ffffffff8540007c)
+
+## 过滤__kmalloc()，trace数据不保存到 trace.dat 文件
+$ trace-cmd start -p function -l __kmalloc
+$ trace-cmd show
+
+## 显示__kmalloc()调用哪些函数
+$ trace-cmd start -p function_graph -g __kmalloc
+$ trace-cmd show
 ```
 
 参数解释：
 
 * `-p`：指定当前的 tracer，类似 `echo function > current_tracer`，支持 `available_tracers` 中的任意一个
 
-* `-l`：指定跟踪的函数，可以设置多个，类似 `echo <function_name> > set_ftrace_filter`
+* `-l`：指定过滤的函数，可以设置多个，类似 `echo <function_name> > set_ftrace_filter`
+
+* `-g`：指定跟踪的函数，显示调用哪些函数，类似 `echo <function_name> > set_graph_function`
 
 * `--func-stack`：记录被跟踪函数的调用栈，类似 `echo 1 > options/func_stack_trace`
 
