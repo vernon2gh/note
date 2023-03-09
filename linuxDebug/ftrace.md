@@ -212,6 +212,10 @@ $ trace-cmd show
 ## 显示__kmalloc()调用哪些函数
 $ trace-cmd start -p function_graph -g __kmalloc
 $ trace-cmd show
+
+## 只显示 a.out 执行 __kmalloc() 调用哪些函数
+$ trace-cmd start -p function_graph -g __kmalloc ./a.out
+$ trace-cmd show
 ```
 
 参数解释：
