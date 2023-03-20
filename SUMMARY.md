@@ -30,6 +30,7 @@
     * [tracing_system](linuxKernel/tracing_system.md)
     * [brk](linuxKernel/brk.md)
     * [mmap](linuxKernel/mmap.md)
+    * [mremap](linuxKernel/mremap.md)
     * [share_memory](linuxKernel/shm.md)
     * [huge_page](linuxKernel/huge_page.md)
     * [page_fault](linuxKernel/page_fault.md)
@@ -85,6 +86,7 @@
 * function_parse
     * [do_mas_align_munmap](function_parse/do_mas_align_munmap.md)
     * [do_brk_flags](function_parse/do_brk_flags.md)
+    * [vma_merge](function_parse/vma_merge.md)
 * process_thread_scheduler
     * [scheduler01](process_thread_scheduler/scheduler01.md)
     * [scheduler02](process_thread_scheduler/scheduler02.md)
