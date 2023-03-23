@@ -1,6 +1,7 @@
 ```c
 vma_merge()
-    find_vma()
+    find_vma_intersection()
+    vma_lookup()
     can_vma_merge_after()
     can_vma_merge_before()
     vma_prepare()
@@ -8,7 +9,7 @@ vma_merge()
     vma_complete()
 ```
 
-调用 find_vma() 以及一系列条件判断，获得 curr and next VMA
+调用 find_vma_intersection() + vma_lookup()，获得 curr and next VMA
 
 调用 can_vma_merge_after() 判断 prev VMA 是否能够合并后面的
 `(vm_flags,anon_vma,file,vm_pgoff)`
