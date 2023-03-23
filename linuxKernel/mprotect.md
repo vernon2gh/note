@@ -61,8 +61,8 @@ SYSCALL_DEFINE3(mprotect
         vma_prev()
         for_each_vma_range()
             calc_vm_prot_bits()
-        map_deny_write_exec()
-        mprotect_fixup()
+            map_deny_write_exec()
+            mprotect_fixup()
 ```
 
 调用 vma_find() 查找 [start, end) 范围内的第一个 VMA，
