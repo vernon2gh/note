@@ -96,7 +96,8 @@ mprotect_fixup()
 
 * 调用 vm_flags_reset() 将 newflags 赋值给 vma->vm_flags
 * 调用 vma_set_page_prot() 从 newflags 转换成 vm_page_prot，同时赋值给 vma->vm_page_prot
-* 最后做真正修改权限操作，调用 change_protection() 修改页表对应的 PTE 权限
+* 最后做真正修改 PTE entry 权限操作，调用 change_protection() 将虚拟地址区域 [start, end) 范围内的
+  PTE entry 对应的 prot bit 修改成 vma->vm_page_prot
 
 如果 old VMA 是 私有 + 只读权限 + VM_LOCKED，同时 new VMA 添加可写权限，
 调用 populate_vma_page_range() 将虚拟地址区域 [start, end] 填充物理内存
