@@ -43,6 +43,7 @@
     * [kvm](linuxKernel/kvm.md)
     * [page mapcount](linuxKernel/_mapcount.md)
     * [page refcount](linuxKernel/_refcount.md)
+    * [cache_coherence_and_memory_consistency](linuxKernel/cache_coherence_and_memory_consistency.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
