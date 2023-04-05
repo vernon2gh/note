@@ -8,7 +8,7 @@
 
 * 内存一致性模型 TSO：只允许 CPU store-load reodering
 * 内存一致性模型 PSO：允许 CPU store-load/store-store reodering
-* 内存一致性模型 RMO：允许 CPU store-load/store-store/load-load reodering
+* 内存一致性模型 RMO：允许 CPU store-load/store-store/load-load/load-store reodering
 
 因为编译器优化选项（如：`-O2`）存在，出现编译器乱序（`compiler reodering`）问题，
 通过 `barrier()` 编译器屏障函数来防止编译器乱序，
