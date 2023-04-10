@@ -111,7 +111,7 @@ int main(){
     printf("%X, %c, %hX\n", a.n, a.ch, a.m);
     a.n = 0x3E25AD54;
     printf("%X, %c, %hX\n", a.n, a.ch, a.m);
-   
+
     return 0;
 }
 
@@ -224,3 +224,81 @@ int main(int argc, char **argv)
 }
 ```
 
+## 不调用库函数，实现atoi函数的功能，字符串转整形
+
+```c
+#include <stdio.h>
+#include <limits.h>
+
+int myatoi(char *s)
+{
+	char sign = '+';
+	int tmp = 0;
+	unsigned int value = 0;
+
+	while(*s == ' ')
+		*s++;
+
+	if (*s == '+' || *s == '-')
+		sign = *s++;
+
+
+	while (*s >= '0' && *s <= '9') {
+		tmp = *s++ - '0';
+		value = value * 10 + tmp;
+
+		if (value >= INT_MAX)
+			return sign == '+' ? INT_MAX : INT_MIN;
+	}
+
+	return sign == '+' ? (int)value : -(int)value;
+}
+
+int main(int argc, char *argv[])
+{
+	printf("str %s, INT_MAX %d, INT_MIN %d\n", argv[1], INT_MAX, INT_MIN);
+
+	printf("int = %d\n", myatoi(argv[1]));
+
+	return 0;
+}
+```
+
+## 用C语言实现字符串反转功能
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+void char_swap(char *a, char *b)
+{
+	char tmp;
+
+	tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+
+void string_reverse(char *s)
+{
+	int len = strlen(s);
+	int i;
+
+	printf("str %s\n", s);
+
+	for (i = 0; i < len/2; i++)
+		char_swap(&s[i], &s[len - 1 - i]);
+
+	printf("str %s\n", s);
+}
+
+
+int main(int argc, char *argv[])
+{
+	char buf[] = "123yabc";
+
+	string_reverse(buf);
+
+	return 0;
+}
+```
