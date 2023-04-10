@@ -302,3 +302,123 @@ int main(int argc, char *argv[])
 	return 0;
 }
 ```
+
+## 获得字符频次唯一的最小删除次数
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define LETTER_NUM	26
+#define STR_MAX_NUM	100001
+
+int compare_fun(const void *a, const void *b)
+{
+	return (*(int *)b - *(int *)a);
+}
+
+int min_delete(char *s)
+{
+	int letter[LETTER_NUM] = {0};
+	int flags[STR_MAX_NUM] = {0};
+	int len = strlen(s);
+	int min_delete_bytes = 0;
+	int i;
+
+	for (i=0; i<len; i++)
+		letter[*s++ - 'a']++;
+
+	qsort(letter, LETTER_NUM, sizeof(int), compare_fun);
+
+
+	for (i=0; i<LETTER_NUM; i++) {
+		if (letter[i] == 0)
+			break;
+
+		if (flags[letter[i]] == 0) {
+			flags[letter[i]] = 1;
+			continue;
+		}
+
+		min_delete_bytes++;
+		letter[i]--;
+
+		if (letter[i] == 0)
+			break;
+
+		if (flags[letter[i]] == 0) {
+			flags[letter[i]] = 1;
+			continue;
+		}
+	}
+
+	return min_delete_bytes;
+}
+
+int main(int argc, char *argv[])
+{
+	printf("min_delete_bytes %d\n", min_delete(argv[1]));
+
+	return 0;
+}
+```
+
+## 亲密字符串
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+
+#define LETTER_NUM	26
+
+int compare_fun(const void *a, const void *b)
+{
+	return (*(int *)b - *(int *)a);
+}
+
+bool buddyStrings(char *a, char *b)
+{
+	int a_len = strlen(a);
+	int b_len = strlen(b);
+	int i, count = 0, diff1_i, diff2_i;
+	int letter_freq[LETTER_NUM] = {0};
+
+	if ((a_len != b_len) || (a_len == 0) || (b_len == 0))
+		return false;
+
+	for (i = 0; i < a_len; i++) {
+		if (a[i] != b[i]) {
+			count++;
+
+			if (diff1_i == 0)
+				diff1_i = i;
+			else if (diff2_i == 0)
+				diff2_i	= i;
+
+			continue;
+		}
+
+		letter_freq[a[i] - 'a']++;
+	}
+
+	qsort(letter_freq, LETTER_NUM, sizeof(int), compare_fun);
+
+	if (count == 2 && a[diff1_i] == b[diff2_i] && a[diff2_i] == b[diff1_i])
+		return true;
+	else if (letter_freq[0] >= 2)
+		return true;
+
+	return false;
+}
+
+
+int main(int argc, char *argv[])
+{
+	printf("buddyStrings %d\n", buddyStrings(argv[1], argv[2]));
+
+	return 0;
+}
+```
