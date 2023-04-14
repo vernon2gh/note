@@ -20,7 +20,7 @@
     * [page refcount](linuxKernel/_refcount.md)
     * [folio](linuxKernel/folio.md)
     * slub
-        * [proc_slabinfo](linuxkernel/slub/proc_slabinfo.md)
+        * [proc_slabinfo](linuxKernel/slub/proc_slabinfo.md)
         * [slub](linuxKernel/slub/slub.md)
         * [kmalloc_kfree](linuxKernel/slub/kmalloc_kfree.md)
         * [kmem_cache](linuxKernel/slub/kmem_cache.md)
