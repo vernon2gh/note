@@ -1,8 +1,96 @@
-## 多核 cache 一致性
+## 简述
 
-因为有 L1/L2/L3 cache 存在，并且 L1 cache 是每一个 CPU 私有的 cache，所以出现
-`多核 cache 一致性` 问题，通过虚拟地址以 `cache line size` 对齐来保证不会出现
-`cache thrashing`
+CPU 和内存之间存在多级 Cache，一般存在 L1/L2/L3 cache，L1 cache 是每一个 CPU
+私有的 cache，L1 cache 又分为 L1 dCache 和 L1 iCache，L1 dCache 只能缓存数据，
+L1 iCache 只能缓存指令，L2/L3 Cache 能够缓存 指令与数据。
+
+Cache 控制器是以 cacheline size 为单位从内存读取数据
+
+## DMA 和 Cache 一致性
+
+问题：DMA 是在 IO 与 内存 之间搬运数据，Cache 是 CPU 与 内存 之间的桥梁，
+DMA 与 Cache 可能会出现数据不一致的情况，比如：
+
+* CPU 修改的数据还在 Cache 中（采用 Write Back 机制），DMA 从内存搬运数据到设备I/O，
+  设备得到旧数据，导致程序的不正常运行。
+* 内存中的数据已经在 Cache 中，DMA 从设备 I/O 搬运新数据到内存，CPU 访问数据时，
+  会由于 Cache hit 得到旧数据，同样导致程序的不正常运行。
+
+为了解决以上情况，可以使用 总线监视技术、nocahe、软件维护。
+
+* 总线监视技术是通过硬件保证 DMA 和 Cache 一致性，比如 X86_64 就是采用此技术
+* nocahe 是指定 DMA buffer 为 nocache 属性，这样 DMA buffer 就不存在
+  DMA 和 Cache 一致性问题，比如 dma_alloc_coherent()
+* 软件维护是（注意：在 DMA 传输没有完成期间 CPU 不要访问 DMA buffer）
+  当 DMA 从设备 I/O 读取数据到内存（DMA buffer）时，在 DMA 传输之前，Invalid DMA buffer 对应的 Cache。
+  当 DMA 把内存（DMA buffer）数据发送到设备 I/O，在 DMA 传输之前，Flush DMA buffer 对应的 Cache。
+  比如 dma_map_single()
+
+通过 **软件维护** 保证 DMA 和 Cache 一致性，对 DMA buffer 有要求，需要保证 DMA buffer
+不会跟其他变量共享 cacheline，所以要求 DMA buffer 首地址必须与 cacheline size 对齐，
+并且 buffer size 也必须与 cacheline size 对齐，这样就不会跟其他变量共享 cacheline。
+
+如果 DMA buffer 跟其他变量共享 cacheline，会由于其他变量 Invalid/Flush Cache
+导致 DMA buffer 内容出现错误。
+
+X86_64 是通过总线监视技术保证 DMA 和 Cache 一致性，所以 slub 分配器的最小 kmem cache 是 kmalloc-8，
+但是 ARM64 是通过软件维护保证 DMA 和 Cache 一致性，所以 slub分配器的最小 kmem cache  是 kmalloc-128，
+就是为了保证 DMA buffer 不会跟其他变量共享 cacheline。
+
+## iCache 和 dCache 一致性
+
+程序执行时，指令一般是不会修改，这就不会存在任何一致性问题。
+
+问题：只有少数情况下需要修改指令，如：gdb 调试打断点，
+通过将需要修改的指令数据加载到 dCache 中，修改成新指令，回写 dCache。
+此时 iCache 和 dCache  可能会出现数据不一致的情况，比如：
+
+* 旧指令已经缓存在 iCache 中，那么对于程序执行来说依然会 hit iCache，
+  但是新指令已经在 dCache/内存 中。
+* 旧指令没有缓存 iCache，从内存中缓存指令到 iCache 中，但是 dCache 使用
+  Write Back 机制，那么新指令缓存在 dCache 中。
+
+为了解决以上情况，可以采用硬件方案 或 软件方案，但是为了解决少数情况，
+却给硬件带来了很大的负担，得不偿失，因此，大多数情况下由软件维护 iCache
+和 dCache 一致性。
+
+当发现修改的数据是指令时，采取下面的步骤维护 iCache 和 dCache 一致性：
+
+* 将需要修改的指令数据加载到 dCache 中，修改成新指令
+* Flush dCache 中修改的指令对应的 cacheline，保证 dCache 中新指令回写到内存
+* Invalid iCache 中修改的指令对应的 cacheline，保证从内存中读取新指令
+
+## 多核 Cache 一致性
+
+问题：由于 L1 cache 是每一个 CPU 私有的 cache，不同 CPU 之间的 L1 Cache
+需要保证一致性，所以存在多核 cache 一致性 问题，比如：
+
+CPU0 和 CPU1 都读取内存地址 A 对应的值到 L1 Cache 中，当 CPU0 修改内存地址A对应的值时，
+只是将新数据写到 CPU0 L1 Cache 中（采用 Write Back 机制），然后 CPU1 从自己的 L1 Cache
+读取内存地址 A 对应的值时，只是读取到旧数据，因为新数据存在 CPU0 L1 Cache 中。
+
+为了解决以上情况，硬件使用 MESI 协议来保证多核 cache 一致性，对软件来说是透明的，
+因此软件不用考虑多核 Cache 一致性问题。
+
+目前 CPU 硬件一般采用 MESI 协议的变种，如：ARM64 架构采用的 MOESI 协议。
+
+## Cache thrashing
+
+问题：由于硬件通过 MESI 协议保证多核 Cache 一致性，所以出现 Cache thrashing，
+比如，伪共享（false sharing），
+
+如果数据 A 和数据 B 位于同一行 cacheline 中，
+当 CPU0 修改数据 A 时，将数据 A 和数据 B 都读取到 CPU0 L1 Cache 中，同时 Invaild CPU1 L1 Cache，
+然后当 CPU1 修改数据 B 时，将数据 A 和数据 B 都读取到 CPU1 L1 Cache 中，同时 Invaild CPU0 L1 Cache，
+如果 CPU0 又想要修改数据 A，数据 A 和数据 B 所在的 cacheline 一直反复颠簸，
+但是实际上数据 A 和数据 B 没有任何关系，只是刚刚好位于同一行 cacheline 中....
+
+为了解决以上情况，可以通过虚拟地址以 cacheline size 对齐来避免出现 Cache thrashing。
+
+在 Linux kernel 中，宏 `__cacheline_aligned_in_smp` 等于 L1 cachline size，
+用于解决 false sharing 问题，比如：如果某个变量，在多核之间竞争比较严重，
+可以使用宏 `__cacheline_aligned_in_smp` 使变量的虚拟地址以 cacheline size 对齐，
+避免 false sharing 问题。
 
 ## memory 一致性（CPU 乱序）
 
