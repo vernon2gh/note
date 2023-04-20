@@ -1,3 +1,5 @@
+# Cache 一致性
+
 ## 简述
 
 CPU 和内存之间存在多级 Cache，一般存在 L1/L2/L3 cache，L1 cache 是每一个 CPU
@@ -92,7 +94,9 @@ CPU0 和 CPU1 都读取内存地址 A 对应的值到 L1 Cache 中，当 CPU0 �
 可以使用宏 `__cacheline_aligned_in_smp` 使变量的虚拟地址以 cacheline size 对齐，
 避免 false sharing 问题。
 
-## memory 一致性（CPU 乱序）
+# memory 一致性
+
+## CPU 乱序
 
 因为不同的 `内存一致性模型 TSO/PSO/RMO` 存在，所以出现 CPU 乱序（`CPU reodering`）
 问题，通过 `smp_mp()/smp_wmp()/smp_rmp()` CPU 内存屏障函数来防止 CPU 乱序，
