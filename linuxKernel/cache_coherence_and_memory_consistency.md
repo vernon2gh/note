@@ -20,13 +20,18 @@ DMA 与 Cache 可能会出现数据不一致的情况，比如：
 
 为了解决以上情况，可以使用 总线监视技术、nocahe、软件维护。
 
-* 总线监视技术是通过硬件保证 DMA 和 Cache 一致性，比如 X86_64 就是采用此技术
-* nocahe 是指定 DMA buffer 为 nocache 属性，这样 DMA buffer 就不存在
-  DMA 和 Cache 一致性问题，比如 dma_alloc_coherent()
+* 总线监视技术是通过硬件保证 DMA 和 Cache 一致性，比如 X86_64 或某些 arm64 就是采用此技术
+* nocahe 是指定 DMA buffer 为 nocache 属性，这样 DMA buffer 就不存在 DMA 和 Cache 一致性问题
 * 软件维护是（注意：在 DMA 传输没有完成期间 CPU 不要访问 DMA buffer）
-  当 DMA 从设备 I/O 读取数据到内存（DMA buffer）时，在 DMA 传输之前，Invalid DMA buffer 对应的 Cache。
   当 DMA 把内存（DMA buffer）数据发送到设备 I/O，在 DMA 传输之前，Flush DMA buffer 对应的 Cache。
-  比如 dma_map_single()
+  当 DMA 从设备 I/O 读取数据到内存（DMA buffer）时，在 DMA 传输之后，Invalid DMA buffer 对应的 Cache。
+
+当调用 `dma_alloc_coherent()` 分配 DMA buffer 时，默认是 nocache 属性，
+但是如果硬件支持总线监视技术，分配出来的 DMA buffer 是有 Cache 属性
+
+如果硬件不支持总线监视技术，但是 DMA buffer 也想要是 Cache 属性，即软件维护 DMA 和 Cache 一致性，
+使用流式 DMA 映射方式，比如：`dma_map_single()/dma_sync_single_for_device()` Flush Cache，
+`dma_unmap_single()/dma_sync_single_for_cpu()` Invalid Cache
 
 通过 **软件维护** 保证 DMA 和 Cache 一致性，对 DMA buffer 有要求，需要保证 DMA buffer
 不会跟其他变量共享 cacheline，所以要求 DMA buffer 首地址必须与 cacheline size 对齐，
@@ -38,6 +43,29 @@ DMA 与 Cache 可能会出现数据不一致的情况，比如：
 X86_64 是通过总线监视技术保证 DMA 和 Cache 一致性，所以 slub 分配器的最小 kmem cache 是 kmalloc-8，
 但是 ARM64 是通过软件维护保证 DMA 和 Cache 一致性，所以 slub分配器的最小 kmem cache  是 kmalloc-128，
 就是为了保证 DMA buffer 不会跟其他变量共享 cacheline。
+
+> 有奖问答
+
+Q: DMA ZONE 大小都是16MB吗？
+
+在32位 x86 架构下，是成立的，因为32位 x86 某些 DMA 外设只能访问 16MB 以下的内存。
+在目前 x86_64 架构或 arm64 架构下，绝大部分 DMA 外设都能够访问所有内存范围，所以
+可能根本就不存在DMA ZONE。具体需不需要 DMA ZONE？根据实际DMA外设能够访问内存范围来决定。
+
+Q: DMA ZONE 管理的内存只能给 DMA 使用吗？
+
+不是，DMA ZONE 管理的内存只是提供给有硬件缺陷的DMA外设申请内存，但是它不是专用的，
+其它人都可以使用此区域的内存。
+
+Q: `dma_alloc_coherent()` 都是从 DMA ZONE 分配内存吗？
+
+不是，如果 DMA 外设能够访问所有内存区域，不一定从DMA ZONE申请内存，可能从 NORMAL ZONE 等申请内存。
+如果 DMA 外设只能访问 DMA ZONE 范围内的内存，那么只能从 DMA ZONE 申请内存。
+
+Q: `dma_alloc_coherent()` 分配内存都是连续物理内存吗？
+
+在大部分情况下，从 CMA 区域分配内存，所以是连续物理内存。当支持 IOMMU/SMMU 时，
+DMA 控制器能够从 不连续物理内存 搬运数据，所以分配的内存不一定是连续物理内存
 
 ## iCache 和 dCache 一致性
 
