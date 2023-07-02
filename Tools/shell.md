@@ -1,3 +1,13 @@
+### 0. Shell
+
+* zsh（`.zshrc`）
+
+使用 [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh) 更加容易配置 zsh，如：主题、历史命令自动提示 [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions) 等
+
+* bash（`.bashrc`）
+
+使用默认配置即可。
+
 ### 1. 怎么设置PATH
 
 以在PATH中添加/home/book目录为例： 
