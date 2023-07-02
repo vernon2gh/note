@@ -48,11 +48,27 @@ cw (change word)
 
 ## 一些常见的配置
 
-在`/etc/vim/vimrc.local`中加入如下配置：
+* vim
+
+在`~/.vimrc`中加入如下配置：
 
 ```bash
 set number   " display line number
 set hlsearch " hight light search
 autocmd BufWritePre * %s/\s\+$//e " when save file, auto delete line tail space
+```
+
+* neovim
+
+复用 `~/.vimrc` 配置文件，执行如下命令：
+
+```bash
+$ ln -s ~/.vimrc ~/.config/nvim/init.vim
+```
+
+或者使用 `init.lua` 来配置，如下：
+
+```bash
+$ ls ~/.config/nvim/init.lua
 ```
 
