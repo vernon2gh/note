@@ -58,6 +58,8 @@ set hlsearch " hight light search
 autocmd BufWritePre * %s/\s\+$//e " when save file, auto delete line tail space
 ```
 
+完整配置参考：[vimrc](../resources/config/.vimrc)
+
 * neovim
 
 复用 `~/.vimrc` 配置文件，执行如下命令：
@@ -66,9 +68,14 @@ autocmd BufWritePre * %s/\s\+$//e " when save file, auto delete line tail space
 $ ln -s ~/.vimrc ~/.config/nvim/init.vim
 ```
 
-或者使用 `init.lua` 来配置，如下：
+或者使用 `~/.config/nvim/init.lua` 来配置，如下：
 
 ```bash
-$ ls ~/.config/nvim/init.lua
+vim.o.number = true
+vim.cmd([[autocmd BufWritePre * %s/\s\+$//e]])
 ```
+
+完整配置参考：[init.lua](../resources/config/init.lua)，
+记得先手动安装 [packer](http://neovimcraft.com/plugin/wbthomason/packer.nvim/index.html) 插件，
+然后在 nvim 中执行 `:PackerSync` 命令来安装插件
 
