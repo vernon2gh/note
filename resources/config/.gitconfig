@@ -23,3 +23,5 @@
 	conflictstyle = diff3
 [diff]
 	colorMoved = default
+[oh-my-zsh]
+	hide-info = 1

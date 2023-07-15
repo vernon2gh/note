@@ -72,6 +72,7 @@ $ ln -s ~/.vimrc ~/.config/nvim/init.vim
 
 ```bash
 vim.o.number = true
+vim.o.mouse = ""
 vim.cmd([[autocmd BufWritePre * %s/\s\+$//e]])
 ```
 

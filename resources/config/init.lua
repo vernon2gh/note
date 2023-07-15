@@ -1,5 +1,6 @@
 -- base setting
 vim.o.number = true
+vim.o.mouse = ""
 vim.cmd([[autocmd BufWritePre * %s/\s\+$//e]])
 
 -- plugins setting
