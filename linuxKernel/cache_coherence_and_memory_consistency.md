@@ -42,7 +42,7 @@ DMA 与 Cache 可能会出现数据不一致的情况，比如：
 
 X86_64 是通过总线监视技术保证 DMA 和 Cache 一致性，所以 slub 分配器的最小 kmem cache 是 kmalloc-8，
 但是 ARM64 是通过软件维护保证 DMA 和 Cache 一致性，所以 slub分配器的最小 kmem cache  是 kmalloc-128，
-就是为了保证 DMA buffer 不会跟其他变量共享 cacheline。
+就是为了保证 DMA buffer 不会跟其他变量共享 cacheline（[能够通过 SWIOTLB 来解决些问题](../patch/mm_dma_arm64_Reduce_ARCH_KMALLOC_MINALIGN_to_8.md)）。
 
 > 有奖问答
 
