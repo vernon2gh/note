@@ -3,14 +3,14 @@
 
 为了解决此问题，Catalin Marinas 提供一系列的 patchset [1]，已经合并到 v6.5-rc1 中，主要是：
 
-1. 通过将 ARCH_DMA_MINALIGN 与ARCH_KMALLOC_MINALIGN 拆分开，slub分配器的最小 kmem cache  变成 kmalloc-64
+1. 通过将 ARCH_DMA_MINALIGN 与ARCH_KMALLOC_MINALIGN 拆分开，让 slub 分配器的最小 kmem cache  变成 kmalloc-64
 
 * patch [2] 将通过将 dma_get_cache_alignment() 换成 cache_line_size()，
 这样 cache line size 变成 64，而不是宏 ARCH_DMA_MINALIGN  128 值。
 
-2. 使用 SWIOTLB 来解决 DMA 和 Cache 一致性问题，slub分配器的最小 kmem cache 变成 kmalloc-8
+2. 使用 SWIOTLB 来解决 DMA buffer 需要以 cacheline size 对齐的问题，让 slub 分配器的最小 kmem cache 变成 kmalloc-8
 
-* patch [3] 定义 dma_kmalloc_needs_bounce() 来检测是否需要 SWIOTLB 来解决 DMA 和 Cache 一致性问题。
+* patch [3] 定义 dma_kmalloc_needs_bounce() 来检测是否需要 SWIOTLB 来解决 DMA buffer 需要以 cacheline size 对齐的问题。
 * patch [4] 当某一个架构定义 DMA_BOUNCE_UNALIGNED_KMALLOC 配置以及支持 SWIOTLB 时，
 __kmalloc_minalign() 返回 ARCH_KMALLOC_MINALIGN 8 值。
 * patch [5] 为 ARM64 架构使能 DMA_BOUNCE_UNALIGNED_KMALLOC 配置。
