@@ -25,9 +25,9 @@ SWIOTLB 来解决些问题， patchset [6]。
 相关 patch 链接：
 
 * [1] [Reduce ARCH_KMALLOC_MINALIGN to 8](https://lore.kernel.org/all/20230612153201.554742-1-catalin.marinas@arm.com/T/#u)
-  * [2] [patch11](https://lore.kernel.org/all/20230612153201.554742-1-catalin.marinas@arm.com/T/#m46d8d8d0290a1ba0219b851797b562b4c3de84d5)
-  * [3] [patch14](https://lore.kernel.org/all/20230612153201.554742-1-catalin.marinas@arm.com/T/#m9b1148301901ec7ab375099d4caad009a538d6e8)
-  * [4] [patch16](https://lore.kernel.org/all/20230612153201.554742-1-catalin.marinas@arm.com/T/#mb6c36a3118fc80775ccad992f1aadeffa827b95f)
-  * [5] [patch17](https://lore.kernel.org/all/20230612153201.554742-1-catalin.marinas@arm.com/T/#mb8c3fc48671929eeea3593113b27197946eeb10f)
+  * [2] [arm64: Allow kmalloc() caches aligned to the smaller cache_line_size()](https://lore.kernel.org/all/20230612153201.554742-1-catalin.marinas@arm.com/T/#m46d8d8d0290a1ba0219b851797b562b4c3de84d5)
+  * [3] [dma-mapping: Force bouncing if the kmalloc() size is not cache-line-aligned](https://lore.kernel.org/all/20230612153201.554742-1-catalin.marinas@arm.com/T/#m9b1148301901ec7ab375099d4caad009a538d6e8)
+  * [4] [mm: slab: Reduce the kmalloc() minimum alignment if DMA bouncing possible](https://lore.kernel.org/all/20230612153201.554742-1-catalin.marinas@arm.com/T/#mb6c36a3118fc80775ccad992f1aadeffa827b95f)
+  * [5] [arm64: Enable ARCH_WANT_KMALLOC_DMA_BOUNCE for arm64](https://lore.kernel.org/all/20230612153201.554742-1-catalin.marinas@arm.com/T/#mb8c3fc48671929eeea3593113b27197946eeb10f)
 
 * [6] [riscv: Reduce ARCH_KMALLOC_MINALIGN to 8](https://lore.kernel.org/all/20230716165147.1897-1-jszhang@kernel.org/)
