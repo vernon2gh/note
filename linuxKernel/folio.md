@@ -52,3 +52,9 @@
 ```
 
 即 `struct slab` 也同样代表 `struct page` 的头页，与 `struct folio`相同
+
+
+Q: 加入 folio 后，能够做哪些优化？
+
+A: LRU 从一个集合进行回收，如 shrink_page_list() to shrink_folio_list()。
+mem_cgroup charge、wait writeback、pagecache、rmap 也都可以从一个集合进行操作，这样能够提升内存操作效率。
