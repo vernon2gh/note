@@ -37,6 +37,7 @@
     * [page_fault](linuxKernel/page_fault.md)
     * [rmap](linuxKernel/rmap.md)
     * [lru](linuxKernel/lru.md)
+    * [multi-gen-LRU](linuxKernel/mglru.md)
     * [page_reclaim](linuxKernel/page_reclaim.md)
     * [page_cache](linuxKernel/page_cache.md)
     * [page_table](linuxKernel/page_table.md)
@@ -45,6 +46,8 @@
     * [aarch64_boot](linuxKernel/aarch64_boot.md)
     * [tracing_system](linuxKernel/tracing_system.md)
     * [cache_coherence_and_memory_consistency](linuxKernel/cache_coherence_and_memory_consistency.md)
+    * [mmap_lock](linuxKernel/mmap_lock.md)
+    * [per-vma_lock](linuxKernel/per-vma_lock.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
