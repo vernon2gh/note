@@ -46,6 +46,7 @@
     * [aarch64_boot](linuxKernel/aarch64_boot.md)
     * [tracing_system](linuxKernel/tracing_system.md)
     * [cache_coherence_and_memory_consistency](linuxKernel/cache_coherence_and_memory_consistency.md)
+    * [cpu_speculates](linuxKernel/cpu_speculates.md)
     * [mmap_lock](linuxKernel/mmap_lock.md)
     * [per-vma_lock](linuxKernel/per-vma_lock.md)
 * linuxDebug
