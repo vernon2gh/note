@@ -70,3 +70,22 @@ static int do_task_stat(struct seq_file *m, struct pid_namespace *ns,
     ...
 ```
 
+3. meminfo
+
+`/proc/meminfo` 提供有关内存分布和利用率的信息
+
+```
+## Documentation/filesystems/proc.rst
+
+MemTotal      Total usable RAM (i.e. physical RAM minus a few reserved
+              bits and the kernel binary code)
+MemFree       Total free RAM.
+MemAvailable  An estimate of how much memory is available for starting new
+              applications, without swapping. Calculated from MemFree,
+              SReclaimable, the size of the file LRU lists, and the low
+              watermarks in each zone.
+Slab          in-kernel data structures cache
+SReclaimable  Part of Slab, that might be reclaimed, such as caches
+SUnreclaim    Part of Slab, that cannot be reclaimed on memory pressure
+```
+

@@ -29,9 +29,9 @@ DMA 与 Cache 可能会出现数据不一致的情况，比如：
 当调用 `dma_alloc_coherent()` 分配 DMA buffer 时，默认是 nocache 属性，
 但是如果硬件支持总线监视技术，分配出来的 DMA buffer 是有 Cache 属性
 
-如果硬件不支持总线监视技术，但是 DMA buffer 也想要是 Cache 属性，即软件维护 DMA 和 Cache 一致性，
-使用流式 DMA 映射方式，比如：`dma_map_single()/dma_sync_single_for_device()` Flush Cache，
-`dma_unmap_single()/dma_sync_single_for_cpu()` Invalid Cache
+如果硬件不支持总线监视技术，但是 `kmalloc()` DMA buffer 也想要是 Cache 属性，
+即软件维护 DMA 和 Cache 一致性，使用流式 DMA 映射方式，比如：
+`dma_map_single()` Flush Cache，`dma_unmap_single()` Invalid Cache
 
 通过 **软件维护** 保证 DMA 和 Cache 一致性，对 DMA buffer 有要求，需要保证 DMA buffer
 不会跟其他变量共享 cacheline，所以要求 DMA buffer 首地址必须与 cacheline size 对齐，
