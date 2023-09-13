@@ -1,30 +1,21 @@
-## 0. 简介
+## 简介
 
-Ftrace 是linux内核自带的调试工具，从久远的 2.6 内核就支持了，可以辅助定位内核问题
+ftrace 是 Linux 内核自带的调试工具，从久远的 2.6 内核就支持了，可以辅助定位内核问题
 
-## 1. 编译linux kernel
-
-使能ftrace功能
+## 使能 ftrace 功能，编译 Linux Kernel
 
 ```bash
-## based on linux 5.4 version
-$ make menuconfig
-Kernel hacking  --->
-	[*] Tracers  --->
-		[*]   Kernel Function Tracer         # CONFIG_FUNCTION_TRACER
-		[*]     Kernel Function Graph Tracer # CONFIG_FUNCTION_GRAPH_TRACER
-$ make
+CONFIG_FUNCTION_TRACER=y
+CONFIG_FUNCTION_GRAPH_TRACER=y
+CONFIG_FUNCTION_GRAPH_RETVAL=y
 ```
 
-## 2. 启动linux kernel
-
-挂载debugfs(可选)
+## （可选）挂载 debugfs
 
 ```bash
 $ mount -t debugfs none /sys/kernel/debug/
 
-$ ls /sys/kernel/debug/tracing/
-README current_tracer available_tracers
+$ cd /sys/kernel/debug/tracing/
 $ cat current_tracer    # 默认tracer类型是nop，即不跟踪
 nop
 $ cat available_tracers # 查看当前内核支持的tracer类型
@@ -33,113 +24,33 @@ blk function_graph function nop
 
 在`/sys/kernel/debug/tracing/`目录下有`README`文件，是对此目录下的所有文件的简单说明
 
-## 3. 例子
+## 例子
 
-### 3.1 Function trace
-
-```bash
-$ cd /sys/kernel/debug/tracing
-$ echo 0 > tracing_on                # disabled tracer
-$ echo function > current_tracer     # 指定tracer类型
-$ echo __kmalloc > set_ftrace_filter # 指定要跟踪的函数
-$ echo 1 > tracing_on                # enable tracer
-$ cat trace
-# tracer: function
-#
-# entries-in-buffer/entries-written: 14/14   #P:1
-#
-#                              _-----=> irqs-off
-#                             / _----=> need-resched
-#                            | / _---=> hardirq/softirq
-#                            || / _--=> preempt-depth
-#                            ||| /     delay
-#           TASK-PID   CPU#  ||||    TIMESTAMP  FUNCTION
-#              | |       |   ||||       |         |
-              sh-97    [000] .N..  1025.700985: __kmalloc <-security_prepare_creds
-             cat-110   [000] ....  1025.706053: __kmalloc <-security_prepare_creds
-             cat-110   [000] ....  1025.707325: __kmalloc <-load_elf_phdrs
-```
-
-由`trace`文件的输出可知:
-
-97号进程 sh，在内核中通过security_prepare_creds()调用__kmalloc()
-
-110号进程 cat，在内核中通过security_prepare_creds()调用__kmalloc()
-
-110号进程 cat，在内核中通过load_elf_phdrs()调用__kmalloc()
-
-### 3.2 function_graph Trace
+### function trace
 
 ```bash
 $ cd /sys/kernel/debug/tracing
 $ echo 0 > tracing_on                  # disabled tracer
-$ echo function_graph > current_tracer # 指定tracer类型
-$ echo __kmalloc > set_graph_function  # 指定要跟踪的函数
+$ echo function > current_tracer       # 指定tracer类型
+$ echo <func_name> > set_ftrace_filter # 指定要跟踪的函数
+$ echo 1 > options/func_stack_trace    # （可选）使能 stack trace，显示 func_name() 调用栈
 $ echo 1 > tracing_on                  # enable tracer
 $ cat trace
-# tracer: function_graph
-#
-# CPU  DURATION                  FUNCTION CALLS
-# |     |   |                     |   |   |   |
- ------------------------------------------
- 0)     sh-97      =>    cat-124    
- ------------------------------------------
- 0)               |  __kmalloc() {
- 0)   2.168 us    |    kmalloc_slab();
- 0)               |    _cond_resched() {
- 0)   0.748 us    |      rcu_all_qs();
- 0)   5.607 us    |    }
- 0)   0.903 us    |    should_failslab();
- 0) + 25.518 us   |  }
 ```
 
-由`trace`文件的输出可知: 
-
-124号进程 cat，在内核中通过__kmalloc()调用kmalloc_slab()
-
-### 3.3 查看函数调用栈
+### function_graph trace
 
 ```bash
 $ cd /sys/kernel/debug/tracing
-
 $ echo 0 > tracing_on
-$ echo function > current_tracer     # 指定tracer类型
-$ echo __kmalloc > set_ftrace_filter # 指定要跟踪的函数
-$ echo 1 > options/func_stack_trace  # 使能stack trece
+$ echo function_graph > current_tracer  # 指定tracer类型
+$ echo <func_name> > set_graph_function # 指定要跟踪的函数，显示 func_name() 调用哪些函数
+$ echo 1 > options/funcgraph-retval     # （可选）显示每一个函数的返回值
 $ echo 1 > tracing_on
 $ cat trace
-# tracer: function
-#
-# entries-in-buffer/entries-written: 28/28   #P:1
-#
-#                              _-----=> irqs-off
-#                             / _----=> need-resched
-#                            | / _---=> hardirq/softirq
-#                            || / _--=> preempt-depth
-#                            ||| /     delay
-#           TASK-PID   CPU#  ||||    TIMESTAMP  FUNCTION
-#              | |       |   ||||       |         |
-              sh-97    [000] ....   302.425795: __kmalloc <-security_prepare_creds
-              sh-97    [000] ....   302.425963: <stack trace>
- => 0xffffffffc0191061
- => __kmalloc
- => security_prepare_creds
- => prepare_creds
- => copy_creds
- => copy_process
- => _do_fork
- => __x64_sys_clone
- => do_syscall_64
- => entry_SYSCALL_64_after_hwframe
 ```
 
-由`trace`文件的输出可知: 
-
-97号进程 sh，在内核中调用关系：`... -> prepare_creds() -> security_prepare_creds() -> __kmalloc()`
-
-### 3.4 过滤技巧
-
-如何跟踪多个函数？
+### 过滤技巧，跟踪多个函数
 
 ```bash
 $ cd /sys/kernel/debug/tracing
@@ -173,48 +84,36 @@ dev_attr_show
 write*:mod:ext4
 ```
 
-### 3.5 前端工具trace-cmd
+### 前端工具 trace-cmd
 
-**function tracer**
-
-与前面直接读写`/sys/kernel/debug/tracing/xxx`一样，以 `__kmalloc` 为例，如下：
+与前面直接读写`/sys/kernel/debug/tracing/xxx`一样，如下：
 
 ```bash
-## 过滤__kmalloc()
-$ trace-cmd record -p function -l __kmalloc
-$ trace-cmd report
-cpus=1
-              sh-163   [000]   731.892712: function:             __kmalloc <-- security_prepare_creds
-             cat-248   [000]   731.895426: function:             __kmalloc <-- security_prepare_creds
-             cat-248   [000]   731.895687: function:             __kmalloc <-- load_elf_phdrs
+## 查看 func_name() 是否可用
+$ trace-cmd list -f <func_name>
 
-## 过滤__kmalloc()，显示调用栈
-$ trace-cmd record -p function -l __kmalloc --func-stack
+## 过滤 func_name()，trace 数据保存到 trace.dat 文件
+$ trace-cmd record -p function -l <func_name>
 $ trace-cmd report
-cpus=1
-              sh-163   [000]   820.854628: function:             __kmalloc <-- security_prepare_creds
-              sh-163   [000]   820.854857: kernel_stack:         <stack trace>
-=> ffffffffc0021061
-=> __kmalloc (ffffffff849d7445)
-=> security_prepare_creds (ffffffff84b59cba)
-=> prepare_creds (ffffffff8488d24c)
-=> copy_creds (ffffffff8488d4ba)
-=> copy_process (ffffffff84865c97)
-=> _do_fork (ffffffff84867384)
-=> __x64_sys_clone (ffffffff848678b6)
-=> do_syscall_64 (ffffffff84802538)
-=> entry_SYSCALL_64_after_hwframe (ffffffff8540007c)
 
-## 过滤__kmalloc()，trace数据不保存到 trace.dat 文件
-$ trace-cmd start -p function -l __kmalloc
+## 过滤 func_name()，trace数据不保存到 trace.dat 文件
+$ trace-cmd start -p function -l <func_name>
 $ trace-cmd show
 
-## 显示__kmalloc()调用哪些函数
-$ trace-cmd start -p function_graph -g __kmalloc
+## 显示 func_name() 调用栈
+$ trace-cmd start -p function -l <func_name> --func-stack
 $ trace-cmd show
 
-## 只显示 a.out 执行 __kmalloc() 调用哪些函数
-$ trace-cmd start -p function_graph -g __kmalloc ./a.out
+## 显示 func_name() 调用哪些函数
+$ trace-cmd start -p function_graph -g <func_name>
+$ trace-cmd show
+
+## 只显示 a.out 执行时，func_name() 调用哪些函数
+$ trace-cmd start -p function_graph -g <func_name> ./a.out
+$ trace-cmd show
+
+## 只显示 a.out 执行时，func_name() 调用哪些函数，并且显示每一个函数的返回值
+$ trace-cmd start -p function_graph -g <func_name> -O funcgraph-retval ./a.out
 $ trace-cmd show
 ```
 
@@ -228,10 +127,13 @@ $ trace-cmd show
 
 * `--func-stack`：记录被跟踪函数的调用栈，类似 `echo 1 > options/func_stack_trace`
 
-**更多详细参数解析，查看如下命令：**
+* `-O`：指定可选功能，如 `funcgraph-retval`，类似 `echo 1 > options/funcgraph-retval`
+
+## 技巧
+
+在 Linux Kernel 中有一个 vim 配置文件，用于方便阅读 function_graph 输出的日志，如下：
 
 ```bash
-$ trace-cmd -h        # 显示trace-cmd命令的帮助信息
-$ trace-cmd record -h # 显示trace-cmd record子命令的帮助信息
-$ trace-cmd report -h # 显示trace-cmd repord子命令的帮助信息
+$ vim -u Documentation/trace/function-graph-fold.vim <trace_log>
 ```
+
