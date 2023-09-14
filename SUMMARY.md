@@ -61,6 +61,7 @@
     * [dynamic_debug](linuxDebug/dynamic_debug.md)
     * [research_linuxKernel_by_patch](linuxDebug/research_linuxKernel_by_patch.md)
     * [ftrace](linuxDebug/ftrace.md)
+    * [bpftrace](linuxDebug/bpftrace.md)
     * [ASAN_HWASAN_MTE_check_mem_bug](linuxDebug/ASAN_HWASAN_MTE_check_mem_bug.md)
 * linuxSystem
     * common
