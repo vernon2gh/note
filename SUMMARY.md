@@ -155,6 +155,7 @@
     * [cscope](Tools/cscope.md)
     * [global](Tools/global.md)
     * [vscode](Tools/vscode.md)
+    * [addr2line](Tools/addr2line.md)
     * [vim](Tools/vim.md)
     * [share_file](Tools/share_file.md)
     * [binary](Tools/binary.md)
