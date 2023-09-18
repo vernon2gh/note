@@ -220,14 +220,13 @@ $ git format-patch -M origin/master -o patch/
 
 将与 origin/master 不同的 commit 都生成 patch，存储在 `patch/` 目录下
 
-如果需要生成有邮件封面的 patchset，指定 `--cover-letter` 参数，
-生成以 `0000-` 为前缀的邮件封面，需要指定 patchset 标题、简介。
+可选：
 
-如果 patchset 需要更新，生成新 patchset 时需要指定新版本，
-比如: `git format-patch -v 2` 代表第二版本。
-
-第二版本以后的 patchset 的邮件封面，除了需要指定 patchset 标题、简介外，
-还需要写 版本改变日志、之前的版本在 `https://lore.kernel.org` 的链接
+* `--cover-letter` ：生成以 `0000-` 为前缀的邮件封面，需要指定标题、简介。
+* `-v <version>`   ：指定新版本
+  注意：第二版本后的邮件封面，除了需要指定标题、简介外，
+  还需要写 版本改变日志、之前的版本在 `https://lore.kernel.org` 的链接
+* `--base=auto`    ：显示是基于哪一个 commit 进行修改
 
 4. 通过 `./scripts/checkpatch.pl xxx.patch` 检查 patch 格式是否符合要求
 
