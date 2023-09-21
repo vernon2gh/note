@@ -35,3 +35,9 @@ $ ctrl-b d    # 退出 session
 $ tmux attach # 重新进入 session
 ```
 
+在 tmux 使用 zsh-autosuggestions 功能，添加以下配置：
+
+```
+## ~/.tmux.conf
+set -g default-terminal xterm-256color
+```
