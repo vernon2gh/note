@@ -349,3 +349,15 @@ $ git find-merge <commit A>
 ```bash
 $ git log --online --graph <merge commit>
 ```
+
+将一个已经 commit 的 patch 拆分成多个 patch，如下：
+
+```bash
+$ git rebase -i <prev_commit>
+<pick to edit> <commit>
+$ git reset HEAD^
+$ git add --patch <file>
+$ git commit -s -m '
+
+$ git rebase --continu
+```
