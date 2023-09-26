@@ -359,5 +359,5 @@ $ git reset HEAD^
 $ git add --patch <file>
 $ git commit -s -m '
 
-$ git rebase --continu
+$ git rebase --continue
 ```
