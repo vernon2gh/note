@@ -5,8 +5,9 @@ vim.wo.colorcolumn = "80"
 vim.cmd [[ autocmd BufWritePre * %s/\s\+$//e ]]
 
 -- plugins setting
-vim.diagnostic.disable()
 require'lspconfig'.clangd.setup { }
+vim.diagnostic.disable()
+vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
 vim.cmd [[ set background=dark ]]
 vim.cmd [[ colorscheme sonokai ]]
 
