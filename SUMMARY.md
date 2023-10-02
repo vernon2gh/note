@@ -17,6 +17,7 @@
     * [bitmap](linuxKernel/bitmap.md)
     * [xarray](linuxKernel/xarray.md)
     * [page](linuxKernel/page.md)
+    * [page_size](linuxKernel/page_size.md)
     * [page mapcount](linuxKernel/_mapcount.md)
     * [page refcount](linuxKernel/_refcount.md)
     * [folio](linuxKernel/folio.md)
