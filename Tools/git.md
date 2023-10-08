@@ -186,16 +186,13 @@ $ git commit -m '
 
 ## EMAIL
 
-> 前提：Shell 终端能够访问 gmail 服务器
-
-使用基于 gmail 的 `git send-email` 功能，需要完成如下：
-
-1. gmail 开启 IMAP 与 应用专用密码，
-   参考 [通过其他电子邮件平台查看 Gmail](https://support.google.com/mail/answer/7126229)
-2. 执行 `apt install git-email`，安装 `git send-email` 功能,
-   详细配置参考 `git help send-email` 的 `EXAMPLES` 小节
-
-完成以上两点后，就能够使用 `git send-email` 进行发送邮件
+> 0. Shell 终端能够访问 gmail 服务器
+> 1. [创建应用专用密码](https://support.google.com/accounts/answer/185833?sjid=11135083179271281910-AP)
+> 2. 安装 `git send-email` 功能，执行 `$ apt install git-email`
+> 3. 配置 `git send-email` 功能，参考 `$ git help send-email` 的 `EXAMPLES` 小节，
+> 4. （可选）[通过 mutt 收发 gmail 邮件](https://support.google.com/mail/answer/7126229)
+>
+> 完成后，就能够使用 `$ git send-email` 进行发送邮件
 
 如果想要给 Linux Kernel 提交 patch，需要按照以下步骤来执行：
 
@@ -227,6 +224,7 @@ $ git format-patch -M origin/master -o patch/
   注意：第二版本后的邮件封面，除了需要指定标题、简介外，
   还需要写 版本改变日志、之前的版本在 `https://lore.kernel.org` 的链接
 * `--base=auto`    ：显示是基于哪一个 commit 进行修改
+* `--subject-prefix="RFC PATCH"`: 生成 `RFC PATCH` 前缀，默认是 `PTACH` 前缀
 
 4. 通过 `./scripts/checkpatch.pl xxx.patch` 检查 patch 格式是否符合要求
 
