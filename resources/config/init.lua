@@ -8,6 +8,7 @@ vim.cmd [[ autocmd BufWritePre * %s/\s\+$//e ]]
 require'lspconfig'.clangd.setup { }
 vim.diagnostic.disable()
 vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+vim.keymap.set('n', 'fg', ':!git grep <C-R>=expand("<cword>")<CR><CR>', opts)
 require('gitsigns').setup {
 	current_line_blame = true,
 }

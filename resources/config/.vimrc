@@ -40,3 +40,5 @@ endif
 nmap <C-]>g :cs find g <C-R>=expand("<cword>")<CR><CR>
 " Find function call
 nmap <C-]>c :cs find c <C-R>=expand("<cword>")<CR><CR>
+" grep
+nmap fg :!git grep <C-R>=expand("<cword>")<CR><CR>
