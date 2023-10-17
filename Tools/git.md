@@ -329,7 +329,8 @@ Displays the commit of each line of a file
 $ git blame <file>
 ```
 
-当我们想要知道commit A是在哪一个新merge feature合入时，如何找到对应的merge commit ？
+当我们想要知道 `commit A` 是在哪一个新merge feature合入时，
+如何找到对应的merge commit ？
 
 > https://blog.csdn.net/qq_39734650/article/details/116658540
 
@@ -342,10 +343,17 @@ $ git blame <file>
 $ git find-merge <commit A>
 ```
 
-当我们想要研究某一个新merge feature时，merge commit会显示feature commit范围，比如 （A，F]，其中不包括A，包括F。如何显示此feature所有commit ？
+当我们想要研究某一个新merge feature时，`merge commit` 会显示feature commit范围，
+比如 （A，F]，其中不包括A，包括F。如何显示此feature所有commit ？
 
 ```bash
 $ git log --online --graph <merge commit>
+```
+
+显示 `commit A` 是在哪一个版本被引入？
+
+```bash
+$ git tag --contains <commit A>
 ```
 
 将一个已经 commit 的 patch 拆分成多个 patch，如下：
