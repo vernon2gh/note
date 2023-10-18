@@ -5,8 +5,8 @@ huge page种类：
 1. 静态大页(persistent hugepage)，通过用户自行控制它的分配、释放、使用
 
 2. 透明大页(transparent hugepage)，由系统自己控制透明大页的分配、释放、使用。
-若用户开启透明大页功能，系统会在后台运行一个khugepaged的内核线程扫描系统内存，
-将合适的内存合并成为大页，用户无感
+系统还会在后台运行一个khugepaged 内核线程扫描系统内存，将合适的内存合并成为大页，
+用户无感。
 
 huge page优点：
 
@@ -63,7 +63,7 @@ char *vaddr = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMO
 
 ## 透明大页(transparent hugepage)
 
-### 如何预分配huge page的页数/大小？如何申请从huge page中分配内存？
+### 如何分配 huge page？
 
 > Documentation/admin-guide/mm/transhuge.rst
 
@@ -71,11 +71,13 @@ char *vaddr = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMO
 $ ls /sys/kernel/mm/transparent_hugepage/
 defrag          hpage_pmd_size  shmem_enabled
 enabled         khugepaged      use_zero_page
-$ ls /sys/kernel/mm/transparent_hugepage/khugepaged/
-alloc_sleep_millisecs  max_ptes_none          pages_collapsed
-defrag                 max_ptes_shared        pages_to_scan
-full_scans             max_ptes_swap          scan_sleep_millisecs
 ```
+
+当 `enabled = always` 时，在 pagefault 自动判断是否为 huge page，如果是，直接
+分配映射 2MB 内存，否则，只分配映射 4KB 内存。
+
+当 `enabled = madvise` 时，只有使用 `madvise(MADV_HUGEPAGE)`，才会在 pagefault
+分配映射 2MB 内存，否则，只分配映射 4KB 内存。
 
 ## 源码解析
 
