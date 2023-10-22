@@ -42,3 +42,17 @@ nmap <C-]>g :cs find g <C-R>=expand("<cword>")<CR><CR>
 nmap <C-]>c :cs find c <C-R>=expand("<cword>")<CR><CR>
 " grep
 nmap fg :!git grep <C-R>=expand("<cword>")<CR><CR>
+
+" Directional keys
+" normal mode
+nmap i <up>
+nmap k <down>
+nmap j <left>
+nmap l <right>
+nmap h <insert>
+" visual mode
+vmap i <up>
+vmap k <down>
+vmap j <left>
+vmap l <right>
+vmap h <insert>

@@ -3,6 +3,16 @@ vim.o.number = true
 vim.o.mouse = ""
 vim.wo.colorcolumn = "80"
 vim.cmd [[ autocmd BufWritePre * %s/\s\+$//e ]]
+vim.keymap.set('n', 'i', '<up>', opts)
+vim.keymap.set('n', 'k', '<down>', opts)
+vim.keymap.set('n', 'j', '<left>', opts)
+vim.keymap.set('n', 'l', '<right>', opts)
+vim.keymap.set('n', 'h', '<insert>', opts)
+vim.keymap.set('v', 'i', '<up>', opts)
+vim.keymap.set('v', 'k', '<down>', opts)
+vim.keymap.set('v', 'j', '<left>', opts)
+vim.keymap.set('v', 'l', '<right>', opts)
+vim.keymap.set('v', 'h', '<insert>', opts)
 
 -- plugins setting
 require'lspconfig'.clangd.setup { }
