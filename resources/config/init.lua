@@ -25,6 +25,7 @@ vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
 vim.keymap.set('n', 'fg', ':!git grep <C-R>=expand("<cword>")<CR><CR>', opts)
 require('gitsigns').setup {
 	current_line_blame = true,
+	current_line_blame_formatter = '<abbrev_sha>, <author>, <author_time:%Y/%m/%d> - <summary>',
 }
 vim.cmd [[ set background=dark ]]
 vim.cmd [[ colorscheme sonokai ]]
