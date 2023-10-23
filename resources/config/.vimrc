@@ -50,9 +50,13 @@ nmap k <down>
 nmap j <left>
 nmap l <right>
 nmap h <insert>
+nmap ;i 10<up>
+nmap ;k 10<down>
 " visual mode
 vmap i <up>
 vmap k <down>
 vmap j <left>
 vmap l <right>
 vmap h <insert>
+vmap ;i 10<up>
+vmap ;k 10<down>

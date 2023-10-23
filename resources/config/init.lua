@@ -8,11 +8,15 @@ vim.keymap.set('n', 'k', '<down>', opts)
 vim.keymap.set('n', 'j', '<left>', opts)
 vim.keymap.set('n', 'l', '<right>', opts)
 vim.keymap.set('n', 'h', '<insert>', opts)
+vim.keymap.set('n', ';i', '10<up>', opts)
+vim.keymap.set('n', ';k', '10<down>', opts)
 vim.keymap.set('v', 'i', '<up>', opts)
 vim.keymap.set('v', 'k', '<down>', opts)
 vim.keymap.set('v', 'j', '<left>', opts)
 vim.keymap.set('v', 'l', '<right>', opts)
 vim.keymap.set('v', 'h', '<insert>', opts)
+vim.keymap.set('v', ';i', '10<up>', opts)
+vim.keymap.set('v', ';k', '10<down>', opts)
 
 -- plugins setting
 require'lspconfig'.clangd.setup { }
