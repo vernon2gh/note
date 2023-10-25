@@ -81,6 +81,8 @@ enabled         khugepaged      use_zero_page
 
 ## 源码解析
 
+### 静态大页(persistent hugepage)
+
 > base linux v5.19-rc6
 
 > huge page 与 gigantic page 区别：
@@ -157,3 +159,56 @@ flush_free_hpage_work
 ```
 
 update_and_free_pages_bulk()最终调用__update_and_free_page()做真正的释放内存操作
+
+### 透明大页(transparent hugepage)
+
+直接通过 `mmap(start_vaddr_align_2MB, size_2MB, MAP_PRIVATE | MAP_ANONYMOUS)`
+分配 2MB 虚拟内存，第一次触发 write pagefault 时，进行分配映射 2MB 物理内存，如下：
+
+```c
+handle_mm_fault()
+    __handle_mm_fault()
+        create_huge_pmd()
+            do_huge_pmd_anonymous_page()
+            |    transhuge_vma_suitable()
+            |    vma_alloc_folio()
+            |    __do_huge_pmd_anonymous_page()
+            |    |    mk_huge_pmd()
+            |    |    maybe_pmd_mkwrite()
+            |    |    set_pmd_at()
+```
+
+直接通过 `mmap(start_vaddr_align_2MB, size_2MB, MAP_PRIVATE | MAP_ANONYMOUS)`
+分配 2MB 虚拟内存，第一次触发 read pagefault 时，进行映射 2MB 零页物理内存，如下：
+
+```c
+handle_mm_fault()
+    __handle_mm_fault()
+        create_huge_pmd()
+            do_huge_pmd_anonymous_page()
+            |    transhuge_vma_suitable()
+            |    mm_get_huge_zero_page()
+            |    set_huge_zero_page()
+            |    |    mk_pmd()
+            |    |    pmd_mkhuge()
+            |    |    set_pmd_at()
+```
+
+当映射 2MB 零页物理内存后，再触发 write pagefault 时，首先拆分 PMD 成多个 PTE，
+这些 PTE 都映射 4KB 零页物理内存，然后按照正常触发 write 4KB zero-page pagefault，
+调用 `do_wp_page()` 进行分配映射 4KB 物理内存，如下：
+
+```c
+handle_mm_fault()
+    __handle_mm_fault()
+        wp_huge_pmd()
+        |    do_huge_pmd_wp_page()
+        |        __split_huge_pmd()
+        |            __split_huge_pmd_locked()
+        |                __split_huge_zero_page_pmd()
+        |                |    pfn_pte(my_zero_pfn())  // 4KB zero-page
+        |                |    pte_mkspecial()
+        |                |    set_pte_at()
+        handle_pte_fault()
+            do_wp_page()
+```
