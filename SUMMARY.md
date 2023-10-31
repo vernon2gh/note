@@ -50,6 +50,7 @@
     * [cpu_speculates](linuxKernel/cpu_speculates.md)
     * [mmap_lock](linuxKernel/mmap_lock.md)
     * [per-vma_lock](linuxKernel/per-vma_lock.md)
+    * [cgroup](linuxKernel/cgroup.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
