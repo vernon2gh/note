@@ -33,6 +33,7 @@
     * [mmap](linuxKernel/mmap.md)
     * [mremap](linuxKernel/mremap.md)
     * [mprotect](linuxKernel/mprotect.md)
+    * [madvise](linuxKernel/madvise.md)
     * [share_memory](linuxKernel/shm.md)
     * [huge_page](linuxKernel/huge_page.md)
     * [page_fault](linuxKernel/page_fault.md)
