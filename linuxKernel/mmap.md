@@ -110,3 +110,26 @@ mmap flags (MAP_XXX) 标志转换成 vm_flags (VM_XXX) 标志，保存在 `vma->
 6. mmap len 必须小于 TASK_SIZE，即 小于最大的进程虚拟地址
 
 7. mm.mmap_base : 虚拟地址空间中用于映射的起始地址
+
+## 在 mmap 时进行预分配物理内存
+
+```c
+SYSCALL_DEFINE6(mmap, ..., MAP_POPULATE
+    ksys_mmap_pgoff()
+        vm_mmap_pgoff()
+            do_mmap()
+            mm_populate()
+            |    __mm_populate()
+            |        find_vma_intersection()
+            |        populate_vma_page_range()
+            |            __get_user_pages()
+            |            |    gup_vma_lookup()
+            |            |    follow_page_mask()
+            |            |    faultin_page()
+            |            |        handle_mm_fault()
+```
+
+在用户空间调用 `mmap()` 时指定 `MAP_POPULATE` 标志，这样内核空间在通过 `do_mmap()`
+申请虚拟地址后，再通过 `mm_populate() -> ... -> handle_mm_fault()` 进行预分配物理内存，
+属于 pagefault 路径。
+
