@@ -39,17 +39,26 @@ struct lruvec {
 ### 详细解析
 
 ```c
-lruvec_add_folio()
+lruvec_add_folio()   ## add_page_to_lru_list()
     folio_lru_list()
     list_add()
 ```
 
-将 page 加入到 LRU 链表中
+先调用 `folio_lru_list()` 获得 folio 是属于哪一个 `enum lru_list`，
+然后再调用 `list_add()` 将 folio 加入到对应的 LRU 链表中
 
 ```c
-lruvec_del_folio()
+lruvec_del_folio()   ## del_page_from_lru_list()
     folio_lru_list()
     list_del()
 ```
 
-从 LRU 链表中删除 page
+先调用 `folio_lru_list()` 获得 folio 是属于哪一个 `enum lru_list`，
+然后再调用 `list_del()` 将 folio 从对应的 LRU 链表中删除
+
+### 杂项
+
+从 v5.18 `07ca76067308 mm/munlock: maintain page->mlock_count while unevictable`
+提交后，`LRU_UNEVICTABLE list` 变成一个虚假的链表，即 `UNEVICTABLE page->lru`
+不用链接到 `LRU_UNEVICTABLE list`，只需要统计保存 `UNEVICTABLE page` 个数。
+这样原本的 `page->lru` 没有使用，所以将 `page->lru.prev` 复用为 `page->mlock_count`。
