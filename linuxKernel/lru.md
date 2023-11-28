@@ -193,12 +193,14 @@ kswadp 线程能够调用 `shrink_active_list()`，自动将 folios 从 LRU acti
 
 ```c
 workingset_refault(folio)
+    workingset_test_recent()
     folio_set_active(folio)
 folio_add_lru()
     lruvec_add_folio()
 ```
 
-当（file or anon backing-device）folio 被回收后，出现 refault 现象，满足一定条件后，
+当（file or anon backing-device）folio 被回收后，出现 refault 现象，调用
+`workingset_test_recent()` 判断 folio 是否是最近被驱逐？如果是最近被驱逐，
 将 folio 设置成 active 属性，这样后面紧接着调用 `lruvec_add_folio()` 能够将 folio
 移动到 LRU active list 中
 
