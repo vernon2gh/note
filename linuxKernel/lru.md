@@ -83,9 +83,9 @@ fbatch 中的所有 folio 都添加到对应的 LRU list。
 * syscall,        e.g. `madvise()`, `mlock()`
 * task exit,      e.g. `exit_mmap()`
 
-#### 什么场景下将 folio 先暂时放在 fbatch 中？
+#### 什么场景下移动 folio 到另一个 LRU list？
 
-或者说 什么场景下移动 folio 到另一个 LRU list？
+或者说 什么场景下将 folio 先暂时放在 fbatch 中？
 
 * folio_add_lru(folio)
 
@@ -135,6 +135,8 @@ folio_activate(folio)
 如果 folio 在 LRU inactive list, 将 folio 移动在 LRU active list 中。
 e.g `read()`
 
+上面场景都是用户空间手动调用 `read()` 将某个 folio 移动到 LRU active list 中
+
 * folio_deactivate(folio)
 
 ```c
@@ -171,7 +173,7 @@ folio_mark_lazyfree(folio)
 如果 anon folio 在 LRU active list 并且有 swapbacked 标志, 将 anon folio 移动在 LRU inactive list 中。
 e.g. `madvise(MADV_FREE)`
 
-上面场景都是用户空间手动调用 `madvise()` 将某个 folio 移动在 LRU inactive list 中
+上面场景都是用户空间手动调用 `madvise()` 将某个 folio 移动到 LRU inactive list 中
 
 #### 什么场景下自动将 folio 移动到 LRU inactive list？
 
@@ -186,6 +188,32 @@ shrink_active_list()
 
 kswadp 线程能够调用 `shrink_active_list()`，自动将 folios 从 LRU active list 移动
 到 LRU inactive list 中。
+
+#### 什么场景下自动将 folio 移动到 LRU active list？
+
+```c
+workingset_refault(folio)
+    folio_set_active(folio)
+folio_add_lru()
+    lruvec_add_folio()
+```
+
+当（file or anon backing-device）folio 被回收后，出现 refault 现象，满足一定条件后，
+将 folio 设置成 active 属性，这样后面紧接着调用 `lruvec_add_folio()` 能够将 folio
+移动到 LRU active list 中
+
+```c
+shrink_folio_list()
+    folio_check_references(folio)
+        folio_referenced(folio)
+    folio_set_active(folio)
+move_folios_to_lru()
+    lruvec_add_folio()
+```
+
+正在进行回收时，通过 `folio_referenced()` 判断 folio 最近是否被访问过？如果被访问过，
+将 folio 设置成 active 属性，这样后面紧接着调用 `lruvec_add_folio()` 能够将 folio
+移动到 LRU active list 中
 
 ### 详细解析
 
