@@ -20,7 +20,7 @@ CONFIG_ARM64_64K_PAGES
 一次申请内存都是大于 4KB，所以我们需要降低 Page Fault 的次数，提升
 TLB Hit 命中率，同时不会浪费越多内存。
 
-需要如何破冰？答案：`small-order THP`，页大小还是 4KB，但是支持触发
+需要如何破冰？答案：`small-sized THP`，页大小还是 4KB，但是支持触发
 一次 Page Fault 进入内核空间，来映射 4/16/32//64KB 物理内存。这样
 达到降低 Page Fault 的次数，提升 TLB Hit 命中率，同时不会浪费越多内存。
 

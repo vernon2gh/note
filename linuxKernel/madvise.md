@@ -61,7 +61,7 @@ madvise_cold_or_pageout_pte_range()
 （同上）调用 add_to_swap() 申请 swap space 并且将 folio 与此 swap space 绑定在一起，
 再调用 pageout() 将 folio 回写到刚刚申请的 swap space 对应的 swapfile 位置。
 
-## 将 small_size THP 的 64KB swapout 到 swapfile 的流程
+## 将 small_sized THP 的 64KB swapout 到 swapfile 的流程
 
 
 
