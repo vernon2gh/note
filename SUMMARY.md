@@ -77,6 +77,7 @@
         * [makefile](linuxSystem/common/makefile.md)
         * [file_descriptor](linuxSystem/common/fd.md)
         * [watermark](linuxSystem/common/watermark.md)
+        * [psi](linuxSystem/common/psi.md)
     * ubuntu
         * [get_cmd_src](linuxSystem/ubuntu/get_cmd_src.md)
         * [record_ssh_info](linuxSystem/ubuntu/record_ssh_info.md)
