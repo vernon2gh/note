@@ -26,6 +26,8 @@ $ cat /proc/1/stat
 * 第3列, 表示 进程的状态(S表示Sleep)
 * 第4列, 表示 进程的PPID，即父进程的PID
 * ……
+* 第15列, 表示 进程在内核空间 running 的时间
+* ……
 * 第41列, 表示 进程调度策略(0: TS, 1: FF)
 * ....
 
@@ -87,5 +89,27 @@ MemAvailable  An estimate of how much memory is available for starting new
 Slab          in-kernel data structures cache
 SReclaimable  Part of Slab, that might be reclaimed, such as caches
 SUnreclaim    Part of Slab, that cannot be reclaimed on memory pressure
+```
+
+4. vmstat
+
+`/proc/vmstat` 统计相关内存使用次数
+
+```
+pgactivate              active list pages
+pgdeactivate            inactive list pages
+pgfault                 pagefault number
+pgmajfault              pagefault number from read disk data
+pgsteal_kswapd          amount of reclaimed pages by kswapd
+pgsteal_direct
+pgsteal_khugepaged
+pgscan_kswapd           amount of scanned pages by kswapd
+pgscan_direct
+pgscan_khugepaged
+pgscan_anon             amount of scanned anon pages
+pgscan_file
+pgsteal_anon            amount of reclaimed anon pages
+pgsteal_file
+zone_reclaim_failed     没有回收到所需页数量的次数
 ```
 
