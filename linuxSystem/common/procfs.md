@@ -5,6 +5,8 @@ proc - process information pseudo-filesystem
 关于详细说明解释，如下：
 
 ```
+$ vim Documentation/filesystems/proc.rst
+or
 $ man proc
 ```
 
