@@ -57,6 +57,7 @@
     * [symbol](linuxKernel/symbol.md)
     * [campact](linuxKernel/compact.md)
     * [page_ext](linuxKernel/page_ext.md)
+    * [mempool](linuxKernel/mempool.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
