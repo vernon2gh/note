@@ -31,6 +31,7 @@ require'lspconfig'.clangd.setup { }
 vim.diagnostic.disable()
 vim.keymap.set('n', ';d', vim.lsp.buf.definition, opts)
 vim.keymap.set('n', ';r', vim.lsp.buf.references, opts)
+vim.keymap.set('n', ';c', vim.lsp.buf.incoming_calls, opts)
 vim.keymap.set('n', ';gg', ':!git grep <C-R>=expand("<cword>")<CR><CR>', opts)
 require('gitsigns').setup {
 	current_line_blame = true,
