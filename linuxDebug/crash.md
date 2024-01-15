@@ -40,10 +40,11 @@ $ crash vmlinux vmcore
 # crash 调试命令
 
 ```
-crash> bt                ## 显示 kernel-stack backtrace.
-crash> dis -l <address>  ## 显示 address 对应的源码位置和汇编指令
-crash> dis -lr <address> ## 显示从函数开头到 address 的源码位置和汇编指令
-crash> struct <struct_name> <address> -x ## 查看 address 对应的结构体内容
+crash> bt                                ## 显示 kernel-stack backtrace.
+crash> dis -l [address]                  ## 显示 address 对应的源码位置和汇编指令
+crash> dis -lr [address]                 ## 显示从函数开头到 address 的源码位置和汇编指令
+crash> struct [struct_name] [address] -x ## 查看 address 对应的结构体内容
+crash> rd [address] [count]              ## 从 address 读取 count 个数据，单位 8Bytes
 ```
 
 # 技巧
@@ -56,3 +57,6 @@ ESR 知道更加详细的 panic 原因。
 现场得到，到这里就能够理解此指令 panic 的真正原因。再通过 `dis -r pc_address`
 显示从函数开头到 address 的汇编指令，向上跟踪不正常寄存器值的源头。
 
+通过 `log` 查找 sp 指针，使用 `rd sp_address count` 显示 stack 内容，从而推导
+得到函数调用关系、每一个函数的参数/局部变量等。（需要熟悉 x86_64/arm64 的汇编指令、
+函数进出栈原理）

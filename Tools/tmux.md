@@ -35,9 +35,32 @@ $ ctrl-b d    # 退出 session
 $ tmux attach # 重新进入 session
 ```
 
+强制退出当前窗口
+
+```bash
+$ ctrl-d
+or
+$ tmux kill-window
+```
+
 在 tmux 使用 zsh-autosuggestions 功能，添加以下配置：
 
 ```
 ## ~/.tmux.conf
 set -g default-terminal xterm-256color
+```
+
+启动鼠标功能，添加以下配置：
+
+```
+## ~/.tmux.conf
+# set mouse on with prefix m
+bind m \
+    set -g mouse on \;\
+    display 'Mouse: ON'
+
+# set mouse off with prefix M
+bind M \
+    set -g mouse off \;\
+    display 'Mouse: OFF'
 ```

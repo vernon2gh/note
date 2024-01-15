@@ -46,6 +46,13 @@ dw (delete word)
 cw (change word)
 ```
 
+* 过滤字符串
+
+```
+$ vim filename
+:g/string
+```
+
 ## 一些常见的配置
 
 * vim
