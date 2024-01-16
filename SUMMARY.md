@@ -36,7 +36,7 @@
     * [madvise](linuxKernel/madvise.md)
     * [read](linuxKernel/read.md)
     * [write](linuxKernel/write.md)
-    * [share_memory](linuxKernel/shm.md)
+    * [shmem](linuxKernel/shmem.md)
     * [huge_page](linuxKernel/huge_page.md)
     * [page_fault](linuxKernel/page_fault.md)
     * [rmap](linuxKernel/rmap.md)
