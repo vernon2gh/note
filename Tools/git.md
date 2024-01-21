@@ -367,3 +367,9 @@ $ git commit -s -m '
 
 $ git rebase --continue
 ```
+
+查看某个版本的文件内容，如下：
+
+```bash
+$ git show <hash>:<file>
+```
