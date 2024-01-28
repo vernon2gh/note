@@ -180,6 +180,7 @@
     * [tmux](Tools/tmux.md)
     * [mail_client](Tools/mail_client.md)
     * [download_patchset_from_LKML](Tools/download_patchset_from_lkml.md)
+    * [minicom](Tools/minicom.md)
 * other
     * [ubuntu_corresponding_linuxkernel](other/ubuntu_corresponding_linuxkernel.md)
     * [ubuntu1004_sources_list](other/ubuntu1004_sources_list.md)
