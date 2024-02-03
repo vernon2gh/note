@@ -23,6 +23,7 @@ $ make install
 ```bash
 $ sudo perf stat <command>   ## Run a command and gather performance counter statistics
 $ sudo perf top -U           ## System profiling tool. ( -U, Hide user symbols. )
+$ sudo perf top -p <pid>     ## Profile events on existing Process ID.
 $ sudo perf record <command> ## Run a command and record its profile into perf.data
 $ sudo perf report           ## Read perf.data and display the profile
 ```
