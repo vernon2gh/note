@@ -182,6 +182,7 @@
     * [download_patchset_from_LKML](tools/download_patchset_from_lkml.md)
     * [minicom](tools/minicom.md)
     * [cockpit](tools/cockpit.md)
+    * [yt-dlp](tools/yt-dlp.md)
 * other
     * [ubuntu_corresponding_linuxkernel](other/ubuntu_corresponding_linuxkernel.md)
     * [ubuntu1004_sources_list](other/ubuntu1004_sources_list.md)
