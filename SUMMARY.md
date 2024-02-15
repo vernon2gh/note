@@ -92,6 +92,11 @@
         * [log](linuxSystem/ubuntu/log.md)
         * [run_custom_script](linuxSystem/ubuntu/run_custom_script.md)
         * [install_tools](linuxSystem/ubuntu/install_tools.md)
+        * [cockpit](linuxSystem/ubuntu/cockpit.md)
+    * fedora
+        * [lvextend](linuxSystem/fedora/lvextend.md)
+        * [yt-dlp](linuxSystem/fedora/yt-dlp.md)
+        * [jellyfin](linuxSystem/fedora/jellyfin.md)
 * linuxDriver
     * [i2c_peripherals_driver](linuxDriver/i2c_peripherals_driver.md)
     * [spi_peripherals_driver](linuxDriver/spi_peripherals_driver.md)
@@ -183,8 +188,6 @@
     * [mail_client](tools/mail_client.md)
     * [download_patchset_from_LKML](tools/download_patchset_from_lkml.md)
     * [minicom](tools/minicom.md)
-    * [cockpit](tools/cockpit.md)
-    * [yt-dlp](tools/yt-dlp.md)
 * other
     * [ubuntu_corresponding_linuxkernel](other/ubuntu_corresponding_linuxkernel.md)
     * [ubuntu1004_sources_list](other/ubuntu1004_sources_list.md)
