@@ -34,7 +34,7 @@ $ sudo apt install tftp-hpa
 * 使用
 
 ```bash
-$ tftp [IP]
+$ tftp [server IP]
 tftp> get [download_file]
 tftp> put [upload_file]
 ```

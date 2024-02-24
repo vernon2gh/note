@@ -91,7 +91,7 @@
         * [record_ssh_info](linuxSystem/ubuntu/record_ssh_info.md)
         * [log](linuxSystem/ubuntu/log.md)
         * [run_custom_script](linuxSystem/ubuntu/run_custom_script.md)
-        * [install_tools](linuxSystem/ubuntu/install_tools.md)
+        * [repo](linuxSystem/ubuntu/repo.md)
         * [cockpit](linuxSystem/ubuntu/cockpit.md)
         * [nfs](linuxSystem/ubuntu/nfs.md)
         * [tftp](linuxSystem/ubuntu/tftp.md)

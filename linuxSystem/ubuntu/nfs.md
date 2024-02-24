@@ -1,25 +1,32 @@
-## ubuntu PC、linux开发板与windows共享文件
-* 在ubuntu PC搭建 nfs 服务器
+## NFS 服务器
 
-  ```bash
-  $ sudo apt install nfs-kernel-server
-  
-  $ vim /etc/exports # 加入以下
-  <shareFileDir> *(rw,sync,no_root_squash)
-  
-  $ showmount -e # 测试
-  ```
+* 安装
 
-* 在开发板直接打开 nfs
+```bash
+$ sudo apt install nfs-kernel-server
+```
 
-  ```bash
-  $ mount -t nfs <ubuntu PC IP>:<shareFileDir> <mountDir>
-  ```
+* 配置
 
+```bash
+## 添加共享目录
+$ vim /etc/exports
+<shareFileDir> *(rw,sync,no_root_squash)
 
-* 先在windows中安装NFS服务，直接打开 nfs
+## 测试
+$ showmount -e
+```
 
-  ```powershell
-  \\<ubuntu IP>
-  ```
+## NFS 客户端
 
+* linux 使用 NFS
+
+```bash
+$ mount -t nfs <server IP>:<shareFileDir> <mountDir>
+```
+
+* windows 使用 NFS（安装NFS服务）
+
+```powershell
+\\<server IP>
+```
