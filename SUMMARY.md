@@ -93,6 +93,8 @@
         * [run_custom_script](linuxSystem/ubuntu/run_custom_script.md)
         * [install_tools](linuxSystem/ubuntu/install_tools.md)
         * [cockpit](linuxSystem/ubuntu/cockpit.md)
+        * [nfs](linuxSystem/ubuntu/nfs.md)
+        * [tftp](linuxSystem/ubuntu/tftp.md)
     * fedora
         * [lvextend](linuxSystem/fedora/lvextend.md)
         * [yt-dlp](linuxSystem/fedora/yt-dlp.md)
@@ -178,7 +180,6 @@
     * [global](tools/global.md)
     * [vscode](tools/vscode.md)
     * [vim](tools/vim.md)
-    * [share_file](tools/share_file.md)
     * [binary](tools/binary.md)
     * [markdown](tools/markdown.md)
     * [Draw](tools/Draw.md)
