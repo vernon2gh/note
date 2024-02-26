@@ -262,6 +262,23 @@ folio_referenced()
 然后调用 `folio_referenced_one()` 判断对应的每一个 `Anonymous VMA` 最近有没有被
  referenced？如果有，folio referenced 的次数加一; 否则，不作任何处理。
 
+```c
+folio_check_references()
+	folio_referenced() return -1, 代表 rmap lock contention: rotate
+
+folio_referenced()
+	rmap_walk()
+		rmap_walk_anon()
+			folio_lock_anon_vma_read()
+		rmap_walk_file()
+```
+
+anon page 调用 `folio_lock_anon_vma_read()` 尝试获得 `anon_vma->root->rwsem` lock，
+如果失败，`folio_referenced()` return -1
+
+file page 调用 `rmap_walk_file()` 尝试获得 `mapping->i_mmap_rwsem` lock，
+如果失败，`folio_referenced()` return -1
+
 ### 零散知识点
 
 * 如何从将某一页从 LRU inactive 链表移到到 active 链表？
