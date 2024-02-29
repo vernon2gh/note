@@ -1,4 +1,4 @@
-## 0. 简介
+# 简介
 
 proc - process information pseudo-filesystem
 
@@ -12,51 +12,11 @@ $ man proc
 
 在proc文件系统中有对每个进程维护一个目录/proc/[pid]/，其中`/proc/self` 指向 打开此文件的进程
 
-### 1. stat
+# Memory
 
-`/proc/[pid]/stat`文件展示了该进程的状态
+* pagemap
 
-```bash
-$ cat /proc/1/stat
-1 (init) S 0 1 1 0 -1 4210944 53 5545 19 9 2 133 111 68 20 0 1 0 83 7581696 403 18446744073709551615 94829180252160 94829180995132 140729949788528 0 0 0 0 0 537414151 1 0 0 17 0 0 0 17 0 0 94829183095120 94829183107699 94829195890688 140729949790160 140729949790171 140729949790171 140729949790189 0
-```
-
-对/proc/[pid]/stat的解释如下：
-
-* 第1列, 表示 进程的PID
-* 第2列, 表示 进程的名称
-* 第3列, 表示 进程的状态(S表示Sleep)
-* 第4列, 表示 进程的PPID，即父进程的PID
-* ……
-* 第15列, 表示 进程在内核空间 running 的时间
-* ……
-* 第41列, 表示 进程调度策略(0: TS, 1: FF)
-* ....
-
-/proc/[pid]/stat的输出内容，在linux源码中fs/proc/array.c中设置，如下：
-
-```bash
-## based on linux 5.4 version
-$ vim fs/proc/array.c
-static int do_task_stat(struct seq_file *m, struct pid_namespace *ns,
-			struct pid *pid, struct task_struct *task, int whole)
-{
-	....
-	seq_put_decimal_ull(m, "", pid_nr_ns(pid, ns)); // 进程的PID
-	seq_puts(m, " (");
-	proc_task_name(m, task, false);                 // 进程的名称
-	seq_puts(m, ") ");
-	seq_putc(m, state);                             // 进程的状态
-	seq_put_decimal_ll(m, " ", ppid);               // 进程的PPID
-	...
-	seq_put_decimal_ull(m, " ", task->policy);      // 进程调度策略
-	...
-}
-```
-
-### 2. pagemap
-
-`/proc/[pid]/pagemap`文件展示了该进程的 物理帧与虚拟页的映射关系
+`/proc/[pid]/pagemap`文件展示了该进程的物理帧与虚拟页的映射关系
 
 ```
 ## Documentation/vm/pagemap.txt
@@ -74,9 +34,9 @@ static int do_task_stat(struct seq_file *m, struct pid_namespace *ns,
     ...
 ```
 
-3. meminfo
+* meminfo
 
-`/proc/meminfo` 提供有关内存分布和利用率的信息
+`/proc/meminfo` 提供内存信息
 
 ```
 ## Documentation/filesystems/proc.rst
@@ -93,9 +53,9 @@ SReclaimable  Part of Slab, that might be reclaimed, such as caches
 SUnreclaim    Part of Slab, that cannot be reclaimed on memory pressure
 ```
 
-4. vmstat
+* vmstat
 
-`/proc/vmstat` 统计相关内存使用次数
+`/proc/vmstat` 统计内存使用次数
 
 ```
 pgactivate              active list pages
@@ -115,3 +75,76 @@ pgsteal_file
 zone_reclaim_failed     没有回收到所需页数量的次数
 ```
 
+* buddyinfo
+
+`/proc/buddyinfo` 显示 linux kernel buddy 分配器的分布情况
+
+```bash
+$ cat /proc/buddyinfo
+Node 0, zone      DMA      0      0      0      0      0      0      0      0      1      2      2
+Node 0, zone    DMA32   3480   3433   2595   1876   1386    692    566    328    154    102    220
+Node 0, zone   Normal   1424  20607  43125  20880   5796   4854   1420    448    209    151    183
+```
+
+如下，整个系统有一个 Node 0，三个 zone（DMA、DMA32、Normal），其中
+Normal zone 有 1424 个 order 0 的物理页，20607 个 order 1 的物理页，
+43125 个 order 2 的物理页 ... 183 个 order 10 的物理页。
+
+* pagetypeinfo
+
+`/proc/pagetypeinfo`，对 `/proc/buddyinfo` 的进一步详细解析
+
+```bash
+$ sudo cat /proc/pagetypeinfo
+Page block order: 9
+Pages per block:  512
+
+Free pages count per migrate type at order       0      1      2      3      4      5      6      7      8      9     10
+Node    0, zone      DMA, type    Unmovable      0      0      0      0      0      0      0      0      1      1      0
+Node    0, zone      DMA, type      Movable      0      0      0      0      0      0      0      0      0      1      2
+Node    0, zone      DMA, type  Reclaimable      0      0      0      0      0      0      0      0      0      0      0
+Node    0, zone      DMA, type   HighAtomic      0      0      0      0      0      0      0      0      0      0      0
+Node    0, zone      DMA, type      Isolate      0      0      0      0      0      0      0      0      0      0      0
+Node    0, zone    DMA32, type    Unmovable    116    163    133     87     53     15      7      3      1      0      1
+Node    0, zone    DMA32, type      Movable   3208   3182   2405   1752   1309    660    546    318    152    101    219
+Node    0, zone    DMA32, type  Reclaimable    156     88     57     37     24     17     13      7      1      1      0
+Node    0, zone    DMA32, type   HighAtomic      0      0      0      0      0      0      0      0      0      0      0
+Node    0, zone    DMA32, type      Isolate      0      0      0      0      0      0      0      0      0      0      0
+Node    0, zone   Normal, type    Unmovable    207   1355   1095    331    133     12      0      0      0      0      0
+Node    0, zone   Normal, type      Movable    391  18682  41829  20511   5645   4836   1416    445    208    151    183
+Node    0, zone   Normal, type  Reclaimable   1394    608    214     54     17      6      4      3      1      0      0
+Node    0, zone   Normal, type   HighAtomic     40     27     15      7      1      0      0      0      0      0      0
+Node    0, zone   Normal, type      Isolate      0      0      0      0      0      0      0      0      0      0      0
+
+Number of blocks type     Unmovable      Movable  Reclaimable   HighAtomic      Isolate
+Node 0, zone      DMA            3            5            0            0            0
+Node 0, zone    DMA32           14         1096           18            0            0
+Node 0, zone   Normal          170         6460          392            2            0
+```
+
+如上，Normal zone 的 Movable page 有 391 个 order 0 的物理页，
+18682 个 order 1 的物理页，41829 个 order 2 的物理页 ... 183 个 order 10 的物理页。
+
+page block order 等于 9，每一个 page block 有 512 个物理页，其中
+Normal zone 的 Movable page 总共有 6460 个 page block。
+
+# Other
+
+* stat
+
+`/proc/[pid]/stat`文件展示了该进程的状态
+
+```bash
+$ cat /proc/1/stat
+1 (init) S 0 1 1 0 -1 4210944 53 5545 19 9 2 133 111 68 20 0 1 0 83 7581696 403 18446744073709551615 94829180252160 94829180995132 140729949788528 0 0 0 0 0 537414151 1 0 0 17 0 0 0 17 0 0 94829183095120 94829183107699 94829195890688 140729949790160 140729949790171 140729949790171 140729949790189 0
+```
+
+* 第1列, 表示 进程的PID
+* 第2列, 表示 进程的名称
+* 第3列, 表示 进程的状态(S表示Sleep)
+* 第4列, 表示 进程的PPID，即父进程的PID
+* ...
+* 第15列, 表示 进程在内核空间 running 的时间
+* ...
+* 第41列, 表示 进程调度策略(0: TS, 1: FF)
+* ...
