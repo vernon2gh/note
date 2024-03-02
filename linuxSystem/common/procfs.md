@@ -128,6 +128,44 @@ Node 0, zone   Normal          170         6460          392            2       
 page block order 等于 9，每一个 page block 有 512 个物理页，其中
 Normal zone 的 Movable page 总共有 6460 个 page block。
 
+# IO
+
+`/proc/diskstats` 显示块设备的 I/O 统计信息
+
+```bash
+$ cat /proc/diskstats
+8   0 sda 370019 40096 86224849 3078088 134149 90231 115055594 3758714 0 1515684 6992806 0 0 0 0 36145 156004
+8   1 sda1 26 0 208 391 0 0 0 0 0 400 391 0 0 0 0 0 0
+8   2 sda2 185 23 11473 1324 3 0 10 1 0 932 1325 0 0 0 0 0 0
+8   3 sda3 369697 40073 86208752 3075308 134146 90231 115055584 3758713 0 1515332 6834021 0 0 0 0 0 0
+```
+
+* 第 1 列，代表 major number
+* 第 2 列，代表 minor number
+* 第 3 列，代表 device name
+
+* 第 4 列，代表 reads completed successfully
+* 第 5 列，代表 reads merged
+* 第 6 列，代表 sectors read
+* 第 7 列，代表 time spent reading (ms)
+
+* 第 8 列，代表 writes completed
+* 第 9 列，代表 writes merged
+* 第 10 列，代表 sectors written
+* 第 11 列，代表 time spent writing (ms)
+
+* 第 12 列，代表 I/Os currently in progress
+* 第 13 列，代表 time spent doing I/Os (ms)
+* 第 14 列，代表 weighted time spent doing I/Os (ms)
+
+* 第 15 列，代表 discards completed successfully
+* 第 16 列，代表 discards merged
+* 第 17 列，代表 sectors discarded
+* 第 18 列，代表 time spent discarding
+
+* 第 19 列，代表 flush requests completed successfully
+* 第 20 列，代表 time spent flushing
+
 # Other
 
 * stat
