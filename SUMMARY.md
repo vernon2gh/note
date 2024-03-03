@@ -87,6 +87,7 @@
         * [psi](linuxSystem/common/psi.md)
         * [ulimit](linuxSystem/common/ulimit.md)
         * [top](linuxSystem/common/top.md)
+        * [delay_accounting](linuxSystem/common/delay_accounting.md)
     * ubuntu
         * [get_cmd_src](linuxSystem/ubuntu/get_cmd_src.md)
         * [record_ssh_info](linuxSystem/ubuntu/record_ssh_info.md)
