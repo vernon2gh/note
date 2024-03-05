@@ -9,6 +9,7 @@
         * [load_setup](linuxKernel/oldlinux/load_setup.md)
         * [get_hard_data](linuxKernel/oldlinux/get_hard_data.md)
     * [list](linuxKernel/list.md)
+    * [plist](linuxKernel/plist.md)
     * [fifo](linuxKernel/fifo.md)
     * [mapping](linuxKernel/mapping.md)
     * [rbtree](linuxKernel/rbtree.md)
