@@ -73,6 +73,18 @@ pgscan_file
 pgsteal_anon            amount of reclaimed anon pages
 pgsteal_file
 zone_reclaim_failed     没有回收到所需页数量的次数
+
+workingset_refault_anon  Number of refaults of previously evicted anonymous pages.
+workingset_refault_file
+workingset_activate_anon Number of refaulted anonymous pages that were immediately
+                         activated.
+workingset_activate_file
+workingset_restore_anon  Number of restored anonymous pages which have been detected
+                         as an active workingset before they got reclaimed.
+workingset_restore_file
+workingset_nodereclaim   Number of times a shadow node has been reclaimed
+allocstall_xxx           Number of direct reclaim calls (since the last boot)
+pageoutrun               Number of kswapd's calls to page reclaim (since the last boot)
 ```
 
 * buddyinfo
