@@ -185,7 +185,7 @@
     * [vim](tools/vim.md)
     * [binary](tools/binary.md)
     * [markdown](tools/markdown.md)
-    * [Draw](tools/Draw.md)
+    * [draw](tools/draw.md)
     * [git](tools/git.md)
     * [tig](tools/tig.md)
     * [tmux](tools/tmux.md)
