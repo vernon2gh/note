@@ -198,6 +198,8 @@
     * [interview](other/interview.md)
     * [interview_c_base](other/interview_c_base.md)
     * [know_dontknow](other/know_dontknow.md)
+    * [Stop-Ask-Questions-The-Stupid-Ways](other/Stop-Ask-Questions-The-Stupid-Ways.md)
+    * [How-To-Ask-Questions-The-Smart-Way](other/How-To-Ask-Questions-The-Smart-Way.md)
     * [docker](other/docker.md)
     * [buildroot](other/buildroot.md)
     * [rv32_to_rv64](other/rv32_to_rv64.md)
