@@ -21,9 +21,22 @@ $ make install
 # 使用
 
 ```bash
-$ sudo perf stat <command>   ## Run a command and gather performance counter statistics
-$ sudo perf top -U           ## System profiling tool. ( -U, Hide user symbols. )
-$ sudo perf top -p <pid>     ## Profile events on existing Process ID.
-$ sudo perf record <command> ## Run a command and record its profile into perf.data
+$ sudo perf stat [command]   ## Run a command and gather performance counter statistics
+                 -a          ## system-wide collection from all CPUs
+                 -p <pid>    ## stat events on existing process id
+                 -t <tid>    ## stat events on existing thread id
+
+$ sudo perf top              ## System profiling tool.
+                -a           ## system-wide collection from all CPUs
+                -p <pid>     ## profile events on existing process id
+                -t <tid>     ## profile events on existing thread id
+                -U           ## hide user symbols
+
+$ sudo perf record [command] ## Run a command and record its profile into perf.data
+                   -a        ## system-wide collection from all CPUs
+                   -p <pid>  ## record events on existing process id
+                   -t <tid>  ## record events on existing thread id
+                   -o <file> ## output file name
 $ sudo perf report           ## Read perf.data and display the profile
+                   -i <file> ## input file name
 ```
