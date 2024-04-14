@@ -10,7 +10,7 @@ perf 是一个 Linux 系统中的性能分析工具，支持硬件性能计数�
 $ sudo apt install linux-tools-generic linux-tools-`uname -r`
 ```
 
-* 通过源码编译安装
+* 或者，通过源码编译安装
 
 ```bash
 $ cd <linux kernel>/tools/perf
@@ -18,7 +18,7 @@ $ make
 $ make install
 ```
 
-# 使用
+# 参数解析
 
 ```bash
 $ sudo perf stat [command]   ## Run a command and gather performance counter statistics
@@ -37,6 +37,20 @@ $ sudo perf record [command] ## Run a command and record its profile into perf.d
                    -p <pid>  ## record events on existing process id
                    -t <tid>  ## record events on existing thread id
                    -o <file> ## output file name
+                   -g        ## enables call-graph recording
 $ sudo perf report           ## Read perf.data and display the profile
                    -i <file> ## input file name
+                   -g        ## display call graph
+
+$ perf script
+              -i <file>      ## input file name
+```
+
+# 例子
+
+```bash
+$ sudo perf top -U -a              ## 显示内核空间的热点函数
+
+$ sudo perf record -g -a           ## 生成采样数据 perf.data
+$ sudo perf report -g -i perf.data ## 解析 perf.data
 ```
