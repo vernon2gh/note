@@ -43,6 +43,13 @@ struct fdtable {
 用户空间使用 `fd = open(filename)` 打开一个文件后，返回一个整型 fd。
 这个整型 fd 就是 `task.files.fdtable.fd[]` 数组的下标。
 
+每一次调用 `open()` 都会分配一个新 `struct file`，保存在 `task.files.fdtable.fd[]`
+
+# 如何初始化 `file->inode` 成员
+
+`open(filename)` 通过 filename 找到 dentry 对象，dentry对象能够找到 inode 对象，
+最后将 inode 对象赋值给 `file->inode` 成员
+
 # 如何初始化 fd 结构体
 
 ```
