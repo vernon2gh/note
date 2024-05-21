@@ -327,6 +327,8 @@ Displays the commit of each line of a file
 
 ```bash
 $ git blame <file>
+or
+$ tig blame <file>
 ```
 
 当我们想要知道 `commit A` 是在哪一个新merge feature合入时，
@@ -348,6 +350,8 @@ $ git find-merge <commit A>
 
 ```bash
 $ git log --online --graph <merge commit>
+or
+$ tig <merge commit>
 ```
 
 显示 `commit A` 是在哪一个版本被引入？
@@ -372,4 +376,10 @@ $ git rebase --continue
 
 ```bash
 $ git show <hash>:<file>
+```
+
+查看 `[HEAD, v6.9)` 范围之间的所有合并提交，如下：
+
+```bash
+$ git log --oneline --merges HEAD...v6.9
 ```
