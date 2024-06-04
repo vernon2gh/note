@@ -9,7 +9,9 @@
 * PG_locked
 
 当 folio 是 pagecache 时，开始从磁盘读取数据时，folio 加锁。读取数据结束后，folio 解锁。
+
 当 folio 是 pagecache 时，开始将 folio 回写到磁盘时，folio 加锁。回写结束后，folio 解锁。
+
 当 pagefault 路径将 folio 插入页表时，或将 page 进行 truncation 时，folio 都加锁，避免两者之间竞争
 
 * PG_writeback
@@ -40,8 +42,8 @@ folio 执行回写时，设置 PG_writeback 标志，PG_locked 标志可能随�
 当 folio 是 large folio，设置 PG_head 标志。order-0 folio 不设置此标志。
 
 * PG_waiters
-page 有 waiter，检查 waitqueue。只在 core code 使用，Don't touch.
 
+page 有 waiter，检查 waitqueue。只在 core code 使用，Don't touch.
 
 * PG_active
 
