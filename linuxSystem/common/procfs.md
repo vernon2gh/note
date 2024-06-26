@@ -14,8 +14,6 @@ $ man proc
 
 # Memory
 
-* pagemap
-
 `/proc/[pid]/pagemap`文件展示了该进程的物理帧与虚拟页的映射关系
 
 ```
@@ -34,8 +32,6 @@ $ man proc
     ...
 ```
 
-* meminfo
-
 `/proc/meminfo` 提供内存信息
 
 ```
@@ -53,8 +49,6 @@ SReclaimable  Part of Slab, that might be reclaimed, such as caches
 SUnreclaim    Part of Slab, that cannot be reclaimed on memory pressure
 ```
 
-* vmstat
-
 `/proc/vmstat` 统计内存使用次数
 
 ```
@@ -67,6 +61,9 @@ pgsteal_direct
 pgsteal_khugepaged
 pgscan_kswapd           amount of scanned pages by kswapd
 pgscan_direct
+pgscan_direct_throttle  代表进入直接回收内存路径，但是没有进行直接回收内存的次数。
+                        比如：因为当前进程已经收到 SIGKILL 信号，马上会被杀掉了，
+                        所以即使当前 OOM 也无所谓。
 pgscan_khugepaged
 pgscan_anon             amount of scanned anon pages
 pgscan_file
@@ -87,8 +84,6 @@ allocstall_xxx           Number of direct reclaim calls (since the last boot)
 pageoutrun               Number of kswapd's calls to page reclaim (since the last boot)
 ```
 
-* buddyinfo
-
 `/proc/buddyinfo` 显示 linux kernel buddy 分配器的分布情况
 
 ```bash
@@ -101,8 +96,6 @@ Node 0, zone   Normal   1424  20607  43125  20880   5796   4854   1420    448   
 如下，整个系统有一个 Node 0，三个 zone（DMA、DMA32、Normal），其中
 Normal zone 有 1424 个 order 0 的物理页，20607 个 order 1 的物理页，
 43125 个 order 2 的物理页 ... 183 个 order 10 的物理页。
-
-* pagetypeinfo
 
 `/proc/pagetypeinfo`，对 `/proc/buddyinfo` 的进一步详细解析
 
@@ -139,6 +132,16 @@ Node 0, zone   Normal          170         6460          392            2       
 
 page block order 等于 9，每一个 page block 有 512 个物理页，其中
 Normal zone 的 Movable page 总共有 6460 个 page block。
+
+`/proc/zoneinfo`        内存区域使用情况
+`/proc/slabinfo`
+`/proc/vmallocinfo`     虚拟内存分配信息
+`/proc/swaps`           swap分区使用情况
+`/proc/mtd`             内存设备分区表信息
+`/proc/dma`             DMA（直接内存访问）通道的列表
+`/proc/mtrr`            系统使用的Memory Type Range Registers (MTRRs)
+`/proc/kpagecount`
+`/proc/kpageflags`
 
 # IO
 
@@ -178,9 +181,37 @@ $ cat /proc/diskstats
 * 第 19 列，代表 flush requests completed successfully
 * 第 20 列，代表 time spent flushing
 
-# Other
+`/proc/filesystems`     目前系统支持的文件系统
+`/proc/ioports`         当前系统硬件设备使用的IO端口列表
+`/proc/iomem`           I/O 内存映射
+`/proc/locks`           当前被内核锁定的文件
+`/proc/mounts`          当前挂载信息
 
-* stat
+# CPU
+
+`/proc/cpuinfo`         cpu相关信息
+`/proc/loadavg`         当前系统负载
+`/proc/softirqs`        系统软中断信息
+`/proc/schedstat`       调度器信息
+`/proc/sched_debug`     调度器debug信息
+
+# Kernel
+
+`/proc/cmdline`         在引导启动时传递给Linux内核的参数
+`/proc/crypto`          内核支持的加密方式
+`/proc/modules`         当前系统已经加载的模块（lsmod）
+`/proc/version`         内核版本信息
+`/proc/stat`            系统和内核的统计信息
+`/proc/fb`              内核编译期间帧缓冲信息
+`/proc/kmsg`            内核日志信息
+`/proc/kcore`           表示系统物理内存，可以用gdb检查内核数据结构的当前状态
+`/proc/kallsyms`        内核符号信息，主要用于调试
+`/proc/timer_list`      内核各种计时器信息
+`/proc/timer_stats`
+`/proc/sysrq-trigger`   内核触发器（危险！！！）
+`/proc/execdomains`     Linux内核当前支持的execution domains
+
+# Other
 
 `/proc/[pid]/stat`文件展示了该进程的状态
 
@@ -198,3 +229,11 @@ $ cat /proc/1/stat
 * ...
 * 第41列, 表示 进程调度策略(0: TS, 1: FF)
 * ...
+
+`/proc/interrupts`      中断表
+`/proc/uptime`          系统运行时间
+`/proc/devices`         设备信息（主设备号等）
+`/proc/mdstat`          虚拟设备信息（软raid等）
+`/proc/misc`            其他的主要设备(设备号为10)上注册的驱动
+`/proc/cgroup`          cgroup相关信息
+`/proc/consoles`

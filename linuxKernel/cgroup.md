@@ -123,9 +123,9 @@ cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime,nsdelega
 
     read-only，文件中定义了以下条目。
 
-    high：cgroup 的 swap 使用量超过 memory.swap.high 的次数
-    max ：cgroup 的 swap 使用量即将超过 memory.swap.max 并且 swap 分配失败的次数。
-    fail：系统 swap 使用量用完或达到 memory.swap.max 限制，导致 swap 分配失败的次数。
+    - high：cgroup 的 swap 使用量超过 memory.swap.high 的次数
+    - max ：cgroup 的 swap 使用量即将超过 memory.swap.max 并且 swap 分配失败的次数。
+    - fail：系统 swap 使用量用完或达到 memory.swap.max 限制，导致 swap 分配失败的次数。
 
 # memory.max
 
