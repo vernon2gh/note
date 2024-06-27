@@ -105,8 +105,8 @@ cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime,nsdelega
 
     read-write，default is max.
 
-    当 cgroup 的 swap 使用量超过这个限制时，所有内存分配都会被限制，允许用户空间
-    实现自定义的内存不足处理程序。
+    当 cgroup 的 swap 使用量超过这个限制时，所有内存分配都会被限制，并且调用
+    用户空间自定义 OOM 处理程序。
 
     一旦达到这个限制，cgroup 就不能正常运行。这个参数不是用来管理 swap 使用量。
 
