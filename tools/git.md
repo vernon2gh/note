@@ -383,3 +383,21 @@ $ git show <hash>:<file>
 ```bash
 $ git log --oneline --merges HEAD...v6.9
 ```
+
+查看某个 commit xxx 的上一个提交，如下：
+
+```bash
+$ git show xxx^
+
+## 查看 HEAD 的上一个提交
+$ git show HEAD^
+```
+
+查看文件 `mm/vmscan.c` 第 1169 行的提交历史，如下：
+
+```bash
+$ git blame -L 1169,1169 mm/vmscan.c
+2 years ago     Matthew Wilcox  d92013d1e5e47│1169│                         references = folio_check_references(folio, sc);
+$ git blame -L 1674,1674 mm/vmscan.c d92013d1e5e47^
+11 years ago    Minchan Kim     02c6de8d757cb│1674│                         references = page_check_references(page, sc);
+```
