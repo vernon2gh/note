@@ -37,6 +37,10 @@ require('gitsigns').setup {
 	current_line_blame = true,
 	current_line_blame_formatter = '<abbrev_sha>, <author>, <author_time:%Y/%m/%d> - <summary>',
 }
+require("diffview").setup {
+	use_icons = false,
+}
+vim.keymap.set('n', ';gb', ':.,.DiffviewFileHistory<CR>', opts)
 vim.cmd [[ set background=dark ]]
 vim.cmd [[ colorscheme sonokai ]]
 
@@ -46,5 +50,6 @@ return require('packer').startup(function(use)
 	use 'wbthomason/packer.nvim'
 	use 'neovim/nvim-lspconfig'
 	use 'lewis6991/gitsigns.nvim'
+	use "sindrets/diffview.nvim"
 	use 'sainnhe/sonokai'
 end)
