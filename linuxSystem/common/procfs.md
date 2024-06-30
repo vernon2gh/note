@@ -52,36 +52,44 @@ SUnreclaim    Part of Slab, that cannot be reclaimed on memory pressure
 `/proc/vmstat` 统计内存使用次数
 
 ```
+## LRU list
 pgactivate              active list 页数
 pgdeactivate            inactive list 页数
+
+## pagefault
 pgfault                 pagefault 次数
 pgmajfault              需要从磁盘读数据的 pagefault 次数
-pgsteal_kswapd          内存回收时，kswapd 成功回收的页数
-pgsteal_direct          内存回收时，direct reclaim 成功回收的页数
-pgsteal_khugepaged
+
+## 内存回收，kswapd and direct reclaim
 pgscan_kswapd           内存回收时，kswapd 扫描的页数
 pgscan_direct           内存回收时，direct reclaim 扫描的页数
 pgscan_direct_throttle  代表进入直接回收内存路径，但是没有进行直接回收内存的次数。
                         比如：因为当前进程已经收到 SIGKILL 信号，马上会被杀掉了，
                         所以即使当前 OOM 也无所谓。
 pgscan_khugepaged
+pgsteal_kswapd          内存回收时，kswapd 成功回收的页数
+pgsteal_direct          内存回收时，direct reclaim 成功回收的页数
+pgsteal_khugepaged
+
+## 内存回收，匿名页与文件页
 pgscan_anon             内存回收时，扫描的匿名页数
 pgscan_file             内存回收时，扫描的文件页数
 pgsteal_anon            内存回收时，成功回收的匿名页数
 pgsteal_file            内存回收时，成功回收的文件页数
-zone_reclaim_failed     没有回收到所需页数量的次数
 
+## workingset
 workingset_refault_anon  之前回收的匿名页，再一次触发 pagefault 的次数
 workingset_refault_file  之前回收的文件页，再一次触发 pagefault 的次数
 workingset_activate_anon 之前回收的匿名页，马上立刻再一次触发 pagefault 的次数。
-                         此类匿名页直接提升到 active list。
 workingset_activate_file 之前回收的文件页，马上立刻再一次触发 pagefault 的次数。
-                         此类文件页直接提升到 active list。
-workingset_restore_anon  之前回收的匿名页（位于 active list/workingset），
+workingset_restore_anon  之前回收的匿名页（位于 active workingset），
                          马上立刻再一次触发 pagefault 的次数
-workingset_restore_file  之前回收的文件页（位于 active list/workingset），
+workingset_restore_file  之前回收的文件页（位于 active workingset），
                          马上立刻再一次触发 pagefault 的次数
-workingset_nodereclaim   Number of times a shadow node has been reclaimed
+workingset_nodereclaim   shadow node 被回收的次数
+
+## other
+zone_reclaim_failed      没有回收到所需页数量的次数
 allocstall_xxx           自从开机以来，调用直接回收内存的次数
 pageoutrun               自从开机以来，调用 kswapd 回收内存的次数
 ```
