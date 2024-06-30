@@ -120,7 +120,7 @@ inactive list。
 # 源码分析
 
 在介绍 `workingset_refault()` 之前，需要了解 vmstat 各个 workingset 字段，参考
-[vmstat workingset](linuxSystem/common/procfs.md)
+[vmstat workingset](../linuxSystem/common/procfs.md)
 
 ```c
 workingset_refault()
