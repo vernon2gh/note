@@ -87,6 +87,34 @@ ftruncate()   -> SYSCALL_DEFINE2(ftruncate : fs/open.c
 fstat()       -> SYSCALL_DEFINE2(fstat     : fs/stat.c
 ```
 
+详细解析：
+
+posix shmem 将看成 "文件页" 进行处理的，但是分配的物理页属于匿名页。
+
+posix shmem 是基于虚拟内存文件系统 tmpfs，当创建一个 shmem 时，会在 `/dev/shm/` 中
+创建一个文件，于是当 shmem 触发 pagefault 时，与普通文件页 pagefault 一样调用
+`vma->vm_ops->fault`，即 `shmem_fault()` 函数。
+
+```c
+shmem_fault() -> shmem_get_folio_gfp() -> shmem_alloc_and_add_folio()
+	shmem_alloc_folio();
+	__folio_set_swapbacked()
+	shmem_add_to_page_cache()
+	folio_add_lru() -> lru_add_fn() -> lruvec_add_folio()
+		folio_lru_list()
+			folio_is_file_lru() return false
+		update_lru_size(LRU_INACTIVE_ANON) update /proc/meminfo Inactive(anon)
+```
+
+调用 `shmem_alloc_folio()` 分配一个 folio，然后调用 `__folio_set_swapbacked()` 设置
+folio 的 swapbacked 标志，表示该 folio 是匿名页。这样在后面 `folio_is_file_lru()`
+返回 false，将该 folio 加入到匿名页 LRU 链表中。并且调用 `update_lru_size()` 更新
+`/proc/meminfo` 中的 `Inactive(anon)` 字段。
+
+`shmem_alloc_folio()` 分配的 folio，也会调用 `shmem_add_to_page_cache()` 将 folio
+添加到 `/dev/shm/xxx` 的 xarray 中，这样后面访问该页时，可以直接从 xarray
+获取 page cache。
+
 ## System V 共享内存
 
 函数原型:
@@ -142,12 +170,10 @@ int main(void)
 ```bash
 $ strace ./a.out
 stat("filename", {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
-write(1, "main: 0xae00\n", 13main: 0xae00
-)          = 13
+write(1, "main: 0xae00\n", 13main: 0xae00)          = 13
 shmget(0x11, 4096, IPC_CREAT|0666)      = 1
 shmat(1, NULL, 0)                       = 0x7fecbb13d000
-write(1, "buf 0x12\n", 9buf 0x12
-)               = 9
+write(1, "buf 0x12\n", 9buf 0x12)       = 9
 shmdt(0x7fecbb13d000)                   = 0
 shmctl(1, IPC_RMID, NULL)               = 0
 ```

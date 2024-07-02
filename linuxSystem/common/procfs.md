@@ -57,8 +57,12 @@ pgactivate              active list 页数
 pgdeactivate            inactive list 页数
 
 ## pagefault
-pgfault                 pagefault 次数
-pgmajfault              需要从磁盘读数据的 pagefault 次数
+## minorfault           不需要从磁盘读数据的 pagefault，如 匿名页
+## majorfault           需要从磁盘读数据的 pagefault，如 文件页、有 swapfile 的匿名页
+## task->min_flt        某个进程的 minorfault 次数
+## task->maj_flt        某个进程的 majorfault 次数
+pgfault                 （整个系统）pagefault 次数，包括 minorfault + majorfault。
+pgmajfault              （整个系统）majorfault 次数
 
 ## 内存回收，kswapd and direct reclaim
 pgscan_kswapd           内存回收时，kswapd 扫描的页数
