@@ -1,10 +1,13 @@
 ## 0. 简介
 
-linux kernel的小内存（4K大小以下）分配使用slab分配器, 不过由于历史原因，此处的slab分配器是对小内存分配器的统称。
+linux kernel的小内存（8K大小以下）分配使用slab分配器, 不过由于历史原因，
+此处的slab分配器是对小内存分配器的统称。
 
 slab分配器有slab, slub, slob算法，从某一个linux kernel版本后，默认使用slub算法。
 
-本文研究linux2.6.34版本的内存管理子系统，基于slub算法的slab分配器（也叫 slub分配器），slub分配器从buddy分配器分配得到的内存叫作**slab**，一个slab可能有1 page，也可能有2 page等等，然后将一个slab分成若干等分大小相同的小内存，这些小内存叫作**object**
+本文研究linux2.6.34版本的内存管理子系统，基于slub算法的slab分配器（也叫 slub分配器），
+slub分配器从buddy分配器分配得到的内存叫作**slab**，一个slab可能有1 page，也可能
+有2 page等等，然后将一个slab分成若干等分大小相同的小内存，这些小内存叫作**object**
 
 ## 1. 原理
 

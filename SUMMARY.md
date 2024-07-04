@@ -25,11 +25,12 @@
     * [folio](linuxKernel/folio.md)
     * slub
         * [proc_slabinfo](linuxKernel/slub/proc_slabinfo.md)
-        * [slub](linuxKernel/slub/slub.md)
+        * [slub_theory](linuxKernel/slub/slub_theory.md)
         * [kmalloc_kfree](linuxKernel/slub/kmalloc_kfree.md)
         * [kmem_cache](linuxKernel/slub/kmem_cache.md)
         * [slab_alloc](linuxKernel/slub/slab_alloc.md)
         * [slab_free](linuxKernel/slub/slab_free.md)
+        * [proc_meminfo_SReclaimable_SReclaimable](linuxKernel/slub/proc_meminfo_SReclaimable_SReclaimable.md)
     * [vmalloc](linuxKernel/vmalloc.md)
     * [brk](linuxKernel/brk.md)
     * [mmap](linuxKernel/mmap.md)
