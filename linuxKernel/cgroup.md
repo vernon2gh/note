@@ -89,6 +89,136 @@ cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime,nsdelega
     配置回收行为，指定从 anon/file 进行回收，与系统 vm.swappiness 同含义。
     如：`echo "2M swappiness=0" > /sys/fs/cgroup/memory.reclaim`
 
+memory.oom.group
+
+    read-write, default value is 0
+
+    如果 memory.oom.group 设置为 1，当 cgroup 触发 OOM killer 时，属于此 cgroup
+    的所有 task 都会被杀掉（包括子组里面所有的 task）。这可用于避免只杀掉一个 task，
+    导致其他 task 也无法正常工作的情况，保证工作负载的完整性。
+
+    如果 memory.oom.group 设置为 0，那么 OOM killer 只杀掉内存负载最重的一个 task。
+
+    oom_score_adj 设置为 -1000 的 task，永远不会被 OOM killer 杀掉。
+
+memory.events
+
+    read-only，文件中定义了以下条目。
+
+    包含所有子组的 events。
+
+    ```
+    low             cgroup 内存使用量低于low，但是由于内存压力较高而被回收的次数。
+    high            cgroup 内存使用量超过 high，执行直接内存回收的次数。
+    max             cgroup 内存使用量超过 max 的次数。
+    oom             cgroup内存使用量达到限制，并且分配内存即将失败的次数。
+    oom_kill        被 OOM killer 杀掉的进程数目
+    oom_group_kill  被 OOM killer 杀掉的 group 数目
+    ```
+
+memory.events.local
+
+    每一个字段含义与 `memory.events` 相同，但是 `memory.events.local` 只包含当前
+    cgroup 的 events。
+
+memory.stat
+
+    read-only，这是 cgroup 不同类型的内存使用量信息，以下统计单位是 bytes。
+
+    如果一个 entry 不属于 per-node counter，那么它将不会显示在 `memory.numa_stat` 中。
+    并且使用 `npn (non-per-node)` 来标记这些 entry。
+
+    ```
+    anon                匿名页的内存使用量，包括 brk(), sbrk() and mmap(MAP_ANONYMOUS)
+    file                文件页的内存使用量，包括 tmpfs and shared memory
+
+    kernel (npn)        内核空间的总内存使用量，
+                        包括 kernel_stack, pagetables, percpu, vmalloc, slab
+    kernel_stack        kernel stacks 的内存使用量
+    pagetables          page tables 的内存使用量
+    sec_pagetables      secondary page tables 的内存使用量，
+                        包括 x86/arm64 上的 KVM mmu page tables，IOMMU page tables
+    percpu (npn)        per-cpu kernel data structures 的内存使用量
+    sock (npn)          network transmission buffers 的内存使用量
+    vmalloc (npn)       vmap backed memory 的内存使用量
+    shmem               swap-backed shared memory 的内存使用量，
+                        包含 tmpfs, shm segments, shared anonymous mmap()s
+
+    zswap               zswap compression backend 的内存使用量
+    zswapped            交换到 zswap 的应用程序内存大小
+
+    file_mapped         通过 mmap() 映射的文件页的内存使用量
+    file_dirty          脏文件页的内存使用量
+    file_writeback      正在回写到磁盘的脏文件页的内存使用量
+
+    swapcached          swapcache 的内存使用量
+
+    anon_thp            THP 匿名页的内存使用量
+    file_thp            THP 文件页的内存使用量
+    shmem_thp           THP shm, tmpfs, shared anonymous mmap()s 的内存使用量
+
+    inactive_anon, active_anon, inactive_file, active_file, unevictable
+    在不同 LRU list 上的内存使用量
+
+    slab_reclaimable          能够被回收的 slab 内存使用量，包含 dentries and inodes.
+    slab_unreclaimable        不能被回收的 slab 内存使用量，默认 slab 分配器分配的内存是不能被回收的。
+    slab (npn)                slab 分配器分配给内核空间使用的总内存使用量，
+                              包含 slab_reclaimable + slab_unreclaimable
+
+    workingset_refault_anon   之前回收的匿名页，再一次触发 pagefault 的次数
+    workingset_refault_file   之前回收的文件页，再一次触发 pagefault 的次数
+    workingset_activate_anon  之前回收的匿名页，马上立刻再一次触发 pagefault 的次数。
+    workingset_activate_file  之前回收的文件页，马上立刻再一次触发 pagefault 的次数。
+    workingset_restore_anon   之前回收的匿名页（位于 active workingset），
+                              马上立刻再一次触发 pagefault 的次数
+    workingset_restore_file   之前回收的文件页（位于 active workingset），
+                              马上立刻再一次触发 pagefault 的次数
+    workingset_nodereclaim    shadow node 被回收的次数
+
+    pgscan (npn)              内存回收时，在 inactive LRU list 上扫描的总页数
+    pgsteal (npn)             内存回收时，成功回收的总页数
+    pgscan_kswapd (npn)       内存回收时，通过 kswapd 在 inactive LRU list 上扫描的页数
+    pgscan_direct (npn)       内存回收时，通过 direct reclaim 在 inactive LRU list 上扫描的页数
+    pgscan_khugepaged (npn)   内存回收时，通过 khugepaged 在 inactive LRU list 上扫描的页数
+    pgsteal_kswapd (npn)      内存回收时，通过 kswapd 成功回收的页数
+    pgsteal_direct (npn)      内存回收时，通过 direct reclaim 成功回收的页数
+    pgsteal_khugepaged (npn)  内存回收时，通过 khugepaged 成功回收的页数
+
+    pgfault (npn)             发生 page fault 的次数，包括 minorfault + majorfault。
+    pgmajfault (npn)          发生 major page fault 的次数
+
+    pgrefill (npn)            在 active LRU list 上扫描的总页数
+    pgactivate (npn)          移动到 active LRU list 的总页数
+    pgdeactivate (npn)        移动到 inactive LRU list 的总页数
+
+    pglazyfree (npn)          在内存压力下，lazyfree 的页数
+    pglazyfreed (npn)         回收 lazyfree 的页数
+
+    zswpin                    从 zswap 移入到内存的页数
+    zswpout                   从内存移出到 zswap 的页数
+    zswpwb                    从 zswap 回写到 swap 的页数
+
+    thp_fault_alloc (npn)     在 page fault 过程中分配 THP 的页数
+    thp_collapse_alloc (npn)  合并现有 page 范围而分配 THP 的页数
+    thp_swpout (npn)          直接 swapout 整个 THP 的页数
+    thp_swpout_fallback (npn) 由于无法分配连续的 swap 空间，进行拆分 THP 后再 swapout 的页数
+    ```
+
+memory.numa_stat
+
+    read-only，这是 cgroup 每个 node 的不同类型的内存使用量信息，以下统计单位是 bytes。
+
+    如果 page 允许从任何 node 分配，这个节点提供 memcg 中 NUMA 本地性信息的可见性。
+    如：通过将此信息与进程的 CPU 分配相结合，来评估应用程序的性能。
+
+    输出格式如下：
+
+    ```
+    type N0=<bytes in node 0> N1=<bytes in node 1> ...
+    ```
+
+    详细解析参考 `memory.stat`
+
 * memory.swap.current
 
     read-only
@@ -123,9 +253,11 @@ cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime,nsdelega
 
     read-only，文件中定义了以下条目。
 
-    - high：cgroup 的 swap 使用量超过 memory.swap.high 的次数
-    - max ：cgroup 的 swap 使用量即将超过 memory.swap.max 并且 swap 分配失败的次数。
-    - fail：系统 swap 使用量用完或达到 memory.swap.max 限制，导致 swap 分配失败的次数。
+    ```
+    high    cgroup 的 swap 使用量超过 memory.swap.high 的次数
+    max     cgroup 的 swap 使用量即将超过 memory.swap.max 并且 swap 分配失败的次数。
+    fail    系统 swap 使用量用完或达到 memory.swap.max 限制，导致 swap 分配失败的次数。
+    ```
 
 # memory.max
 

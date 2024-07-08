@@ -46,11 +46,11 @@ MemAvailable  An estimate of how much memory is available for starting new
               watermarks in each zone.
 
 ## slab allocator
-Slab          slab 分配器分配给内核空间使用的内存大小 `Slab = SReclaimable + SUnreclaim`
-SReclaimable  在内存压力大时，能够回收这部分内存。
-              如：`kmalloc(__GFP_RECLAIMABLE), kmem_cache_create(SLAB_RECLAIM_ACCOUNT)`
-SUnreclaim    在内存压力大时，不能够被回收。
-              如：默认 `kmalloc(), kmem_cache_create()`
+Slab          slab 分配器分配给内核空间使用的总内存使用量，包含 SReclaimable + SUnreclaim
+SReclaimable  在内存压力大时，能够被回收的 slab 内存使用量。
+              如：kmalloc(__GFP_RECLAIMABLE), kmem_cache_create(SLAB_RECLAIM_ACCOUNT)
+SUnreclaim    在内存压力大时，不能被回收的 slab 内存使用量。
+              如：默认 kmalloc(), kmem_cache_create()
 ```
 
 `/proc/vmstat` 统计内存使用次数
@@ -65,19 +65,19 @@ pgdeactivate            inactive list 页数
 ## majorfault           需要从磁盘读数据的 pagefault，如 文件页、有 swapfile 的匿名页
 ## task->min_flt        某个进程的 minorfault 次数
 ## task->maj_flt        某个进程的 majorfault 次数
-pgfault                 （整个系统）pagefault 次数，包括 minorfault + majorfault。
-pgmajfault              （整个系统）majorfault 次数
+pgfault                 整个系统发生 pagefault 的总次数，包括 minorfault + majorfault。
+pgmajfault              整个系统发生 majorfault 的总次数
 
-## 内存回收，kswapd and direct reclaim
-pgscan_kswapd           内存回收时，kswapd 扫描的页数
-pgscan_direct           内存回收时，direct reclaim 扫描的页数
+## 内存回收，通过 kswapd, direct reclaim and khugepaged 进行内存回收
+pgscan_kswapd           内存回收时，通过 kswapd 扫描的页数
+pgscan_direct           内存回收时，通过 direct reclaim 扫描的页数
 pgscan_direct_throttle  代表进入直接回收内存路径，但是没有进行直接回收内存的次数。
                         比如：因为当前进程已经收到 SIGKILL 信号，马上会被杀掉了，
                         所以即使当前 OOM 也无所谓。
-pgscan_khugepaged
-pgsteal_kswapd          内存回收时，kswapd 成功回收的页数
-pgsteal_direct          内存回收时，direct reclaim 成功回收的页数
-pgsteal_khugepaged
+pgscan_khugepaged       内存回收时，通过 khugepaged 扫描的页数
+pgsteal_kswapd          内存回收时，通过 kswapd 成功回收的页数
+pgsteal_direct          内存回收时，通过 direct reclaim 成功回收的页数
+pgsteal_khugepaged      内存回收时，通过 khugepaged 成功回收的页数
 
 ## 内存回收，匿名页与文件页
 pgscan_anon             内存回收时，扫描的匿名页数
