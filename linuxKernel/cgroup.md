@@ -254,6 +254,38 @@ memory.swap.events
     max     cgroup 的 swap 使用量即将超过 memory.swap.max 并且 swap 分配失败的次数。
     fail    系统 swap 使用量用完或达到 memory.swap.max 限制，导致 swap 分配失败的次数。
 
+memory.zswap.current
+
+    read-only
+
+    zswap compression backend 的内存使用量
+
+memory.zswap.max
+
+    read-write，default is max.
+
+    设置 cgroup 最大能够使用的 zswap 使用量。如果 cgroup 的 zswap pool 达到
+    这个限制，它将拒绝任何存储，直至存在 entry 回写到磁盘。
+
+memory.zswap.writeback
+
+    read-write，default is "1".
+
+    root cgroup 的初始化值等于 1，当新 cgroup 被创建时，将继承父 cgroup 的当前值。
+
+    当此值设置为 0 时，将禁用 zswap 回写和由于 zswap 存储失败而导致的交换。
+    如果 zswap 重复存储失败（如：page 是不可压缩的），用户可以观察到回收效率低
+    （因为相同 page 可能会一次又一次地被拒绝）。
+
+    注意，这与 memory.swap.max = 0 略有不同，因为 zswap 仍然允许将 page 写入
+    zswap pool。
+
+memory.pressure
+
+    read-only
+
+    显示内存压力 PSI 信息。
+
 # memory.max
 
 ## 用户空间
