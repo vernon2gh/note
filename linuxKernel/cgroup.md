@@ -286,48 +286,45 @@ memory.pressure
 
     显示内存压力 PSI 信息。
 
-# memory.max
+# 如何限制 cgroup memory 的内存使用？
 
-## 用户空间
-
-```bash
-$ cd /sys/fs/cgroup
-$ mkdir test
-$ echo 10M > test/memory.max
-$ echo 1234 > test/cgroup.procs
-```
-
-创建一个名为 test 的 cgroup，最大能够使用的内存限制在 10MB 内，同时将 pid 等于
-1234 的进程放在 test cgroup 中运行。
-
-## 内核空间
+当触发 pagefault 申请物理内存时，调用 `mem_cgroup_charge()` 判断当前进程所属
+cgroup 是否有足够的空闲内存。如果有，申请成功。否则，申请失败 OOM。
 
 ```c
-## mm/memcontrol.c
+mem_cgroup_charge() -> charge_memcg() -> try_charge() -> try_charge_memcg()
+    consume_stock()
 
-memory_max_write()
-    page_counter_memparse()
-    memcg->memory.max
+    page_counter_try_charge()
+
+    refill_stock()
+    mem_cgroup_handle_over_high()
+
+    if PF_MEMALLOC, page_counter_charge()
+
+    try_to_free_mem_cgroup_pages()
+    drain_all_stock()
+    mem_cgroup_oom()
 ```
 
-用户空间通过 `memory.max` 设置 cgroup 最大能够使用的内存，此值保存在
-`memcg->memory.max` 中
+先调用 `consume_stock()` 从 memcg_stock 中查找是否有足够的空闲内存，如果有，
+申请成功，直接返回。否则,
 
-```c
-handle_mm_fault()
-    __handle_mm_fault()
-        handle_pte_fault()
-            do_pte_missing()
-                do_anonymous_page()
-                |    vma_alloc_zeroed_movable_folio()
-                |    mem_cgroup_charge()
-                |    |    __mem_cgroup_charge()
-                |    |        charge_memcg()
-                |    |            try_charge()
-                |    |                try_charge_memcg()
-                |    |                |    mem_cgroup_oom
-                |    |                |        mem_cgroup_out_of_memory()
-                |    |                |            out_of_memory()
-```
+调用 `page_counter_try_charge()` 从 `memcg->memory` 中查找是否有至少 64 页的
+空闲内存？
 
-当在 cgroup 中进程使用的内存达到 `memory.max` 值时，会触发 OOM
+如果有，申请成功。然后调用 `refill_stock()` 将多申请的内存存储到 memcg_stock 中，
+同时如果 cgroup 内存使用量超过 `memory.high`，调用 `mem_cgroup_handle_over_high()`
+进行内存回收等处理。
+
+如果没有，申请失败，但是有 PF_MEMALLOC 标志，直接调用 `page_counter_charge()`
+无条件申请内存成功，直接返回。
+
+如果没有，申请失败，但是允许阻塞，调用 `try_to_free_mem_cgroup_pages()` 进行
+直接内存回收，如果回收后有足够的空闲内存，再从头开始申请内存。否则，
+
+调用 `drain_all_stock()` 将 memcg_stock 缓存的所有内存释放到 cgroup 中，并且
+再从头开始申请内存。
+
+实在没有办法了，目前 cgroup 中使用的内存量已经达到 `memory.max`，调用
+`mem_cgroup_oom()` 触发 OOM killer，并且再从头开始申请内存。
