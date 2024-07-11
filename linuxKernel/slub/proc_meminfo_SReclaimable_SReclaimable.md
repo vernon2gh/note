@@ -72,3 +72,14 @@ NR_SLAB_RECLAIMABLE_B，即 `/proc/meminfo` SReclaimable 字段。
 kmem_cache_alloc()
         slab_alloc_node() -> 同 kmalloc() 流程
 ```
+
+注意：
+`__GFP_RECLAIMABLE` 对 page 分配器是无效的，只对 slab 分配器有效并且
+`kmalloc(size <= 8KB)`。
+
+Q：直接调用 page 分配器接口 `alloc_pages()` 而分配出来的物理页，
+为什么都是不能够被回收的？
+
+由于直接调用 page 分配器而分配出来的物理页，没有相关的链表 list 进行管理，所以
+不能够被回收。slab 分配器调用 page 分配器来分配物理页，slab 分配页会对分配出来
+的物理页，通过链表 list 进行管理，所以能够被回收。
