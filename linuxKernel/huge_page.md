@@ -48,13 +48,17 @@ hugepage 优点：
 
 ### 如何申请从 hugepage 中分配内存？
 
-调用mmap()时添加 MAP_HUGETLB 标志，比如：
+* 调用mmap()时添加 MAP_HUGETLB 标志，比如：
 
 ```c
 #include <sys/mman.h>
 
 char *vaddr = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
 ```
+
+* hugetlbfs
+
+### vmemmap
 
 ### /proc/meminfo 的相关字段解释
 

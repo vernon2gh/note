@@ -30,3 +30,5 @@ page_try_dup_anon_rmap()  ----
 调用 `munmap()` 后，调用 `page_remove_rmap()` 将 unmap addr 对应的 `page->_mapcount--`
 
 5. `page_mapcount()` 获得 mapcount 个数（即 `page->_map_count` + 1）
+
+https://zhuanlan.zhihu.com/p/611390091

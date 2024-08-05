@@ -249,3 +249,12 @@ lruvec_del_folio()   ## del_page_from_lru_list()
 提交后，`LRU_UNEVICTABLE list` 变成一个虚假的链表，即 `UNEVICTABLE page->lru`
 不用链接到 `LRU_UNEVICTABLE list`，只需要统计保存 `UNEVICTABLE page` 个数。
 这样原本的 `page->lru` 没有使用，所以将 `page->lru.prev` 复用为 `page->mlock_count`。
+
+
+
+write() ALWAYS inactive list.
+mmap() private write ALWAYS inactive list.
+mmap() share/private read + not munmap() twice ALWAYS inactive list.
+read() twice to active list from inactive list.
+mmap() share write + munmap() tiwce to active list from inactive list.
+mmap() share/private read + munmap() tiwce to active list from inactive list.
