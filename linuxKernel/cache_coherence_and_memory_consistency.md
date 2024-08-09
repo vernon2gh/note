@@ -67,6 +67,17 @@ Q: `dma_alloc_coherent()` 分配内存都是连续物理内存吗？
 在大部分情况下，从 CMA 区域分配内存，所以是连续物理内存。当支持 IOMMU/SMMU 时，
 DMA 控制器能够从 不连续物理内存 搬运数据，所以分配的内存不一定是连续物理内存
 
+
+Q: DMA buffer 的 cacahe 属性、连续物理内存属性
+
+cache 与 连续物理内存，两者没有必然的关系，可以二二组合，总共有四种情况：
+cache+连续、cache+不连续、nocache+连续、nocache+不连续。
+
+cache 属性使用 dma_[un]map_single() 函数。
+nocache 属性使用 dma_alloc_coherent() 函数。
+连续物理内存属性从 CMA 分配器分配内存。
+不连续物理内存属性直接从 page 分配器分配内存，但是前提有 IOMMU/SMMU 硬件。
+
 ## iCache 和 dCache 一致性
 
 程序执行时，指令一般是不会修改，这就不会存在任何一致性问题。
