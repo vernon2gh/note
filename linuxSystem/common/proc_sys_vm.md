@@ -1,8 +1,3 @@
-admin_reserve_kbytes
-
-	设置预留多少内存来管理系统。如果 MemFree 高于 266MB 时，默认预留 8MB 内存来
-	管理系统，用于 login + shell + top/ps/kill etc；否则，预留 MemFree 3% 的内存。
-
 legacy_va_layout
 
 	设置是否使用 legacy 32-bit mmap 布局
@@ -134,29 +129,38 @@ oom_kill_allocating_task
 
 overcommit_memory
 
-	设置内存过度分配（overcommit）的策略。
+	设置虚拟内存过度申请（overcommit）的策略。
 
-	* 0 代表内核将用户空间请求内存大小与系统总内存+swap作比较，
-	  如果有足够的可用内存，成功，否则 失败。（默认）
-	* 1 代表内核总是允许内存过度分配，直到真正运行时申请不到物理内存才失败。
-	* 2 代表内核不允许任何内存过度分配（受 overcommit_ratio/overcommit_kbytes 影响）
+	* 0 如果`系统申请虚拟内存总大小 < 系统总内存+swap`，代表有足够的可用内存，成功，
+	  否则 失败。（默认）
+	* 1 代表总是允许虚拟内存过度申请，直到真正运行时分配不到物理内存才失败。
+	* 2 代表不允许虚拟内存过度申请（受 overcommit_ratio/overcommit_kbytes 影响）
 
 overcommit_ratio
 
-	设置内存过度分配的大小不能超过 swap  + 整个物理内存的百分比，单位 %。
 	当 overcommit_memory 设置为 2 ，overcommit_ratio 才有效。
+
+	`系统申请虚拟内存总大小 < (swap  + (系统总内存 - hugetlb 总大小) * overcommit_ratio)`，
+	单位 %。
 
 overcommit_kbytes
 
-	设置内存过度分配的大小不能超过 swap  + 物理内存的大小，单位 KB。
 	当 overcommit_memory 设置为 2 ，overcommit_kbytes 才有效。
 	需要注意，overcommit_ratio 与 overcommit_kbytes 二选一
 
+	`系统申请虚拟内存总大小 < (swap  + overcommit_kbytes)`，单位 KB。
+
 user_reserve_kbytes
 
-	当 overcommit_memory 设置为 2，预留空闲内存为
-	min(3% of current process size, user_reserve_kbytes)。
+	当 overcommit_memory 设置为 2，user_reserve_kbytes 才有效。
+
+	overcommit 预留空闲虚拟内存为 `min(当前进程虚拟内存总大小 / 32, user_reserve_kbytes)`。
 	单位 KB，默认值 131072（即 128MB）
+
+admin_reserve_kbytes
+
+	设置预留多少内存来管理系统。如果 MemFree 高于 266MB 时，默认预留 8MB 内存来
+	管理系统，用于 login + shell + top/ps/kill etc；否则，预留 MemFree 3% 的内存。
 
 lowmem_reserve_ratio
 
