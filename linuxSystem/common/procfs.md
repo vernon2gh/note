@@ -51,6 +51,9 @@ SReclaimable  在内存压力大时，能够被回收的 slab 内存使用量。
               如：kmalloc(__GFP_RECLAIMABLE), kmem_cache_create(SLAB_RECLAIM_ACCOUNT)
 SUnreclaim    在内存压力大时，不能被回收的 slab 内存使用量。
               如：默认 kmalloc(), kmem_cache_create()
+
+CommitLimit   目前系统能够被申请的虚拟内存总大小
+Committed_AS  目前系统已经申请成功的虚拟内存大小
 ```
 
 `/proc/vmstat` 统计内存使用次数
