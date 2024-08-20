@@ -25,6 +25,7 @@ cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime,nsdelega
 | memory.soft_limit_in_bytes      | memory.high         | 当此 cgroup 内存超过此值，进行内存回收    |
 | memory.limit_in_bytes           | memory.max          | 设置最大能够使用的内存大小                |
 | memory.force_empty              | memory.reclaim      | 回收内存，v1 全部回收，v2 回收指定内存量  |
+| memory.swappiness               | memory.reclaim      | 设置回收 anon:file page 的趋势            |
 | memory.memsw.usage_in_bytes     | memory.swap.current | 当前 swap 使用量                          |
 | memory.memsw.max_usage_in_bytes | memory.swap.peak    | 最大 swap 使用量                          |
 | memory.memsw.limit_in_bytes     | memory.swap.max     | 设置最大能够使用的 swap 使用量            |
