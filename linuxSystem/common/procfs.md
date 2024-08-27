@@ -156,6 +156,32 @@ Normal zone 的 Movable page 总共有 6460 个 page block。
 
 `/proc/zoneinfo`        内存区域使用情况
 
+每一个 zone 区域的 min/low/high 水位值，如下：
+
+```
+$ cat /proc/zoneinfo | grep -E "Node |min |low |high "
+Node 0, zone      DMA
+        min      15
+        low      18
+        high     21
+Node 0, zone    DMA32
+        min      2323
+        low      2903
+        high     3483
+Node 0, zone   Normal
+        min      14556
+        low      18195
+        high     21834
+Node 0, zone  Movable
+        min      0
+        low      0
+        high     0
+Node 0, zone   Device
+        min      0
+        low      0
+        high     0
+```
+
 `/proc/slabinfo`
 
 `/proc/vmallocinfo`     虚拟内存分配信息
