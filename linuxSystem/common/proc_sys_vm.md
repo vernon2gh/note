@@ -174,8 +174,10 @@ min_free_kbytes
 	相当于在每个 zone 上预留一部分内存供 kswapd 使用。
 	当空闲内存低于 min 水位时，执行直接内存回收流程。
 
-	* 默认 low 水位等于 `min 水位 + 0.25 * min 水位`
-	* 默认 high 水位等于 `min 水位 + 2 * 0.25 * min 水位`
+	`zone->min` 水位 等于 `min_free_kbytes * zone_managed_pages / (total zone_managed_pages)`
+
+	* 默认 `zone->low` 水位 等于 `zone->min + zone->min / 4`
+	* 默认 `zone->high` 水位 等于 `zone->min + 2 * zone->min / 4`
 
 watermark_scale_factor
 
@@ -183,10 +185,10 @@ watermark_scale_factor
 	low/high 水位线就越高，即越早唤醒 kswapd 进行内存回收。
 	单位 1/10000，默认值 10（0.1%），最大值 3000（30%）。
 
-	当 `系统可用内存大小 * watermark_scale_factor / 10000` 大于 `0.25 * min 水位`，
+	当 `zone_managed_pages * watermark_scale_factor / 10000` 大于 `zone->min / 4`，
 
-	* 将 `min 水位 + 系统可用内存大小 * watermark_scale_factor / 10000` 设置为新 low 水位,
-	* 将 `min 水位 + 2 * 系统可用内存大小 * watermark_scale_factor / 10000` 设置为新 high 水位
+	* 将 `zone->min + zone_managed_pages * watermark_scale_factor / 10000` 设置为新 `zone->low` 水位,
+	* 将 `zone->min + 2 * zone_managed_pages * watermark_scale_factor / 10000` 设置为新 `zone->high` 水位
 
 watermark_boost_factor
 
