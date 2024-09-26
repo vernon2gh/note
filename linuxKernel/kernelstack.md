@@ -55,8 +55,8 @@ kernel stack 能够调整到更大，但是kernel stack 占用空间会大大增
 只有少数需要更大的栈，可以根据需要扩展这些栈。但是此 feature 没有合并到 Linux 主线，
 革命还需努力。
 
-在 2024 年 Pasha Tatashin 发布 (LWN)[https://lwn.net/Articles/974367] -
-(RFC Dynamic Kernel Stacks)[https://lore.kernel.org/linux-mm/20240311164638.2015063-1-pasha.tatashin@soleen.com]，
+在 2024 年 Pasha Tatashin 发布 [LWN](https://lwn.net/Articles/974367) -
+[RFC Dynamic Kernel Stacks](https://lore.kernel.org/linux-mm/20240311164638.2015063-1-pasha.tatashin@soleen.com)，
 能够动态增长 kernel stack ( 4KB ~ THREAD_SIZE )，大概能够节省 70%-75% 的内存。
 此 feature 还在讨论中，革命继续努力。
 
