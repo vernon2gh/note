@@ -1,8 +1,8 @@
 # 简介
 
 由于每个进程都可以进入内核态运行，因此每个进程都必须有自己的内核栈。如果系统中
-有很多进程，会导致内核栈占用空间大大增加，于是需要保持较小的内核栈，目前内核栈
-大小固定为 `8KB/16KB`。
+有很多进程，会导致内核栈占用空间大大增加，于是需要保持较小的内核栈，目前每一个
+进程的内核栈大小固定为 `8KB/16KB`。
 
 # 定义
 
@@ -13,25 +13,25 @@ Linux Kernel stack 大小由 THREAD_SIZE 进行定义，如下：
 
 ```c
 // arch/x86/include/asm/page_32_types.h
-#define THREAD_SIZE_ORDER	1
-#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
+#define THREAD_SIZE_ORDER   1
+#define THREAD_SIZE         (PAGE_SIZE << THREAD_SIZE_ORDER)
 
 // arch/x86/include/asm/page_64_types.h
-#define THREAD_SIZE_ORDER	(2 + KASAN_STACK_ORDER)
-#define THREAD_SIZE  (PAGE_SIZE << THREAD_SIZE_ORDER)
+#define THREAD_SIZE_ORDER   (2 + KASAN_STACK_ORDER)
+#define THREAD_SIZE         (PAGE_SIZE << THREAD_SIZE_ORDER)
 
 // arch/arm/include/asm/thread_info.h
-#define THREAD_SIZE_ORDER	1
-#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
+#define THREAD_SIZE_ORDER   1
+#define THREAD_SIZE         (PAGE_SIZE << THREAD_SIZE_ORDER)
 
 // arch/arm64/include/asm/memory.h
-#define MIN_THREAD_SHIFT	(14 + KASAN_THREAD_SHIFT)
-#define THREAD_SHIFT		MIN_THREAD_SHIFT
-#define THREAD_SIZE		(UL(1) << THREAD_SHIFT)
+#define MIN_THREAD_SHIFT    (14 + KASAN_THREAD_SHIFT)
+#define THREAD_SHIFT        MIN_THREAD_SHIFT
+#define THREAD_SIZE         (UL(1) << THREAD_SHIFT)
 
 // arch/riscv/include/asm/thread_info.h
-#define THREAD_SIZE_ORDER	CONFIG_THREAD_SIZE_ORDER
-#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
+#define THREAD_SIZE_ORDER   CONFIG_THREAD_SIZE_ORDER
+#define THREAD_SIZE         (PAGE_SIZE << THREAD_SIZE_ORDER)
 ```
 
 * i386 kernel stack 是 8KB，x86_64 kernel stack 是 16KB。
@@ -55,7 +55,39 @@ kernel stack 能够调整到更大，但是kernel stack 占用空间会大大增
 只有少数需要更大的栈，可以根据需要扩展这些栈。但是此 feature 没有合并到 Linux 主线，
 革命还需努力。
 
-# 调试
+在 2024 年 Pasha Tatashin 发布 (LWN)[https://lwn.net/Articles/974367] -
+(RFC Dynamic Kernel Stacks)[https://lore.kernel.org/linux-mm/20240311164638.2015063-1-pasha.tatashin@soleen.com]，
+能够动态增长 kernel stack ( 4KB ~ THREAD_SIZE )，大概能够节省 70%-75% 的内存。
+此 feature 还在讨论中，革命继续努力。
+
+# 如何查看整个系统的 kernel stack 使用量
+
+```bash
+$ cat /proc/meminfo
+KernelStack:        1584 kB
+$ cat /proc/vmstat
+nr_kernel_stack     1584
+```
+
+以上两个字段都可以查看整个系统 kernel stack 总大小，它们是同一个变量读取的值，
+单位是 KB。如上，当前整个系统的 kernel stack 总占用 1584KB。
+
+```bash
+$ cat /proc/vmstat
+kstack_1k 76
+kstack_2k 831
+kstack_4k 616
+kstack_8k 0
+kstack_16k 0
+```
+
+以上字段能够直观观察到整个系统 kernel stack 的分布情况，如有 616 个 kernel stack
+只使用 4KB 的内存。
+
+思考：虽然 kernel stack 大小是固定的 `8KB/16KB`，实际上，不是每个进程的
+kernel stack 都完全使用，于是存在浪费内存现象。
+
+# 如何查看每个函数的 kernel stack 使用量
 
 由于 kernel stack 大小是固定的，因此申请太大的栈内存，或者内核函数调用层次过深，
 都可能导致 kernel stack 溢出。可以通过如下功能来检查这类 BUG：
@@ -86,6 +118,8 @@ $ objdump -d ./build/x86_64/vmlinux | scripts/checkstack.pl x86_64
 ```
 
 shrink_lruvec() 函数的栈内存使用量为 528 Bytes。
+
+# 如何查看每个进程的 kernel stack 使用量
 
 * CONFIG_DEBUG_STACK_USAGE
 
