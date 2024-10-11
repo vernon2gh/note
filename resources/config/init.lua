@@ -27,20 +27,39 @@ vim.keymap.set('v', '<C-j>', 'b', opts)
 vim.keymap.set('v', '<C-l>', 'w', opts)
 
 -- plugins setting
-require'lspconfig'.clangd.setup { }
+require('nvim-treesitter.configs').setup {
+	highlight = {
+		enable = true,
+		disable = { "c" },
+		additional_vim_regex_highlighting = false,
+	},
+}
+
+require('lspconfig').clangd.setup { }
 vim.diagnostic.disable()
 vim.keymap.set('n', ';d', vim.lsp.buf.definition, opts)
 vim.keymap.set('n', ';r', vim.lsp.buf.references, opts)
 vim.keymap.set('n', ';c', vim.lsp.buf.incoming_calls, opts)
 vim.keymap.set('n', ';gg', ':!git grep <C-R>=expand("<cword>")<CR><CR>', opts)
+
 require('gitsigns').setup {
 	current_line_blame = true,
 	current_line_blame_formatter = '<abbrev_sha>, <author>, <author_time:%Y/%m/%d> - <summary>',
 }
-require("diffview").setup {
+
+require('diffview').setup {
 	use_icons = false,
 }
 vim.keymap.set('n', ';gb', ':.,.DiffviewFileHistory<CR>', opts)
+
+require('render-markdown').setup {
+	heading = {
+		enabled = true,
+		position = 'inline',
+		width = 'block',
+	},
+}
+
 vim.cmd [[ set background=dark ]]
 vim.cmd [[ colorscheme sonokai ]]
 
@@ -48,8 +67,16 @@ vim.cmd [[ colorscheme sonokai ]]
 vim.cmd [[packadd packer.nvim]]
 return require('packer').startup(function(use)
 	use 'wbthomason/packer.nvim'
+	use {
+		'nvim-treesitter/nvim-treesitter',
+		run = function()
+			local ts_update = require('nvim-treesitter.install').update({ with_sync = true })
+			ts_update()
+		end,
+	}
 	use 'neovim/nvim-lspconfig'
 	use 'lewis6991/gitsigns.nvim'
-	use "sindrets/diffview.nvim"
+	use 'sindrets/diffview.nvim'
+	use 'MeanderingProgrammer/render-markdown.nvim'
 	use 'sainnhe/sonokai'
 end)
