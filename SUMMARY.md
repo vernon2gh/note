@@ -86,6 +86,7 @@
     * [vmtouch](linuxDebug/vmtouch.md)
 * linuxSystem
     * common
+        * [system_version](linuxSystem/common/system_version.md)
         * [procfs](linuxSystem/common/procfs.md)
         * [proc_sys_vm](linuxSystem/common/proc_sys_vm.md)
         * [cmd_ps](linuxSystem/common/cmd_ps.md)
@@ -105,6 +106,7 @@
         * [nfs](linuxSystem/ubuntu/nfs.md)
         * [tftp](linuxSystem/ubuntu/tftp.md)
     * fedora
+        * [system_upgrade](linuxSystem/fedora/system_upgrade.md)
         * [lvextend](linuxSystem/fedora/lvextend.md)
         * [yt-dlp](linuxSystem/fedora/yt-dlp.md)
         * [jellyfin](linuxSystem/fedora/jellyfin.md)
