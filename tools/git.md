@@ -384,6 +384,12 @@ $ git show <hash>:<file>
 $ git log --oneline --merges HEAD...v6.9
 ```
 
+查看 `[HEAD, v6.9)` 范围之间的所有真正提交，如下：
+
+```bash
+$ git log --oneline --no-merges HEAD...v6.9
+```
+
 查看某个 commit xxx 的上一个提交，如下：
 
 ```bash
