@@ -63,6 +63,7 @@
     * [mempool](linuxKernel/mempool.md)
     * [kernelstack](linuxKernel/kernelstack.md)
     * [filesystem](linuxKernel/filesystem.md)
+    * [io_stack](linuxKernel/io_stack.md)
     * [workingset](linuxKernel/workingset.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
