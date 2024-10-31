@@ -11,7 +11,7 @@ $ sudo reboot
 下载高版本的升级包
 
 ```bash
-$ sudo dnf system-upgrade download --releasever=40
+$ sudo dnf system-upgrade download --releasever=41
 ```
 
 开始升级系统版本，并且重启。
