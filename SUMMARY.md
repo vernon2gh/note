@@ -108,6 +108,7 @@
         * [tftp](linuxSystem/ubuntu/tftp.md)
     * fedora
         * [system_upgrade](linuxSystem/fedora/system_upgrade.md)
+        * [custom_kernel](linuxSystem/fedora/custom_kernel.md)
         * [lvextend](linuxSystem/fedora/lvextend.md)
         * [yt-dlp](linuxSystem/fedora/yt-dlp.md)
         * [jellyfin](linuxSystem/fedora/jellyfin.md)
@@ -202,6 +203,7 @@
     * [mail_client](tools/mail_client.md)
     * [download_patchset_from_LKML](tools/download_patchset_from_lkml.md)
     * [minicom](tools/minicom.md)
+    * [clash](tools/clash.md)
 * other
     * [ubuntu_corresponding_linuxkernel](other/ubuntu_corresponding_linuxkernel.md)
     * [ubuntu1004_sources_list](other/ubuntu1004_sources_list.md)
