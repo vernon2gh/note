@@ -85,6 +85,7 @@
     * [ASAN_HWASAN_MTE_check_mem_bug](linuxDebug/ASAN_HWASAN_MTE_check_mem_bug.md)
     * [page_owner](linuxDebug/page_owner.md)
     * [vmtouch](linuxDebug/vmtouch.md)
+    * [fio](linuxDebug/fio.md)
 * linuxSystem
     * common
         * [system_version](linuxSystem/common/system_version.md)
