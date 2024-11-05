@@ -88,6 +88,14 @@ pgscan_file             内存回收时，扫描的文件页数
 pgsteal_anon            内存回收时，成功回收的匿名页数
 pgsteal_file            内存回收时，成功回收的文件页数
 
+## page out/in
+pgpgout                 匿名页/文件页被回写到磁盘的总大小，单位 1KB
+pgpgin                  从磁盘读取匿名页/文件页的总大小，单位 1KB
+pswpout                 匿名页被回写到 swapfile/zram 的页数，单位 4KB
+pswpin                  从 swapfile/zram 读取匿名页的页数，单位 4KB
+zswpout                 匿名页被回写到 zswap 的次数
+zswpin                  从 zswap 读取匿名页的次数
+
 ## workingset
 workingset_refault_anon  之前回收的匿名页，再一次触发 pagefault 的次数
 workingset_refault_file  之前回收的文件页，再一次触发 pagefault 的次数
