@@ -3,6 +3,7 @@
 * [Introduction](README.md)
 * linuxKernel
     * [tips](linuxKernel/tips.md)
+    * [make_help](linuxKernel/make_help.md)
     * old linux
         * [compile_linux0.11](linuxKernel/oldlinux/compile_linux0.11.md)
         * [TestEnvironment](linuxKernel/oldlinux/TestEnvironment.md)
