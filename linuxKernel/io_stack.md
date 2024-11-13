@@ -1065,6 +1065,22 @@ ssize_t write(int fd, const void *buf, size_t count);
 
 可以看到一共触发了 4 次用户态和内核态的上下文切换，2 次 DMA 拷贝，2 次 CPU 拷贝，加起来一共 4 次拷贝操作。
 
+# zero-copy
+
+## 内核空间的数据拷贝
+
+* 最基础的组合：`read()+write()`
+* `mmap()+write()` 适合大文件传输的场景，删除一次CPU copy
+* `sendfile()`适合静态文件服务器的场景，删除一次系统调用上下文切换。`sendfile()` 不能处理大文件，如果需要处理大文件，使用 `sendfile64()`，它支持对更大的文件内容进行寻址和偏移。
+* `sendﬁle() with DMA Scatter/Gather Copy`，删除最后一次 CPU copy
+* `splice()`又比 `sendfile()` 少了一次 CPU 拷贝，等同于 `sendfile() + DMA Scatter/Gather`，完全去除了数据传输过程中的 CPU copy。
+* `copy_file_range()`，主要用于文件系统上的文件之间的数据复制，比如磁盘文件之间的拷贝。
+* `send()` 只适用于大文件 (10KB 左右) 的场景
+
+## 绕过内核的 Direct I/O
+
+Linux 在 `open()` 系统调用上提供了 `O_DIRECT` 文件标志，通过它为上层用户程序提供 Direct I/O，绕过 page cache 直接和块设备交互。
+
 # 总结
 
 Linux I/O 栈的七层结构如下：
