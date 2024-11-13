@@ -15,7 +15,7 @@ $ sudo apt install linux-tools-generic linux-tools-`uname -r`
 ```bash
 $ cd <linux kernel>/tools/perf
 $ make
-$ make install
+$ make prefix=/usr/local install
 ```
 
 # 参数解析
@@ -40,6 +40,7 @@ $ sudo perf record [command] ## Run a command and record its profile into perf.d
                    -g        ## enables call-graph recording
 $ sudo perf report           ## Read perf.data and display the profile
                    -i <file> ## input file name
+                   -k <file> ## vmlinux pathname
                    -g        ## display call graph
 
 $ perf script
