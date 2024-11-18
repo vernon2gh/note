@@ -28,6 +28,20 @@ $ sudo make modules_install
 $ sudo make install
 ```
 
+# Cleaning up
+
+```bash
+$ sudo su - root
+
+$ rm -f /boot/config-*test* /boot/initramfs-*test* /boot/vmlinuz-*test* /boot/System.map-*test*
+$ rm -rf /lib/modules/*test*
+
+$ rm -f /boot/loader/entries/*test*
+$ grub2-mkconfig -o /boot/grub2/grub.cfg
+
+$ sudo reboot
+```
+
 # 参考
 
 https://docs.fedoraproject.org/en-US/quick-docs/kernel-build-custom
