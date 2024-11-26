@@ -130,11 +130,8 @@
     * [debugfs](linuxDriver/debugfs.md)
     * [v4l2](linuxDriver/v4l2.md)
     * [mmap](linuxDriver/mmap.md)
-* function_parse
-    * [do_mas_align_munmap](function_parse/do_mas_align_munmap.md)
-    * [do_brk_flags](function_parse/do_brk_flags.md)
-    * [vma_merge](function_parse/vma_merge.md)
-    * [split_vma](function_parse/split_vma.md)
+* hardware
+    * [paging_mmu_pt](tools/paging_mmu_pt.md)
 * process_thread_scheduler
     * [scheduler01](process_thread_scheduler/scheduler01.md)
     * [scheduler02](process_thread_scheduler/scheduler02.md)
