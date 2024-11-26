@@ -56,11 +56,11 @@ PFN + VA offset 等于物理地址，即 MMU 通过页表找到了物理地址�
 
 CR3 寄存器保存页表基地址，MMU 使用虚拟地址 VA 通过页表逐级查找到物理地址 PA，如下：
 
-![[Pasted image 20241122132742.png]]
+![](./picture/20241122132742.png)
 
 各级页表项的标志，如下：
 
-![[Pasted image 20241123102713.png]]
+![](./picture/20241123102713.png)
 
 * P  : 1 表示此页在内存中，0 表示此页不在内存中
 * R/W: 1 表示此页读写权限，0 表示此页只读权限
@@ -76,7 +76,7 @@ CR3 寄存器保存页表基地址，MMU 使用虚拟地址 VA 通过页表逐�
 * 两个页表基址寄存器 TTBR0 和 TTBR1，分别用于用户态和内核态。
 * ASID 用于标识进程，根据 ASID 划分 TLB entry，避免 TLB entry 频繁 Flush。
 
-![[Pasted image 20241122132032.png]]
+![](./picture/20241122132032.png)
 
 ARMv8中，`Kernel Space`的页表基地址存放在`TTBR1_EL1`寄存器中，`User Space` 页表基地址
 存放在`TTBR0_EL0`寄存器中，
@@ -86,32 +86,32 @@ ARMv8中，`Kernel Space`的页表基地址存放在`TTBR1_EL1`寄存器中，`U
 MMU 根据虚拟地址`VA[63]` 选择 TTBR1 还是 TTBR0，如果 63bit 等于 1 选择 TTBR1，
 等于 0 选择TTBR0。
 
-![[Pasted image 20241122132628.png]]
-![[Pasted image 20241122132632.png]]
-![[Pasted image 20241123100833.png]]
+![](./picture/20241122132628.png)
+![](./picture/20241122132632.png)
+![](./picture/20241123100833.png)
 
 图中 `attributes`用于控制 memory 权限，memory ordering，cache policy 等。
 
 各级页表项的标志，如下：
 
 * AttrIndx   : 指定内存属性，包含 cache 属性等
-                        0：DEVICE_nGnRnE
-                        1：DEVICE_nGnRE
-                        2：DEVICE_GRE
-                        3：NORMAL_NC
-                        4：NORMAL
-                        5：NORMAL_WT
-* AP         : AP[1]: 表示内存访问权限。
-                        1 表示可以被 EL0 以及更高等级访问，
-                        0 表示不能被EL0访问，但是可以被 EL1 访问。
-               AP[2]: 读写权限
-                        1：表示只读
-                        0：表示可读可写
+                        - 0：DEVICE_nGnRnE
+                        - 1：DEVICE_nGnRE
+                        - 2：DEVICE_GRE
+                        - 3：NORMAL_NC
+                        - 4：NORMAL
+                        - 5：NORMAL_WT
+* AP1        : 表示内存访问权限。
+                        - 1 表示可以被 EL0 以及更高等级访问，
+                        - 0 表示不能被EL0访问，但是可以被 EL1 访问。
+* AP2        : 读写权限
+                        - 1：表示只读
+                        - 0：表示可读可写
 * SH         : 内存缓存共享属性。
-                        00：没有共享
-                        01：保留
-                        10：Outer Shareable
-                        11：Inner Shareable
+                        - 00：没有共享
+                        - 01：保留
+                        - 10：Outer Shareable
+                        - 11：Inner Shareable
 * nG         : 1 代表此页对应的 TLB entry 是进程私有的。
                0 代表此页对应的 TLB entry 是全局的。
 * AF         : 当访问此页时，硬件自动置 1，软件手动置 0
