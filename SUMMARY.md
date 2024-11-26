@@ -131,7 +131,7 @@
     * [v4l2](linuxDriver/v4l2.md)
     * [mmap](linuxDriver/mmap.md)
 * hardware
-    * [paging_mmu_pt](tools/paging_mmu_pt.md)
+    * [paging_mmu_pt](hardware/paging_mmu_pt.md)
 * process_thread_scheduler
     * [scheduler01](process_thread_scheduler/scheduler01.md)
     * [scheduler02](process_thread_scheduler/scheduler02.md)
