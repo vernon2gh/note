@@ -95,9 +95,7 @@ Reference : https://stackoverflow.com/questions/5429137/how-to-print-register-va
 (gdb) frame <number>
 ```
 
-### 查看内存的值
-
-比如：查看内存地址0x2000000的值
+### 查看内存地址存储的值
 
 ```
 (gdb) x 0x2000000
@@ -108,20 +106,22 @@ $3 = 1
 
 Reference : https://sourceware.org/gdb/current/onlinedocs/gdb/Memory.html#Memory
 
-### 确定哪一行源码出错
-
-比如：查看 `__put_anon_vma()` 偏移 0x80 的源码是哪一行
+### 查看函数偏移0x80对应哪一行源码
 
 ```
 (gdb) list *__put_anon_vma+0x80
 ```
 
-### 查看汇编
-
-比如：查看 `__put_anon_vma()` 的汇编代码
+### 查看函数的汇编代码，同时显示源码行
 
 ```
-(gdb) disassemble __put_anon_vma
+(gdb) disassemble/s __put_anon_vma
+```
+
+### 查看结构体成员大小与偏移
+
+```
+(gdb) ptype/o struct task_struct
 ```
 
 ### 在启动 GDB 时自动执行一些命令
