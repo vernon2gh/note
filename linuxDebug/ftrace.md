@@ -1,18 +1,18 @@
 ## 简介
 
-ftrace 是 Linux 内核自带的调试工具，从久远的 2.6 内核就支持了，可以辅助定位
-内核问题
+tracefs 是 Linux 内核自带的调试工具，从久远的 2.6 内核就支持了，可以辅助定位
+内核问题，原理参考 [tracing_system](../linuxKernel/tracing_system.md)。
 
-ftrace 有以下 tracing：
+tracefs 有以下 tracer：
 
-1. tracer tracing(e.g. function tracer, function_graph tracer)
-2. event tracing(e.g. 静态 tracepoint event, 动态 kprobe event)
+1. ftrace tracer(e.g. function tracer, function_graph tracer)
+2. event tracer(e.g. 静态 tracepoint event, 动态 kprobe event)
 
-### tracer tracing
+### ftrace tracer
 
-基于 tracer tracing，通过 current_tracer 节点来激活使用。
+基于 ftrace tracer，通过 `current_tracer` 节点来激活使用。
 
-### event tracing
+### event tracer
 
 默认 event 是静态的，并且使用 tracepoint 实现，而利用 kprobe 机制，可以
 动态的插入 event，实现静态 event 同样功能。
@@ -22,24 +22,25 @@ ftrace 有以下 tracing：
 最初 kprobe 是以内核模块形式开发（e.g. `samples/kprobes/kprobe_example.c`），
 但是开发代码不方便并且容易影响内核运行的稳定性。如何避免？
 
-1. 将 kprobe 封装成动态 kprobe event (`CONFIG_KPROBE_EVENTS=y`)
+1. 将 kprobe 封装成动态 kprobe event
 2. 通过 eBPF (e.g. bpftrace) 使用 kprobe
 
-基于 event tracing，不需要通过 current_tracer 节点来激活使用。
+基于 event tracer，不需要通过 `current_tracer` 节点来激活使用。
 
 1. 静态 event 只需要通过 `events/xxx/enable` 打开 event 即可
 2. 动态 event，只需要通过 `kprobe_events` 增加/删除 event，并且通过
    `events/kprobes/xxx/enable` 打开 event 即可。
 
-## 使能 ftrace 功能
+## 使能 tracefs 功能
 
 ```bash
 CONFIG_FUNCTION_TRACER=y
-CONFIG_FUNCTION_GRAPH_TRACER=y （可选）
-CONFIG_FUNCTION_GRAPH_RETVAL=y （可选）
+CONFIG_FUNCTION_GRAPH_TRACER=y
+CONFIG_FUNCTION_GRAPH_RETVAL=y
+CONFIG_KPROBE_EVENTS=y
 ```
 
-## ftrace 挂载位置
+## tracefs 挂载位置
 
 ```bash
 $ mount -t debugfs none /sys/kernel/debug
@@ -50,27 +51,29 @@ $ ls /sys/kernel/tracing
 
 ## 节点解析
 
-* trace                     输出 ftrace buffter 内容
-* trace_pipe                以 PIPE 方式输出 ftrace buffter 内容
-* tracing_on                ftrace 总开关
-* current_tracer            指定 tracer 类型，默认是nop
-* available_tracers         所有可用的 tracer 类型
-* set_graph_function        指定要跟踪的函数，能够输出调用哪些函数
-* set_ftrace_filter         指定要过滤的函数，只输出单一函数
-* set_event                 指定要跟踪的 event
-* available_events          所有可用的 events
-* kprobe_events             添加/删除动态 event
-* trace_marker              用户空间直接写内容到 ftrace buffer 中
-* trace_options             所有可选功能的打开/关闭情况
-* options/trace_printk      控制 trace_printk() 是否能够输出 comment 到 ftrace buffer
-* options/markers           控制 trace_marker 节点是否可写
-* options/funcgraph-retval  显示 function_graph tracer 的函数返回值
-* options/func_stack_trace  显示 function tracer 的函数调用栈
-* options/stacktrace        显示 event 的函数调用栈
-* events/xxx/format         显示 event 输出格式
-* events/xxx/filter         过滤 event，如：`echo "pid==123" > filter` 只显示 pid 123 的 event
-* events/xxx/trigger        触发 event 的额外操作，如：`echo stacktrace > trigger` 打印函数调用栈
-* events/xxx/enable         使能 event
+|          节点            |                        描述                                        |
+|--------------------------|--------------------------------------------------------------------|
+| trace                    | 输出 ftrace buffter 内容                                            |
+| trace_pipe               | 以 PIPE 方式输出 ftrace buffter 内容                                 |
+| tracing_on               | ftrace 总开关                                                       |
+| current_tracer           | 指定 tracer 类型，默认是nop                                          |
+| available_tracers        | 所有可用的 tracer 类型                                               |
+| set_graph_function       | 指定要跟踪的函数，能够输出调用哪些函数                                 |
+| set_ftrace_filter        | 指定要过滤的函数，只输出单一函数                                      |
+| set_event                | 指定要跟踪的 event                                                  |
+| available_events         | 所有可用的 events                                                   |
+| kprobe_events            | 添加/删除动态 event                                                 |
+| trace_marker             | 用户空间直接写内容到 ftrace buffer 中                                |
+| trace_options            | 所有可选功能的打开/关闭情况                                           |
+| options/trace_printk     | 控制 trace_printk() 是否能够输出 comment 到 ftrace buffer            |
+| options/markers          | 控制 trace_marker 节点是否可写                                       |
+| options/funcgraph-retval | 显示 function_graph tracer 的函数返回值                              |
+| options/func_stack_trace | 显示 function tracer 的函数调用栈                                    |
+| options/stacktrace       | 显示 event 的函数调用栈                                              |
+| events/xxx/format        | 显示 event 输出格式                                                  |
+| events/xxx/filter        | 过滤 event，如：`echo "pid==123" > filter` 只显示 pid 123 的 event    |
+| events/xxx/trigger       | 触发 event 的额外操作，如：`echo stacktrace > trigger` 打印函数调用栈  |
+| events/xxx/enable        | 使能 event                                                          |
 
 ## 技巧
 
