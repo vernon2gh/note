@@ -3,6 +3,34 @@
 ftrace 是 Linux 内核自带的调试工具，从久远的 2.6 内核就支持了，可以辅助定位
 内核问题
 
+ftrace 有以下 tracing：
+
+1. tracer tracing(e.g. function tracer, function_graph tracer)
+2. event tracing(e.g. 静态 tracepoint event, 动态 kprobe event)
+
+### tracer tracing
+
+基于 tracer tracing，通过 current_tracer 节点来激活使用。
+
+### event tracing
+
+默认 event 是静态的，并且使用 tracepoint 实现，而利用 kprobe 机制，可以
+动态的插入 event，实现静态 event 同样功能。
+换句话说，静态 event 只能在代码中使用 tracepoint 写好后进行编译，动态 event 
+能够在系统运行中利用 kprobe 增加/删除。
+
+最初 kprobe 是以内核模块形式开发（e.g. `samples/kprobes/kprobe_example.c`），
+但是开发代码不方便并且容易影响内核运行的稳定性。如何避免？
+
+1. 将 kprobe 封装成动态 kprobe event (`CONFIG_KPROBE_EVENTS=y`)
+2. 通过 eBPF (e.g. bpftrace) 使用 kprobe
+
+基于 event tracing，不需要通过 current_tracer 节点来激活使用。
+
+1. 静态 event 只需要通过 `events/xxx/enable` 打开 event 即可
+2. 动态 event，只需要通过 `kprobe_events` 增加/删除 event，并且通过
+   `events/kprobes/xxx/enable` 打开 event 即可。
+
 ## 使能 ftrace 功能
 
 ```bash
@@ -16,9 +44,7 @@ CONFIG_FUNCTION_GRAPH_RETVAL=y （可选）
 ```bash
 $ mount -t debugfs none /sys/kernel/debug
 $ ls /sys/kernel/debug/tracing
-
 or
-
 $ ls /sys/kernel/tracing
 ```
 
@@ -33,6 +59,7 @@ $ ls /sys/kernel/tracing
 * set_ftrace_filter         指定要过滤的函数，只输出单一函数
 * set_event                 指定要跟踪的 event
 * available_events          所有可用的 events
+* kprobe_events             添加/删除动态 event
 * trace_marker              用户空间直接写内容到 ftrace buffer 中
 * trace_options             所有可选功能的打开/关闭情况
 * options/trace_printk      控制 trace_printk() 是否能够输出 comment 到 ftrace buffer
@@ -43,6 +70,13 @@ $ ls /sys/kernel/tracing
 * events/xxx/format         显示 event 输出格式
 * events/xxx/filter         过滤 event，如：`echo "pid==123" > filter` 只显示 pid 123 的 event
 * events/xxx/trigger        触发 event 的额外操作，如：`echo stacktrace > trigger` 打印函数调用栈
+* events/xxx/enable         使能 event
+
+## 技巧
+
+* 设置 `function_graph tracer + set_graph_function` 跟踪一个函数往下的调用路径
+* 设置 `function tracer + set_ftrace_filter + func_stack_trace` 跟踪一个函数往上的调用路径
+* 设置 `event + stacktrace` 跟踪一个函数往上的调用路径
 
 ## 输出格式
 
@@ -73,16 +107,16 @@ $ ls /sys/kernel/tracing
 
 ## 例子
 
-### function trace
+### function tracer
 
 ```bash
 $ echo function > current_tracer       # 指定tracer类型
 $ echo func_name > set_ftrace_filter   # 指定要过滤的函数
-$ echo 1 > tracing_on                  # enable tracer
+$ echo 1 > tracing_on
 $ cat trace
 ```
 
-### function_graph trace
+### function_graph tracer
 
 ```bash
 $ echo function_graph > current_tracer  # 指定tracer类型
@@ -91,11 +125,23 @@ $ echo 1 > tracing_on
 $ cat trace
 ```
 
-### event trace
+### tracepoint event
 
 ```bash
 $ echo 1 > events/xxx/enable           # 使能指定的 event
-$ echo 1 > tracing_on                  # enable tracer
+$ echo stacktrace > events/xxx/trigger # 打印函数调用栈
+$ echo 1 > tracing_on
+$ cat trace
+```
+
+### kprobe event
+
+```bash
+$ echo 'p vm_mmap_pgoff+296 comm=$comm sem=%x0 count=+0(%x0) owner=+8(%x0)' > kprobe_events  # 添加 vm_mmap_pgoff() 偏移 296 位置的动态 event（打印进程名、信号量等）
+$ echo "comm==\"ABC\"" > events/kprobes/p_vm_mmap_pgoff_296/filter                           # 进行过滤，只显示进程名为 ABC 的信息
+$ echo 1 > options/stacktrace                                                                # 打印函数调用栈
+$ echo 1 > events/kprobes/p_vm_mmap_pgoff_296/enable                                         # 使能指定的 event
+$ echo 1 > tracing_on
 $ cat trace
 ```
 
