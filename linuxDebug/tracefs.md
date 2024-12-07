@@ -16,7 +16,7 @@ tracefs 有以下 tracer：
 
 默认 event 是静态的，并且使用 tracepoint 实现，而利用 kprobe 机制，可以
 动态的插入 event，实现静态 event 同样功能。
-换句话说，静态 event 只能在代码中使用 tracepoint 写好后进行编译，动态 event 
+换句话说，静态 event 只能在代码中使用 tracepoint 写好后进行编译，动态 event
 能够在系统运行中利用 kprobe 增加/删除。
 
 最初 kprobe 是以内核模块形式开发（e.g. `samples/kprobes/kprobe_example.c`），
@@ -141,12 +141,21 @@ $ cat trace
 
 ```bash
 $ echo 'p vm_mmap_pgoff+296 comm=$comm sem=%x0 count=+0(%x0) owner=+8(%x0)' > kprobe_events  # 添加 vm_mmap_pgoff() 偏移 296 位置的动态 event（打印进程名、信号量等）
-$ echo "comm==\"ABC\"" > events/kprobes/p_vm_mmap_pgoff_296/filter                           # 进行过滤，只显示进程名为 ABC 的信息
+$ echo 'comm=="ABC"' > events/kprobes/p_vm_mmap_pgoff_296/filter                             # 进行过滤，只显示进程名为 ABC 的信息
 $ echo 1 > options/stacktrace                                                                # 打印函数调用栈
 $ echo 1 > events/kprobes/p_vm_mmap_pgoff_296/enable                                         # 使能指定的 event
 $ echo 1 > tracing_on
 $ cat trace
 ```
+
+注意：如果结构体的成员变量是 `char *` 类型，如下：
+
+```c
+/* offset      |    size */  struct zone {
+/*    168      |       8 */    const char *name;
+```
+
+使用 `name=+0(+168($argN))` 来打印。
 
 ### 过滤技巧，跟踪多个函数
 

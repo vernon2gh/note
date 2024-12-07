@@ -112,7 +112,7 @@ Reference : https://sourceware.org/gdb/current/onlinedocs/gdb/Memory.html#Memory
 (gdb) list *__put_anon_vma+0x80
 ```
 
-### 查看函数的汇编代码，同时显示源码行
+### 查看函数的汇编代码，同时显示源码行（e.g. 某行源码在函数中偏移）
 
 ```
 (gdb) disassemble/s __put_anon_vma

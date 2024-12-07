@@ -38,6 +38,9 @@ $ bpftrace -e 'kprobe:swap_range_alloc { printf("nr_entries = %d\n", arg2); }' -
 
 ## 使能 extswapfile 作为交换设备时，打印 read_swap_header() 函数的第一个参数对应结构体的 flags 成员
 $ bpftrace -e 'kprobe:read_swap_header { printf("flags 0x%x\n", ((struct swap_info_struct *)arg0)->flags); }' -c '/usr/sbin/swapon extswapfile'
+
+## 打印 zone name
+$ bpftrace -e 'kprobe:__zone_watermark_ok { printf("zone name: %s\n", str(((struct zone *)arg0)->name)); }'
 ```
 
 ## 参考
