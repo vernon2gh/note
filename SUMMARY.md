@@ -66,6 +66,7 @@
     * [filesystem](linuxKernel/filesystem.md)
     * [io_stack](linuxKernel/io_stack.md)
     * [workingset](linuxKernel/workingset.md)
+    * [ioremap](linuxKernel/ioremap.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
@@ -132,6 +133,7 @@
     * [mmap](linuxDriver/mmap.md)
 * hardware
     * [paging_mmu_pt](hardware/paging_mmu_pt.md)
+    * [iommu](hardware/iommu.md)
 * process_thread_scheduler
     * [scheduler01](process_thread_scheduler/scheduler01.md)
     * [scheduler02](process_thread_scheduler/scheduler02.md)

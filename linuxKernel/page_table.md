@@ -36,21 +36,21 @@ Linux 对于页表操作主要定义了以下函数。这些函数与体系架�
 | set_pgd(pgdp, pgd)           | 向 PGD 写入指定的值              |
 | set_p4d(p4dp, p4d)           | 向 P4D 写入指定的值              |
 
-# X86
+## X86
 
 支持四种分页模式：32-bit，PAE，4-Level Paging和5-Level Paging。
 
-# ARMv8
+## ARMv8
 
 当使用 64KB 页大小时，使用三级页表；当使用 4KB 和 16KB 页大小时，使用四级页表。
 
 当采用 4KB 页大小 + 4 级页表时，内核空间和用户空间大小分别为256TB。
 
-# RISC-V
+## RISC-V
 
-#TODO 
+#TODO
 
-# 总结
+## 总结
 
 * 定义各级页表结构体 `xxx_t`、页表项 `xxxval_t` 的类型，如：`pgd_t`、`pgdval_t`
 * 定义获得各级页表项数据 `xxx_val()`、返回对应页表结构体类型的变量 `__xxx()` 的函数，如：`pgd_val()`、`__pgd()`
@@ -68,3 +68,28 @@ Linux 对于页表操作主要定义了以下函数。这些函数与体系架�
 * `__xxx_populate(xxx, downlevel_paddr, prot)` 填充 `xxx` 页表项为 `(downlevel_paddr + prot)`，如 `__pud_populate(pud_t *pudp, phys_addr_t pmdp, pudval_t prot)`，即 `*pudp = (pmdp + prot)`
 * `xxx_alloc_one[_kernel]()` 调用 `page` 分配器为 `xxx` 页表分配一页大小的内存，如：`pmd_alloc_one()`
 * `xxx_free[_kernel]()` 释放 `xxx` 页表对应的一页大小的内存，如：`pmd_free()`
+
+# 用户空间查看页表项的属性
+
+通过使能 `CONFIG_PTDUMP_DEBUGFS=y` 在用户空间导出页表相关信息
+
+## x86_64
+
+> Documentation/arch/x86/pat.rst
+
+```bash
+$ ls /sys/kernel/debug/page_tables/
+current_kernel  current_user  efi  kernel
+```
+
+## arm64
+
+> Documentation/arch/arm64/ptdump.rst
+
+```
+$ ls /sys/kernel/debug/kernel_page_tables
+```
+
+## RISC-V
+
+#TODO
