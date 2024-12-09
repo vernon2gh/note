@@ -75,8 +75,6 @@ Linux 对于页表操作主要定义了以下函数。这些函数与体系架�
 
 ## x86_64
 
-> Documentation/arch/x86/pat.rst
-
 ```bash
 $ ls /sys/kernel/debug/page_tables/
 current_kernel  current_user  efi  kernel
@@ -84,9 +82,8 @@ current_kernel  current_user  efi  kernel
 
 ## arm64
 
-> Documentation/arch/arm64/ptdump.rst
-
-```
+```bash
+## Documentation/arch/arm64/ptdump.rst
 $ ls /sys/kernel/debug/kernel_page_tables
 ```
 
