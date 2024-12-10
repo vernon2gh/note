@@ -43,7 +43,8 @@ $ crash vmlinux vmcore
 crash> bt                                ## 显示 kernel-stack backtrace.
 crash> dis -l [address]                  ## 显示 address 对应的源码位置和汇编指令
 crash> dis -lr [address]                 ## 显示从函数开头到 address 的源码位置和汇编指令
-crash> struct [struct_name] [address] -x ## 查看 address 对应的结构体内容
+crash> struct struct_name [address] -x   ## 查看 address 对应的结构体内容
+crash> struct struct_name[.member] -ox   ## 查看结构体成员 member 的偏移
 crash> rd [address] [count]              ## 从 address 读取 count 个数据，单位 8Bytes
 ```
 

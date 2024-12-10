@@ -118,10 +118,16 @@ Reference : https://sourceware.org/gdb/current/onlinedocs/gdb/Memory.html#Memory
 (gdb) disassemble/s __put_anon_vma
 ```
 
-### 查看结构体成员大小与偏移
+### 查看结构体成员的大小与偏移
 
 ```
 (gdb) ptype/o struct task_struct
+```
+
+### 查看结构体成员的偏移
+
+```
+(gdb) p/x &((struct task_struct *)0)->comm
 ```
 
 ### 在启动 GDB 时自动执行一些命令
