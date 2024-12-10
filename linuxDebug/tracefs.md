@@ -51,34 +51,42 @@ $ ls /sys/kernel/tracing
 
 ## 节点解析
 
-|          节点            |                        描述                                        |
-|--------------------------|--------------------------------------------------------------------|
-| trace                    | 输出 ftrace buffter 内容                                            |
+|          节点            |                        描述                                          |
+|--------------------------|----------------------------------------------------------------------|
+| trace                    | 输出 ftrace buffter 内容                                             |
 | trace_pipe               | 以 PIPE 方式输出 ftrace buffter 内容                                 |
-| tracing_on               | ftrace 总开关                                                       |
+| tracing_on               | ftrace 总开关                                                        |
 | current_tracer           | 指定 tracer 类型，默认是nop                                          |
 | available_tracers        | 所有可用的 tracer 类型                                               |
-| set_graph_function       | 指定要跟踪的函数，能够输出调用哪些函数                                 |
-| set_ftrace_filter        | 指定要过滤的函数，只输出单一函数                                      |
-| set_event                | 指定要跟踪的 event                                                  |
-| available_events         | 所有可用的 events                                                   |
-| kprobe_events            | 添加/删除动态 event                                                 |
+| set_graph_function       | 指定要跟踪的函数，能够输出调用哪些函数                               |
+| set_ftrace_filter        | 指定要过滤的函数，只输出单一函数                                     |
+| set_event                | 指定要跟踪的 event                                                   |
+| available_events         | 所有可用的 events                                                    |
+| kprobe_events            | 添加/删除动态 event                                                  |
 | trace_marker             | 用户空间直接写内容到 ftrace buffer 中                                |
-| trace_options            | 所有可选功能的打开/关闭情况                                           |
+| set_ftrace_pid           | 指定要跟踪的进程 pid                                                 |
+| trace_options            | 所有可选功能的打开/关闭情况                                          |
 | options/trace_printk     | 控制 trace_printk() 是否能够输出 comment 到 ftrace buffer            |
 | options/markers          | 控制 trace_marker 节点是否可写                                       |
 | options/funcgraph-retval | 显示 function_graph tracer 的函数返回值                              |
+| options/funcgraph-retaddr| 显示 function_graph tracer 的函数返回地址                            |
+| options/funcgraph-proc   | 显示 function_graph tracer 在哪个进程触发                            |
 | options/func_stack_trace | 显示 function tracer 的函数调用栈                                    |
 | options/stacktrace       | 显示 event 的函数调用栈                                              |
 | events/xxx/format        | 显示 event 输出格式                                                  |
-| events/xxx/filter        | 过滤 event，如：`echo "pid==123" > filter` 只显示 pid 123 的 event    |
-| events/xxx/trigger       | 触发 event 的额外操作，如：`echo stacktrace > trigger` 打印函数调用栈  |
-| events/xxx/enable        | 使能 event                                                          |
+| events/xxx/filter        | 过滤 event，如：`echo "pid==123" > filter` 只显示 pid 123 的 event   |
+| events/xxx/trigger       | 触发 event 的额外操作，如：`echo stacktrace > trigger` 打印函数调用栈|
+| events/xxx/enable        | 使能 event                                                           |
 
 ## 技巧
 
 * 设置 `function_graph tracer + set_graph_function` 跟踪一个函数往下的调用路径
-* 设置 `function tracer + set_ftrace_filter + func_stack_trace` 跟踪一个函数往上的调用路径
+* 设置 `function_graph tracer + set_graph_function + funcgraph-retval` 跟踪
+  一个函数返回错误码的调用路径，再加上 `kprobe_events` 打印函数参数
+* 设置 `function_graph tracer + set_graph_function + funcgraph-retaddr` 跟踪
+  一个函数返回地址，利用 `faddr2line` 获得 inline 函数的调用路径
+* 设置 `function tracer + set_ftrace_filter + func_stack_trace` 跟踪
+  一个函数往上的调用路径
 * 设置 `event + stacktrace` 跟踪一个函数往上的调用路径
 
 ## 输出格式
