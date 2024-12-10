@@ -115,7 +115,7 @@ Reference : https://sourceware.org/gdb/current/onlinedocs/gdb/Memory.html#Memory
 ### 查看函数的汇编代码，同时显示源码行（e.g. 某行源码在函数中偏移）
 
 ```
-(gdb) disassemble/s __put_anon_vma
+(gdb) disassemble/s vm_mmap_pgoff
 ```
 
 ### 查看结构体成员的大小与偏移
