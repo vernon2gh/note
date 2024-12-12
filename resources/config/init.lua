@@ -49,8 +49,20 @@ require('gitsigns').setup {
 
 require('diffview').setup {
 	use_icons = false,
+	view = {
+		merge_tool = {
+			layout = "diff4_mixed",
+		},
+	},
+	file_panel = {
+		listing_style = "tree",
+		win_config = {
+			width = 0,
+		},
+	},
 }
 vim.keymap.set('n', ';gb', ':.,.DiffviewFileHistory<CR>', opts)
+vim.keymap.set('n', ';gm', ':DiffviewOpen<CR>', opts)
 
 require('render-markdown').setup {
 	heading = {
