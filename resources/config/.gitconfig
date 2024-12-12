@@ -12,6 +12,8 @@
 	smtpUser = xxx@gmail.com
 	smtpPass = xxx
 	smtpServerPort = 587
+[am]
+	threeWay = true
 [core]
 	editor = vim
 	pager = delta
