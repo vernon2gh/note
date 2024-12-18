@@ -1,0 +1,2982 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 1/18] mm: Clarify the spec for set_ptes()
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:48 +0000
+Message-Id: <20240215103205.2607016-2-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+set_ptes() spec implies that it can only be used to set a present pte
+because it interprets the PFN field to increment it. However,
+set_pte_at() has been implemented on top of set_ptes() since set_ptes()
+was introduced, and set_pte_at() allows setting a pte to a not-present
+state. So clarify the spec to state that when nr==1, new state of pte
+may be present or not present. When nr>1, new state of all ptes must be
+present.
+
+While we are at it, tighten the spec to set requirements around the
+initial state of ptes; when nr==1 it may be either present or
+not-present. But when nr>1 all ptes must initially be not-present. All
+set_ptes() callsites already conform to this requirement. Stating it
+explicitly is useful because it allows for a simplification to the
+upcoming arm64 contpte implementation.
+
+Acked-by: David Hildenbrand <david@redhat.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+---
+ include/linux/pgtable.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index 49ab1f73b5c2..231370e1b80f 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -229,6 +229,10 @@ static inline pte_t pte_next_pfn(pte_t pte)
+  * @pte: Page table entry for the first page.
+  * @nr: Number of pages to map.
+  *
++ * When nr==1, initial state of pte may be present or not present, and new state
++ * may be present or not present. When nr>1, initial state of all ptes must be
++ * not present, and new state must be present.
++ *
+  * May be overridden by the architecture, or the architecture can define
+  * set_pte() and PFN_PTE_SHIFT.
+  *
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 2/18] mm: thp: Batch-collapse PMD with set_ptes()
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:49 +0000
+Message-Id: <20240215103205.2607016-3-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Refactor __split_huge_pmd_locked() so that a present PMD can be
+collapsed to PTEs in a single batch using set_ptes().
+
+This should improve performance a little bit, but the real motivation is
+to remove the need for the arm64 backend to have to fold the contpte
+entries. Instead, since the ptes are set as a batch, the contpte blocks
+can be initially set up pre-folded (once the arm64 contpte support is
+added in the next few patches). This leads to noticeable performance
+improvement during split.
+
+Acked-by: David Hildenbrand <david@redhat.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+---
+ mm/huge_memory.c | 58 +++++++++++++++++++++++++++---------------------
+ 1 file changed, 33 insertions(+), 25 deletions(-)
+
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 016e20bd813e..14888b15121e 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -2579,15 +2579,16 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 
+ 	pte = pte_offset_map(&_pmd, haddr);
+ 	VM_BUG_ON(!pte);
+-	for (i = 0, addr = haddr; i < HPAGE_PMD_NR; i++, addr += PAGE_SIZE) {
+-		pte_t entry;
+-		/*
+-		 * Note that NUMA hinting access restrictions are not
+-		 * transferred to avoid any possibility of altering
+-		 * permissions across VMAs.
+-		 */
+-		if (freeze || pmd_migration) {
++
++	/*
++	 * Note that NUMA hinting access restrictions are not transferred to
++	 * avoid any possibility of altering permissions across VMAs.
++	 */
++	if (freeze || pmd_migration) {
++		for (i = 0, addr = haddr; i < HPAGE_PMD_NR; i++, addr += PAGE_SIZE) {
++			pte_t entry;
+ 			swp_entry_t swp_entry;
++
+ 			if (write)
+ 				swp_entry = make_writable_migration_entry(
+ 							page_to_pfn(page + i));
+@@ -2606,25 +2607,32 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 				entry = pte_swp_mksoft_dirty(entry);
+ 			if (uffd_wp)
+ 				entry = pte_swp_mkuffd_wp(entry);
+-		} else {
+-			entry = mk_pte(page + i, READ_ONCE(vma->vm_page_prot));
+-			if (write)
+-				entry = pte_mkwrite(entry, vma);
+-			if (!young)
+-				entry = pte_mkold(entry);
+-			/* NOTE: this may set soft-dirty too on some archs */
+-			if (dirty)
+-				entry = pte_mkdirty(entry);
+-			if (soft_dirty)
+-				entry = pte_mksoft_dirty(entry);
+-			if (uffd_wp)
+-				entry = pte_mkuffd_wp(entry);
++
++			VM_WARN_ON(!pte_none(ptep_get(pte + i)));
++			set_pte_at(mm, addr, pte + i, entry);
+ 		}
+-		VM_BUG_ON(!pte_none(ptep_get(pte)));
+-		set_pte_at(mm, addr, pte, entry);
+-		pte++;
++	} else {
++		pte_t entry;
++
++		entry = mk_pte(page, READ_ONCE(vma->vm_page_prot));
++		if (write)
++			entry = pte_mkwrite(entry, vma);
++		if (!young)
++			entry = pte_mkold(entry);
++		/* NOTE: this may set soft-dirty too on some archs */
++		if (dirty)
++			entry = pte_mkdirty(entry);
++		if (soft_dirty)
++			entry = pte_mksoft_dirty(entry);
++		if (uffd_wp)
++			entry = pte_mkuffd_wp(entry);
++
++		for (i = 0; i < HPAGE_PMD_NR; i++)
++			VM_WARN_ON(!pte_none(ptep_get(pte + i)));
++
++		set_ptes(mm, haddr, pte, entry, HPAGE_PMD_NR);
+ 	}
+-	pte_unmap(pte - 1);
++	pte_unmap(pte);
+ 
+ 	if (!pmd_migration)
+ 		folio_remove_rmap_pmd(folio, page, vma);
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 3/18] mm: Introduce pte_advance_pfn() and use for pte_next_pfn()
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:50 +0000
+Message-Id: <20240215103205.2607016-4-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+The goal is to be able to advance a PTE by an arbitrary number of PFNs.
+So introduce a new API that takes a nr param. Define the default
+implementation here and allow for architectures to override.
+pte_next_pfn() becomes a wrapper around pte_advance_pfn().
+
+Follow up commits will convert each overriding architecture's
+pte_next_pfn() to pte_advance_pfn().
+
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: David Hildenbrand <david@redhat.com>
+---
+ include/linux/pgtable.h | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index 231370e1b80f..b7ac8358f2aa 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -212,14 +212,17 @@ static inline int pmd_dirty(pmd_t pmd)
+ #define arch_flush_lazy_mmu_mode()	do {} while (0)
+ #endif
+ 
+-
+ #ifndef pte_next_pfn
+-static inline pte_t pte_next_pfn(pte_t pte)
++#ifndef pte_advance_pfn
++static inline pte_t pte_advance_pfn(pte_t pte, unsigned long nr)
+ {
+-	return __pte(pte_val(pte) + (1UL << PFN_PTE_SHIFT));
++	return __pte(pte_val(pte) + (nr << PFN_PTE_SHIFT));
+ }
+ #endif
+ 
++#define pte_next_pfn(pte) pte_advance_pfn(pte, 1)
++#endif
++
+ #ifndef set_ptes
+ /**
+  * set_ptes - Map consecutive pages to a contiguous range of addresses.
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 4/18] arm64/mm: Convert pte_next_pfn() to pte_advance_pfn()
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:51 +0000
+Message-Id: <20240215103205.2607016-5-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Core-mm needs to be able to advance the pfn by an arbitrary amount, so
+override the new pte_advance_pfn() API to do so.
+
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: David Hildenbrand <david@redhat.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+---
+ arch/arm64/include/asm/pgtable.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index 52d0b0a763f1..b6d3e9e0a946 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -351,10 +351,10 @@ static inline pgprot_t pte_pgprot(pte_t pte)
+ 	return __pgprot(pte_val(pfn_pte(pfn, __pgprot(0))) ^ pte_val(pte));
+ }
+ 
+-#define pte_next_pfn pte_next_pfn
+-static inline pte_t pte_next_pfn(pte_t pte)
++#define pte_advance_pfn pte_advance_pfn
++static inline pte_t pte_advance_pfn(pte_t pte, unsigned long nr)
+ {
+-	return pfn_pte(pte_pfn(pte) + 1, pte_pgprot(pte));
++	return pfn_pte(pte_pfn(pte) + nr, pte_pgprot(pte));
+ }
+ 
+ static inline void set_ptes(struct mm_struct *mm,
+@@ -370,7 +370,7 @@ static inline void set_ptes(struct mm_struct *mm,
+ 		if (--nr == 0)
+ 			break;
+ 		ptep++;
+-		pte = pte_next_pfn(pte);
++		pte = pte_advance_pfn(pte, 1);
+ 	}
+ }
+ #define set_ptes set_ptes
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 5/18] x86/mm: Convert pte_next_pfn() to pte_advance_pfn()
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:52 +0000
+Message-Id: <20240215103205.2607016-6-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Core-mm needs to be able to advance the pfn by an arbitrary amount, so
+override the new pte_advance_pfn() API to do so.
+
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Reviewed-by: David Hildenbrand <david@redhat.com>
+---
+ arch/x86/include/asm/pgtable.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index b50b2ef63672..69ed0ea0641b 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -955,13 +955,13 @@ static inline int pte_same(pte_t a, pte_t b)
+ 	return a.pte == b.pte;
+ }
+ 
+-static inline pte_t pte_next_pfn(pte_t pte)
++static inline pte_t pte_advance_pfn(pte_t pte, unsigned long nr)
+ {
+ 	if (__pte_needs_invert(pte_val(pte)))
+-		return __pte(pte_val(pte) - (1UL << PFN_PTE_SHIFT));
+-	return __pte(pte_val(pte) + (1UL << PFN_PTE_SHIFT));
++		return __pte(pte_val(pte) - (nr << PFN_PTE_SHIFT));
++	return __pte(pte_val(pte) + (nr << PFN_PTE_SHIFT));
+ }
+-#define pte_next_pfn	pte_next_pfn
++#define pte_advance_pfn	pte_advance_pfn
+ 
+ static inline int pte_present(pte_t a)
+ {
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 6/18] mm: Tidy up pte_next_pfn() definition
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:53 +0000
+Message-Id: <20240215103205.2607016-7-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Now that the all architecture overrides of pte_next_pfn() have been
+replaced with pte_advance_pfn(), we can simplify the definition of the
+generic pte_next_pfn() macro so that it is unconditionally defined.
+
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: David Hildenbrand <david@redhat.com>
+---
+ include/linux/pgtable.h | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index b7ac8358f2aa..bc005d84f764 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -212,7 +212,6 @@ static inline int pmd_dirty(pmd_t pmd)
+ #define arch_flush_lazy_mmu_mode()	do {} while (0)
+ #endif
+ 
+-#ifndef pte_next_pfn
+ #ifndef pte_advance_pfn
+ static inline pte_t pte_advance_pfn(pte_t pte, unsigned long nr)
+ {
+@@ -221,7 +220,6 @@ static inline pte_t pte_advance_pfn(pte_t pte, unsigned long nr)
+ #endif
+ 
+ #define pte_next_pfn(pte) pte_advance_pfn(pte, 1)
+-#endif
+ 
+ #ifndef set_ptes
+ /**
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 7/18] arm64/mm: Convert READ_ONCE(*ptep) to ptep_get(ptep)
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:54 +0000
+Message-Id: <20240215103205.2607016-8-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+There are a number of places in the arch code that read a pte by using
+the READ_ONCE() macro. Refactor these call sites to instead use the
+ptep_get() helper, which itself is a READ_ONCE(). Generated code should
+be the same.
+
+This will benefit us when we shortly introduce the transparent contpte
+support. In this case, ptep_get() will become more complex so we now
+have all the code abstracted through it.
+
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/pgtable.h | 12 +++++++++---
+ arch/arm64/kernel/efi.c          |  2 +-
+ arch/arm64/mm/fault.c            |  4 ++--
+ arch/arm64/mm/hugetlbpage.c      |  6 +++---
+ arch/arm64/mm/kasan_init.c       |  2 +-
+ arch/arm64/mm/mmu.c              | 12 ++++++------
+ arch/arm64/mm/pageattr.c         |  4 ++--
+ arch/arm64/mm/trans_pgd.c        |  2 +-
+ 8 files changed, 25 insertions(+), 19 deletions(-)
+
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index b6d3e9e0a946..de034ca40bad 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -275,6 +275,12 @@ static inline void set_pte(pte_t *ptep, pte_t pte)
+ 	}
+ }
+ 
++#define ptep_get ptep_get
++static inline pte_t ptep_get(pte_t *ptep)
++{
++	return READ_ONCE(*ptep);
++}
++
+ extern void __sync_icache_dcache(pte_t pteval);
+ bool pgattr_change_is_safe(u64 old, u64 new);
+ 
+@@ -302,7 +308,7 @@ static inline void __check_safe_pte_update(struct mm_struct *mm, pte_t *ptep,
+ 	if (!IS_ENABLED(CONFIG_DEBUG_VM))
+ 		return;
+ 
+-	old_pte = READ_ONCE(*ptep);
++	old_pte = ptep_get(ptep);
+ 
+ 	if (!pte_valid(old_pte) || !pte_valid(pte))
+ 		return;
+@@ -904,7 +910,7 @@ static inline int __ptep_test_and_clear_young(pte_t *ptep)
+ {
+ 	pte_t old_pte, pte;
+ 
+-	pte = READ_ONCE(*ptep);
++	pte = ptep_get(ptep);
+ 	do {
+ 		old_pte = pte;
+ 		pte = pte_mkold(pte);
+@@ -986,7 +992,7 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long addres
+ {
+ 	pte_t old_pte, pte;
+ 
+-	pte = READ_ONCE(*ptep);
++	pte = ptep_get(ptep);
+ 	do {
+ 		old_pte = pte;
+ 		pte = pte_wrprotect(pte);
+diff --git a/arch/arm64/kernel/efi.c b/arch/arm64/kernel/efi.c
+index 0228001347be..d0e08e93b246 100644
+--- a/arch/arm64/kernel/efi.c
++++ b/arch/arm64/kernel/efi.c
+@@ -103,7 +103,7 @@ static int __init set_permissions(pte_t *ptep, unsigned long addr, void *data)
+ {
+ 	struct set_perm_data *spd = data;
+ 	const efi_memory_desc_t *md = spd->md;
+-	pte_t pte = READ_ONCE(*ptep);
++	pte_t pte = ptep_get(ptep);
+ 
+ 	if (md->attribute & EFI_MEMORY_RO)
+ 		pte = set_pte_bit(pte, __pgprot(PTE_RDONLY));
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 55f6455a8284..a254761fa1bd 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -191,7 +191,7 @@ static void show_pte(unsigned long addr)
+ 		if (!ptep)
+ 			break;
+ 
+-		pte = READ_ONCE(*ptep);
++		pte = ptep_get(ptep);
+ 		pr_cont(", pte=%016llx", pte_val(pte));
+ 		pte_unmap(ptep);
+ 	} while(0);
+@@ -214,7 +214,7 @@ int ptep_set_access_flags(struct vm_area_struct *vma,
+ 			  pte_t entry, int dirty)
+ {
+ 	pteval_t old_pteval, pteval;
+-	pte_t pte = READ_ONCE(*ptep);
++	pte_t pte = ptep_get(ptep);
+ 
+ 	if (pte_same(pte, entry))
+ 		return 0;
+diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
+index 6720ec8d50e7..2892f925ed66 100644
+--- a/arch/arm64/mm/hugetlbpage.c
++++ b/arch/arm64/mm/hugetlbpage.c
+@@ -485,7 +485,7 @@ void huge_ptep_set_wrprotect(struct mm_struct *mm,
+ 	size_t pgsize;
+ 	pte_t pte;
+ 
+-	if (!pte_cont(READ_ONCE(*ptep))) {
++	if (!pte_cont(ptep_get(ptep))) {
+ 		ptep_set_wrprotect(mm, addr, ptep);
+ 		return;
+ 	}
+@@ -510,7 +510,7 @@ pte_t huge_ptep_clear_flush(struct vm_area_struct *vma,
+ 	size_t pgsize;
+ 	int ncontig;
+ 
+-	if (!pte_cont(READ_ONCE(*ptep)))
++	if (!pte_cont(ptep_get(ptep)))
+ 		return ptep_clear_flush(vma, addr, ptep);
+ 
+ 	ncontig = find_num_contig(mm, addr, ptep, &pgsize);
+@@ -543,7 +543,7 @@ pte_t huge_ptep_modify_prot_start(struct vm_area_struct *vma, unsigned long addr
+ 		 * when the permission changes from executable to non-executable
+ 		 * in cases where cpu is affected with errata #2645198.
+ 		 */
+-		if (pte_user_exec(READ_ONCE(*ptep)))
++		if (pte_user_exec(ptep_get(ptep)))
+ 			return huge_ptep_clear_flush(vma, addr, ptep);
+ 	}
+ 	return huge_ptep_get_and_clear(vma->vm_mm, addr, ptep);
+diff --git a/arch/arm64/mm/kasan_init.c b/arch/arm64/mm/kasan_init.c
+index 4c7ad574b946..c2a9f4f6c7dd 100644
+--- a/arch/arm64/mm/kasan_init.c
++++ b/arch/arm64/mm/kasan_init.c
+@@ -113,7 +113,7 @@ static void __init kasan_pte_populate(pmd_t *pmdp, unsigned long addr,
+ 			memset(__va(page_phys), KASAN_SHADOW_INIT, PAGE_SIZE);
+ 		next = addr + PAGE_SIZE;
+ 		set_pte(ptep, pfn_pte(__phys_to_pfn(page_phys), PAGE_KERNEL));
+-	} while (ptep++, addr = next, addr != end && pte_none(READ_ONCE(*ptep)));
++	} while (ptep++, addr = next, addr != end && pte_none(ptep_get(ptep)));
+ }
+ 
+ static void __init kasan_pmd_populate(pud_t *pudp, unsigned long addr,
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index 3a27d887f7dd..343629a17042 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -173,7 +173,7 @@ static void init_pte(pmd_t *pmdp, unsigned long addr, unsigned long end,
+ 
+ 	ptep = pte_set_fixmap_offset(pmdp, addr);
+ 	do {
+-		pte_t old_pte = READ_ONCE(*ptep);
++		pte_t old_pte = ptep_get(ptep);
+ 
+ 		set_pte(ptep, pfn_pte(__phys_to_pfn(phys), prot));
+ 
+@@ -182,7 +182,7 @@ static void init_pte(pmd_t *pmdp, unsigned long addr, unsigned long end,
+ 		 * only allow updates to the permission attributes.
+ 		 */
+ 		BUG_ON(!pgattr_change_is_safe(pte_val(old_pte),
+-					      READ_ONCE(pte_val(*ptep))));
++					      pte_val(ptep_get(ptep))));
+ 
+ 		phys += PAGE_SIZE;
+ 	} while (ptep++, addr += PAGE_SIZE, addr != end);
+@@ -852,7 +852,7 @@ static void unmap_hotplug_pte_range(pmd_t *pmdp, unsigned long addr,
+ 
+ 	do {
+ 		ptep = pte_offset_kernel(pmdp, addr);
+-		pte = READ_ONCE(*ptep);
++		pte = ptep_get(ptep);
+ 		if (pte_none(pte))
+ 			continue;
+ 
+@@ -985,7 +985,7 @@ static void free_empty_pte_table(pmd_t *pmdp, unsigned long addr,
+ 
+ 	do {
+ 		ptep = pte_offset_kernel(pmdp, addr);
+-		pte = READ_ONCE(*ptep);
++		pte = ptep_get(ptep);
+ 
+ 		/*
+ 		 * This is just a sanity check here which verifies that
+@@ -1004,7 +1004,7 @@ static void free_empty_pte_table(pmd_t *pmdp, unsigned long addr,
+ 	 */
+ 	ptep = pte_offset_kernel(pmdp, 0UL);
+ 	for (i = 0; i < PTRS_PER_PTE; i++) {
+-		if (!pte_none(READ_ONCE(ptep[i])))
++		if (!pte_none(ptep_get(&ptep[i])))
+ 			return;
+ 	}
+ 
+@@ -1473,7 +1473,7 @@ pte_t ptep_modify_prot_start(struct vm_area_struct *vma, unsigned long addr, pte
+ 		 * when the permission changes from executable to non-executable
+ 		 * in cases where cpu is affected with errata #2645198.
+ 		 */
+-		if (pte_user_exec(READ_ONCE(*ptep)))
++		if (pte_user_exec(ptep_get(ptep)))
+ 			return ptep_clear_flush(vma, addr, ptep);
+ 	}
+ 	return ptep_get_and_clear(vma->vm_mm, addr, ptep);
+diff --git a/arch/arm64/mm/pageattr.c b/arch/arm64/mm/pageattr.c
+index 924843f1f661..73a5e8f82586 100644
+--- a/arch/arm64/mm/pageattr.c
++++ b/arch/arm64/mm/pageattr.c
+@@ -36,7 +36,7 @@ bool can_set_direct_map(void)
+ static int change_page_range(pte_t *ptep, unsigned long addr, void *data)
+ {
+ 	struct page_change_data *cdata = data;
+-	pte_t pte = READ_ONCE(*ptep);
++	pte_t pte = ptep_get(ptep);
+ 
+ 	pte = clear_pte_bit(pte, cdata->clear_mask);
+ 	pte = set_pte_bit(pte, cdata->set_mask);
+@@ -245,5 +245,5 @@ bool kernel_page_present(struct page *page)
+ 		return true;
+ 
+ 	ptep = pte_offset_kernel(pmdp, addr);
+-	return pte_valid(READ_ONCE(*ptep));
++	return pte_valid(ptep_get(ptep));
+ }
+diff --git a/arch/arm64/mm/trans_pgd.c b/arch/arm64/mm/trans_pgd.c
+index 7b14df3c6477..f71ab4704cce 100644
+--- a/arch/arm64/mm/trans_pgd.c
++++ b/arch/arm64/mm/trans_pgd.c
+@@ -33,7 +33,7 @@ static void *trans_alloc(struct trans_pgd_info *info)
+ 
+ static void _copy_pte(pte_t *dst_ptep, pte_t *src_ptep, unsigned long addr)
+ {
+-	pte_t pte = READ_ONCE(*src_ptep);
++	pte_t pte = ptep_get(src_ptep);
+ 
+ 	if (pte_valid(pte)) {
+ 		/*
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 8/18] arm64/mm: Convert set_pte_at() to set_ptes(..., 1)
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:55 +0000
+Message-Id: <20240215103205.2607016-9-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Since set_ptes() was introduced, set_pte_at() has been implemented as a
+generic macro around set_ptes(..., 1). So this change should continue to
+generate the same code. However, making this change prepares us for the
+transparent contpte support. It means we can reroute set_ptes() to
+__set_ptes(). Since set_pte_at() is a generic macro, there will be no
+equivalent __set_pte_at() to reroute to.
+
+Note that a couple of calls to set_pte_at() remain in the arch code.
+This is intentional, since those call sites are acting on behalf of
+core-mm and should continue to call into the public set_ptes() rather
+than the arch-private __set_ptes().
+
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+---
+ arch/arm64/include/asm/pgtable.h |  2 +-
+ arch/arm64/kernel/mte.c          |  2 +-
+ arch/arm64/kvm/guest.c           |  2 +-
+ arch/arm64/mm/fault.c            |  2 +-
+ arch/arm64/mm/hugetlbpage.c      | 10 +++++-----
+ 5 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index de034ca40bad..9a2df85eb493 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -1084,7 +1084,7 @@ static inline void arch_swap_restore(swp_entry_t entry, struct folio *folio)
+ #endif /* CONFIG_ARM64_MTE */
+ 
+ /*
+- * On AArch64, the cache coherency is handled via the set_pte_at() function.
++ * On AArch64, the cache coherency is handled via the set_ptes() function.
+  */
+ static inline void update_mmu_cache_range(struct vm_fault *vmf,
+ 		struct vm_area_struct *vma, unsigned long addr, pte_t *ptep,
+diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
+index a41ef3213e1e..59bfe2e96f8f 100644
+--- a/arch/arm64/kernel/mte.c
++++ b/arch/arm64/kernel/mte.c
+@@ -67,7 +67,7 @@ int memcmp_pages(struct page *page1, struct page *page2)
+ 	/*
+ 	 * If the page content is identical but at least one of the pages is
+ 	 * tagged, return non-zero to avoid KSM merging. If only one of the
+-	 * pages is tagged, set_pte_at() may zero or change the tags of the
++	 * pages is tagged, set_ptes() may zero or change the tags of the
+ 	 * other page via mte_sync_tags().
+ 	 */
+ 	if (page_mte_tagged(page1) || page_mte_tagged(page2))
+diff --git a/arch/arm64/kvm/guest.c b/arch/arm64/kvm/guest.c
+index aaf1d4939739..6e0df623c8e9 100644
+--- a/arch/arm64/kvm/guest.c
++++ b/arch/arm64/kvm/guest.c
+@@ -1072,7 +1072,7 @@ int kvm_vm_ioctl_mte_copy_tags(struct kvm *kvm,
+ 		} else {
+ 			/*
+ 			 * Only locking to serialise with a concurrent
+-			 * set_pte_at() in the VMM but still overriding the
++			 * set_ptes() in the VMM but still overriding the
+ 			 * tags, hence ignoring the return value.
+ 			 */
+ 			try_page_mte_tagging(page);
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index a254761fa1bd..3235e23309ec 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -205,7 +205,7 @@ static void show_pte(unsigned long addr)
+  *
+  * It needs to cope with hardware update of the accessed/dirty state by other
+  * agents in the system and can safely skip the __sync_icache_dcache() call as,
+- * like set_pte_at(), the PTE is never changed from no-exec to exec here.
++ * like set_ptes(), the PTE is never changed from no-exec to exec here.
+  *
+  * Returns whether or not the PTE actually changed.
+  */
+diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
+index 2892f925ed66..27f6160890d1 100644
+--- a/arch/arm64/mm/hugetlbpage.c
++++ b/arch/arm64/mm/hugetlbpage.c
+@@ -247,12 +247,12 @@ void set_huge_pte_at(struct mm_struct *mm, unsigned long addr,
+ 
+ 	if (!pte_present(pte)) {
+ 		for (i = 0; i < ncontig; i++, ptep++, addr += pgsize)
+-			set_pte_at(mm, addr, ptep, pte);
++			set_ptes(mm, addr, ptep, pte, 1);
+ 		return;
+ 	}
+ 
+ 	if (!pte_cont(pte)) {
+-		set_pte_at(mm, addr, ptep, pte);
++		set_ptes(mm, addr, ptep, pte, 1);
+ 		return;
+ 	}
+ 
+@@ -263,7 +263,7 @@ void set_huge_pte_at(struct mm_struct *mm, unsigned long addr,
+ 	clear_flush(mm, addr, ptep, pgsize, ncontig);
+ 
+ 	for (i = 0; i < ncontig; i++, ptep++, addr += pgsize, pfn += dpfn)
+-		set_pte_at(mm, addr, ptep, pfn_pte(pfn, hugeprot));
++		set_ptes(mm, addr, ptep, pfn_pte(pfn, hugeprot), 1);
+ }
+ 
+ pte_t *huge_pte_alloc(struct mm_struct *mm, struct vm_area_struct *vma,
+@@ -471,7 +471,7 @@ int huge_ptep_set_access_flags(struct vm_area_struct *vma,
+ 
+ 	hugeprot = pte_pgprot(pte);
+ 	for (i = 0; i < ncontig; i++, ptep++, addr += pgsize, pfn += dpfn)
+-		set_pte_at(mm, addr, ptep, pfn_pte(pfn, hugeprot));
++		set_ptes(mm, addr, ptep, pfn_pte(pfn, hugeprot), 1);
+ 
+ 	return 1;
+ }
+@@ -500,7 +500,7 @@ void huge_ptep_set_wrprotect(struct mm_struct *mm,
+ 	pfn = pte_pfn(pte);
+ 
+ 	for (i = 0; i < ncontig; i++, ptep++, addr += pgsize, pfn += dpfn)
+-		set_pte_at(mm, addr, ptep, pfn_pte(pfn, hugeprot));
++		set_ptes(mm, addr, ptep, pfn_pte(pfn, hugeprot), 1);
+ }
+ 
+ pte_t huge_ptep_clear_flush(struct vm_area_struct *vma,
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 9/18] arm64/mm: Convert ptep_clear() to ptep_get_and_clear()
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:56 +0000
+Message-Id: <20240215103205.2607016-10-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+ptep_clear() is a generic wrapper around the arch-implemented
+ptep_get_and_clear(). We are about to convert ptep_get_and_clear() into
+a public version and private version (__ptep_get_and_clear()) to support
+the transparent contpte work. We won't have a private version of
+ptep_clear() so let's convert it to directly call ptep_get_and_clear().
+
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+---
+ arch/arm64/mm/hugetlbpage.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
+index 27f6160890d1..48e8b429879d 100644
+--- a/arch/arm64/mm/hugetlbpage.c
++++ b/arch/arm64/mm/hugetlbpage.c
+@@ -229,7 +229,7 @@ static void clear_flush(struct mm_struct *mm,
+ 	unsigned long i, saddr = addr;
+ 
+ 	for (i = 0; i < ncontig; i++, addr += pgsize, ptep++)
+-		ptep_clear(mm, addr, ptep);
++		ptep_get_and_clear(mm, addr, ptep);
+ 
+ 	flush_tlb_range(&vma, saddr, addr);
+ }
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 10/18] arm64/mm: New ptep layer to manage contig bit
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:57 +0000
+Message-Id: <20240215103205.2607016-11-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Create a new layer for the in-table PTE manipulation APIs. For now, The
+existing API is prefixed with double underscore to become the
+arch-private API and the public API is just a simple wrapper that calls
+the private API.
+
+The public API implementation will subsequently be used to transparently
+manipulate the contiguous bit where appropriate. But since there are
+already some contig-aware users (e.g. hugetlb, kernel mapper), we must
+first ensure those users use the private API directly so that the future
+contig-bit manipulations in the public API do not interfere with those
+existing uses.
+
+The following APIs are treated this way:
+
+ - ptep_get
+ - set_pte
+ - set_ptes
+ - pte_clear
+ - ptep_get_and_clear
+ - ptep_test_and_clear_young
+ - ptep_clear_flush_young
+ - ptep_set_wrprotect
+ - ptep_set_access_flags
+
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/pgtable.h | 83 +++++++++++++++++---------------
+ arch/arm64/kernel/efi.c          |  4 +-
+ arch/arm64/kernel/mte.c          |  2 +-
+ arch/arm64/kvm/guest.c           |  2 +-
+ arch/arm64/mm/fault.c            | 12 ++---
+ arch/arm64/mm/fixmap.c           |  4 +-
+ arch/arm64/mm/hugetlbpage.c      | 40 +++++++--------
+ arch/arm64/mm/kasan_init.c       |  6 +--
+ arch/arm64/mm/mmu.c              | 14 +++---
+ arch/arm64/mm/pageattr.c         |  6 +--
+ arch/arm64/mm/trans_pgd.c        |  6 +--
+ 11 files changed, 93 insertions(+), 86 deletions(-)
+
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index 9a2df85eb493..7336d40a893a 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -93,7 +93,8 @@ static inline pteval_t __phys_to_pte_val(phys_addr_t phys)
+ 	__pte(__phys_to_pte_val((phys_addr_t)(pfn) << PAGE_SHIFT) | pgprot_val(prot))
+ 
+ #define pte_none(pte)		(!pte_val(pte))
+-#define pte_clear(mm,addr,ptep)	set_pte(ptep, __pte(0))
++#define __pte_clear(mm, addr, ptep) \
++				__set_pte(ptep, __pte(0))
+ #define pte_page(pte)		(pfn_to_page(pte_pfn(pte)))
+ 
+ /*
+@@ -137,7 +138,7 @@ static inline pteval_t __phys_to_pte_val(phys_addr_t phys)
+  * so that we don't erroneously return false for pages that have been
+  * remapped as PROT_NONE but are yet to be flushed from the TLB.
+  * Note that we can't make any assumptions based on the state of the access
+- * flag, since ptep_clear_flush_young() elides a DSB when invalidating the
++ * flag, since __ptep_clear_flush_young() elides a DSB when invalidating the
+  * TLB.
+  */
+ #define pte_accessible(mm, pte)	\
+@@ -261,7 +262,7 @@ static inline pte_t pte_mkdevmap(pte_t pte)
+ 	return set_pte_bit(pte, __pgprot(PTE_DEVMAP | PTE_SPECIAL));
+ }
+ 
+-static inline void set_pte(pte_t *ptep, pte_t pte)
++static inline void __set_pte(pte_t *ptep, pte_t pte)
+ {
+ 	WRITE_ONCE(*ptep, pte);
+ 
+@@ -275,8 +276,7 @@ static inline void set_pte(pte_t *ptep, pte_t pte)
+ 	}
+ }
+ 
+-#define ptep_get ptep_get
+-static inline pte_t ptep_get(pte_t *ptep)
++static inline pte_t __ptep_get(pte_t *ptep)
+ {
+ 	return READ_ONCE(*ptep);
+ }
+@@ -308,7 +308,7 @@ static inline void __check_safe_pte_update(struct mm_struct *mm, pte_t *ptep,
+ 	if (!IS_ENABLED(CONFIG_DEBUG_VM))
+ 		return;
+ 
+-	old_pte = ptep_get(ptep);
++	old_pte = __ptep_get(ptep);
+ 
+ 	if (!pte_valid(old_pte) || !pte_valid(pte))
+ 		return;
+@@ -317,7 +317,7 @@ static inline void __check_safe_pte_update(struct mm_struct *mm, pte_t *ptep,
+ 
+ 	/*
+ 	 * Check for potential race with hardware updates of the pte
+-	 * (ptep_set_access_flags safely changes valid ptes without going
++	 * (__ptep_set_access_flags safely changes valid ptes without going
+ 	 * through an invalid entry).
+ 	 */
+ 	VM_WARN_ONCE(!pte_young(pte),
+@@ -363,23 +363,22 @@ static inline pte_t pte_advance_pfn(pte_t pte, unsigned long nr)
+ 	return pfn_pte(pte_pfn(pte) + nr, pte_pgprot(pte));
+ }
+ 
+-static inline void set_ptes(struct mm_struct *mm,
+-			    unsigned long __always_unused addr,
+-			    pte_t *ptep, pte_t pte, unsigned int nr)
++static inline void __set_ptes(struct mm_struct *mm,
++			      unsigned long __always_unused addr,
++			      pte_t *ptep, pte_t pte, unsigned int nr)
+ {
+ 	page_table_check_ptes_set(mm, ptep, pte, nr);
+ 	__sync_cache_and_tags(pte, nr);
+ 
+ 	for (;;) {
+ 		__check_safe_pte_update(mm, ptep, pte);
+-		set_pte(ptep, pte);
++		__set_pte(ptep, pte);
+ 		if (--nr == 0)
+ 			break;
+ 		ptep++;
+ 		pte = pte_advance_pfn(pte, 1);
+ 	}
+ }
+-#define set_ptes set_ptes
+ 
+ /*
+  * Huge pte definitions.
+@@ -546,7 +545,7 @@ static inline void __set_pte_at(struct mm_struct *mm,
+ {
+ 	__sync_cache_and_tags(pte, nr);
+ 	__check_safe_pte_update(mm, ptep, pte);
+-	set_pte(ptep, pte);
++	__set_pte(ptep, pte);
+ }
+ 
+ static inline void set_pmd_at(struct mm_struct *mm, unsigned long addr,
+@@ -860,8 +859,7 @@ static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
+ 	return pte_pmd(pte_modify(pmd_pte(pmd), newprot));
+ }
+ 
+-#define __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
+-extern int ptep_set_access_flags(struct vm_area_struct *vma,
++extern int __ptep_set_access_flags(struct vm_area_struct *vma,
+ 				 unsigned long address, pte_t *ptep,
+ 				 pte_t entry, int dirty);
+ 
+@@ -871,7 +869,8 @@ static inline int pmdp_set_access_flags(struct vm_area_struct *vma,
+ 					unsigned long address, pmd_t *pmdp,
+ 					pmd_t entry, int dirty)
+ {
+-	return ptep_set_access_flags(vma, address, (pte_t *)pmdp, pmd_pte(entry), dirty);
++	return __ptep_set_access_flags(vma, address, (pte_t *)pmdp,
++							pmd_pte(entry), dirty);
+ }
+ 
+ static inline int pud_devmap(pud_t pud)
+@@ -905,12 +904,13 @@ static inline bool pud_user_accessible_page(pud_t pud)
+ /*
+  * Atomic pte/pmd modifications.
+  */
+-#define __HAVE_ARCH_PTEP_TEST_AND_CLEAR_YOUNG
+-static inline int __ptep_test_and_clear_young(pte_t *ptep)
++static inline int __ptep_test_and_clear_young(struct vm_area_struct *vma,
++					      unsigned long address,
++					      pte_t *ptep)
+ {
+ 	pte_t old_pte, pte;
+ 
+-	pte = ptep_get(ptep);
++	pte = __ptep_get(ptep);
+ 	do {
+ 		old_pte = pte;
+ 		pte = pte_mkold(pte);
+@@ -921,18 +921,10 @@ static inline int __ptep_test_and_clear_young(pte_t *ptep)
+ 	return pte_young(pte);
+ }
+ 
+-static inline int ptep_test_and_clear_young(struct vm_area_struct *vma,
+-					    unsigned long address,
+-					    pte_t *ptep)
+-{
+-	return __ptep_test_and_clear_young(ptep);
+-}
+-
+-#define __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
+-static inline int ptep_clear_flush_young(struct vm_area_struct *vma,
++static inline int __ptep_clear_flush_young(struct vm_area_struct *vma,
+ 					 unsigned long address, pte_t *ptep)
+ {
+-	int young = ptep_test_and_clear_young(vma, address, ptep);
++	int young = __ptep_test_and_clear_young(vma, address, ptep);
+ 
+ 	if (young) {
+ 		/*
+@@ -955,12 +947,11 @@ static inline int pmdp_test_and_clear_young(struct vm_area_struct *vma,
+ 					    unsigned long address,
+ 					    pmd_t *pmdp)
+ {
+-	return ptep_test_and_clear_young(vma, address, (pte_t *)pmdp);
++	return __ptep_test_and_clear_young(vma, address, (pte_t *)pmdp);
+ }
+ #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ 
+-#define __HAVE_ARCH_PTEP_GET_AND_CLEAR
+-static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
++static inline pte_t __ptep_get_and_clear(struct mm_struct *mm,
+ 				       unsigned long address, pte_t *ptep)
+ {
+ 	pte_t pte = __pte(xchg_relaxed(&pte_val(*ptep), 0));
+@@ -984,15 +975,15 @@ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
+ #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ 
+ /*
+- * ptep_set_wrprotect - mark read-only while trasferring potential hardware
++ * __ptep_set_wrprotect - mark read-only while trasferring potential hardware
+  * dirty status (PTE_DBM && !PTE_RDONLY) to the software PTE_DIRTY bit.
+  */
+-#define __HAVE_ARCH_PTEP_SET_WRPROTECT
+-static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long address, pte_t *ptep)
++static inline void __ptep_set_wrprotect(struct mm_struct *mm,
++					unsigned long address, pte_t *ptep)
+ {
+ 	pte_t old_pte, pte;
+ 
+-	pte = ptep_get(ptep);
++	pte = __ptep_get(ptep);
+ 	do {
+ 		old_pte = pte;
+ 		pte = pte_wrprotect(pte);
+@@ -1006,7 +997,7 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long addres
+ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
+ 				      unsigned long address, pmd_t *pmdp)
+ {
+-	ptep_set_wrprotect(mm, address, (pte_t *)pmdp);
++	__ptep_set_wrprotect(mm, address, (pte_t *)pmdp);
+ }
+ 
+ #define pmdp_establish pmdp_establish
+@@ -1084,7 +1075,7 @@ static inline void arch_swap_restore(swp_entry_t entry, struct folio *folio)
+ #endif /* CONFIG_ARM64_MTE */
+ 
+ /*
+- * On AArch64, the cache coherency is handled via the set_ptes() function.
++ * On AArch64, the cache coherency is handled via the __set_ptes() function.
+  */
+ static inline void update_mmu_cache_range(struct vm_fault *vmf,
+ 		struct vm_area_struct *vma, unsigned long addr, pte_t *ptep,
+@@ -1136,6 +1127,22 @@ extern pte_t ptep_modify_prot_start(struct vm_area_struct *vma,
+ extern void ptep_modify_prot_commit(struct vm_area_struct *vma,
+ 				    unsigned long addr, pte_t *ptep,
+ 				    pte_t old_pte, pte_t new_pte);
++
++#define ptep_get				__ptep_get
++#define set_pte					__set_pte
++#define set_ptes				__set_ptes
++#define pte_clear				__pte_clear
++#define __HAVE_ARCH_PTEP_GET_AND_CLEAR
++#define ptep_get_and_clear			__ptep_get_and_clear
++#define __HAVE_ARCH_PTEP_TEST_AND_CLEAR_YOUNG
++#define ptep_test_and_clear_young		__ptep_test_and_clear_young
++#define __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
++#define ptep_clear_flush_young			__ptep_clear_flush_young
++#define __HAVE_ARCH_PTEP_SET_WRPROTECT
++#define ptep_set_wrprotect			__ptep_set_wrprotect
++#define __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
++#define ptep_set_access_flags			__ptep_set_access_flags
++
+ #endif /* !__ASSEMBLY__ */
+ 
+ #endif /* __ASM_PGTABLE_H */
+diff --git a/arch/arm64/kernel/efi.c b/arch/arm64/kernel/efi.c
+index d0e08e93b246..9afcc690fe73 100644
+--- a/arch/arm64/kernel/efi.c
++++ b/arch/arm64/kernel/efi.c
+@@ -103,7 +103,7 @@ static int __init set_permissions(pte_t *ptep, unsigned long addr, void *data)
+ {
+ 	struct set_perm_data *spd = data;
+ 	const efi_memory_desc_t *md = spd->md;
+-	pte_t pte = ptep_get(ptep);
++	pte_t pte = __ptep_get(ptep);
+ 
+ 	if (md->attribute & EFI_MEMORY_RO)
+ 		pte = set_pte_bit(pte, __pgprot(PTE_RDONLY));
+@@ -111,7 +111,7 @@ static int __init set_permissions(pte_t *ptep, unsigned long addr, void *data)
+ 		pte = set_pte_bit(pte, __pgprot(PTE_PXN));
+ 	else if (system_supports_bti_kernel() && spd->has_bti)
+ 		pte = set_pte_bit(pte, __pgprot(PTE_GP));
+-	set_pte(ptep, pte);
++	__set_pte(ptep, pte);
+ 	return 0;
+ }
+ 
+diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
+index 59bfe2e96f8f..dcdcccd40891 100644
+--- a/arch/arm64/kernel/mte.c
++++ b/arch/arm64/kernel/mte.c
+@@ -67,7 +67,7 @@ int memcmp_pages(struct page *page1, struct page *page2)
+ 	/*
+ 	 * If the page content is identical but at least one of the pages is
+ 	 * tagged, return non-zero to avoid KSM merging. If only one of the
+-	 * pages is tagged, set_ptes() may zero or change the tags of the
++	 * pages is tagged, __set_ptes() may zero or change the tags of the
+ 	 * other page via mte_sync_tags().
+ 	 */
+ 	if (page_mte_tagged(page1) || page_mte_tagged(page2))
+diff --git a/arch/arm64/kvm/guest.c b/arch/arm64/kvm/guest.c
+index 6e0df623c8e9..629145fd3161 100644
+--- a/arch/arm64/kvm/guest.c
++++ b/arch/arm64/kvm/guest.c
+@@ -1072,7 +1072,7 @@ int kvm_vm_ioctl_mte_copy_tags(struct kvm *kvm,
+ 		} else {
+ 			/*
+ 			 * Only locking to serialise with a concurrent
+-			 * set_ptes() in the VMM but still overriding the
++			 * __set_ptes() in the VMM but still overriding the
+ 			 * tags, hence ignoring the return value.
+ 			 */
+ 			try_page_mte_tagging(page);
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 3235e23309ec..9a1c66183d16 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -191,7 +191,7 @@ static void show_pte(unsigned long addr)
+ 		if (!ptep)
+ 			break;
+ 
+-		pte = ptep_get(ptep);
++		pte = __ptep_get(ptep);
+ 		pr_cont(", pte=%016llx", pte_val(pte));
+ 		pte_unmap(ptep);
+ 	} while(0);
+@@ -205,16 +205,16 @@ static void show_pte(unsigned long addr)
+  *
+  * It needs to cope with hardware update of the accessed/dirty state by other
+  * agents in the system and can safely skip the __sync_icache_dcache() call as,
+- * like set_ptes(), the PTE is never changed from no-exec to exec here.
++ * like __set_ptes(), the PTE is never changed from no-exec to exec here.
+  *
+  * Returns whether or not the PTE actually changed.
+  */
+-int ptep_set_access_flags(struct vm_area_struct *vma,
+-			  unsigned long address, pte_t *ptep,
+-			  pte_t entry, int dirty)
++int __ptep_set_access_flags(struct vm_area_struct *vma,
++			    unsigned long address, pte_t *ptep,
++			    pte_t entry, int dirty)
+ {
+ 	pteval_t old_pteval, pteval;
+-	pte_t pte = ptep_get(ptep);
++	pte_t pte = __ptep_get(ptep);
+ 
+ 	if (pte_same(pte, entry))
+ 		return 0;
+diff --git a/arch/arm64/mm/fixmap.c b/arch/arm64/mm/fixmap.c
+index c0a3301203bd..bfc02568805a 100644
+--- a/arch/arm64/mm/fixmap.c
++++ b/arch/arm64/mm/fixmap.c
+@@ -121,9 +121,9 @@ void __set_fixmap(enum fixed_addresses idx,
+ 	ptep = fixmap_pte(addr);
+ 
+ 	if (pgprot_val(flags)) {
+-		set_pte(ptep, pfn_pte(phys >> PAGE_SHIFT, flags));
++		__set_pte(ptep, pfn_pte(phys >> PAGE_SHIFT, flags));
+ 	} else {
+-		pte_clear(&init_mm, addr, ptep);
++		__pte_clear(&init_mm, addr, ptep);
+ 		flush_tlb_kernel_range(addr, addr+PAGE_SIZE);
+ 	}
+ }
+diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
+index 48e8b429879d..0f0e10bb0a95 100644
+--- a/arch/arm64/mm/hugetlbpage.c
++++ b/arch/arm64/mm/hugetlbpage.c
+@@ -145,14 +145,14 @@ pte_t huge_ptep_get(pte_t *ptep)
+ {
+ 	int ncontig, i;
+ 	size_t pgsize;
+-	pte_t orig_pte = ptep_get(ptep);
++	pte_t orig_pte = __ptep_get(ptep);
+ 
+ 	if (!pte_present(orig_pte) || !pte_cont(orig_pte))
+ 		return orig_pte;
+ 
+ 	ncontig = num_contig_ptes(page_size(pte_page(orig_pte)), &pgsize);
+ 	for (i = 0; i < ncontig; i++, ptep++) {
+-		pte_t pte = ptep_get(ptep);
++		pte_t pte = __ptep_get(ptep);
+ 
+ 		if (pte_dirty(pte))
+ 			orig_pte = pte_mkdirty(orig_pte);
+@@ -177,11 +177,11 @@ static pte_t get_clear_contig(struct mm_struct *mm,
+ 			     unsigned long pgsize,
+ 			     unsigned long ncontig)
+ {
+-	pte_t orig_pte = ptep_get(ptep);
++	pte_t orig_pte = __ptep_get(ptep);
+ 	unsigned long i;
+ 
+ 	for (i = 0; i < ncontig; i++, addr += pgsize, ptep++) {
+-		pte_t pte = ptep_get_and_clear(mm, addr, ptep);
++		pte_t pte = __ptep_get_and_clear(mm, addr, ptep);
+ 
+ 		/*
+ 		 * If HW_AFDBM is enabled, then the HW could turn on
+@@ -229,7 +229,7 @@ static void clear_flush(struct mm_struct *mm,
+ 	unsigned long i, saddr = addr;
+ 
+ 	for (i = 0; i < ncontig; i++, addr += pgsize, ptep++)
+-		ptep_get_and_clear(mm, addr, ptep);
++		__ptep_get_and_clear(mm, addr, ptep);
+ 
+ 	flush_tlb_range(&vma, saddr, addr);
+ }
+@@ -247,12 +247,12 @@ void set_huge_pte_at(struct mm_struct *mm, unsigned long addr,
+ 
+ 	if (!pte_present(pte)) {
+ 		for (i = 0; i < ncontig; i++, ptep++, addr += pgsize)
+-			set_ptes(mm, addr, ptep, pte, 1);
++			__set_ptes(mm, addr, ptep, pte, 1);
+ 		return;
+ 	}
+ 
+ 	if (!pte_cont(pte)) {
+-		set_ptes(mm, addr, ptep, pte, 1);
++		__set_ptes(mm, addr, ptep, pte, 1);
+ 		return;
+ 	}
+ 
+@@ -263,7 +263,7 @@ void set_huge_pte_at(struct mm_struct *mm, unsigned long addr,
+ 	clear_flush(mm, addr, ptep, pgsize, ncontig);
+ 
+ 	for (i = 0; i < ncontig; i++, ptep++, addr += pgsize, pfn += dpfn)
+-		set_ptes(mm, addr, ptep, pfn_pte(pfn, hugeprot), 1);
++		__set_ptes(mm, addr, ptep, pfn_pte(pfn, hugeprot), 1);
+ }
+ 
+ pte_t *huge_pte_alloc(struct mm_struct *mm, struct vm_area_struct *vma,
+@@ -393,7 +393,7 @@ void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
+ 	ncontig = num_contig_ptes(sz, &pgsize);
+ 
+ 	for (i = 0; i < ncontig; i++, addr += pgsize, ptep++)
+-		pte_clear(mm, addr, ptep);
++		__pte_clear(mm, addr, ptep);
+ }
+ 
+ pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
+@@ -401,10 +401,10 @@ pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
+ {
+ 	int ncontig;
+ 	size_t pgsize;
+-	pte_t orig_pte = ptep_get(ptep);
++	pte_t orig_pte = __ptep_get(ptep);
+ 
+ 	if (!pte_cont(orig_pte))
+-		return ptep_get_and_clear(mm, addr, ptep);
++		return __ptep_get_and_clear(mm, addr, ptep);
+ 
+ 	ncontig = find_num_contig(mm, addr, ptep, &pgsize);
+ 
+@@ -424,11 +424,11 @@ static int __cont_access_flags_changed(pte_t *ptep, pte_t pte, int ncontig)
+ {
+ 	int i;
+ 
+-	if (pte_write(pte) != pte_write(ptep_get(ptep)))
++	if (pte_write(pte) != pte_write(__ptep_get(ptep)))
+ 		return 1;
+ 
+ 	for (i = 0; i < ncontig; i++) {
+-		pte_t orig_pte = ptep_get(ptep + i);
++		pte_t orig_pte = __ptep_get(ptep + i);
+ 
+ 		if (pte_dirty(pte) != pte_dirty(orig_pte))
+ 			return 1;
+@@ -452,7 +452,7 @@ int huge_ptep_set_access_flags(struct vm_area_struct *vma,
+ 	pte_t orig_pte;
+ 
+ 	if (!pte_cont(pte))
+-		return ptep_set_access_flags(vma, addr, ptep, pte, dirty);
++		return __ptep_set_access_flags(vma, addr, ptep, pte, dirty);
+ 
+ 	ncontig = find_num_contig(mm, addr, ptep, &pgsize);
+ 	dpfn = pgsize >> PAGE_SHIFT;
+@@ -471,7 +471,7 @@ int huge_ptep_set_access_flags(struct vm_area_struct *vma,
+ 
+ 	hugeprot = pte_pgprot(pte);
+ 	for (i = 0; i < ncontig; i++, ptep++, addr += pgsize, pfn += dpfn)
+-		set_ptes(mm, addr, ptep, pfn_pte(pfn, hugeprot), 1);
++		__set_ptes(mm, addr, ptep, pfn_pte(pfn, hugeprot), 1);
+ 
+ 	return 1;
+ }
+@@ -485,8 +485,8 @@ void huge_ptep_set_wrprotect(struct mm_struct *mm,
+ 	size_t pgsize;
+ 	pte_t pte;
+ 
+-	if (!pte_cont(ptep_get(ptep))) {
+-		ptep_set_wrprotect(mm, addr, ptep);
++	if (!pte_cont(__ptep_get(ptep))) {
++		__ptep_set_wrprotect(mm, addr, ptep);
+ 		return;
+ 	}
+ 
+@@ -500,7 +500,7 @@ void huge_ptep_set_wrprotect(struct mm_struct *mm,
+ 	pfn = pte_pfn(pte);
+ 
+ 	for (i = 0; i < ncontig; i++, ptep++, addr += pgsize, pfn += dpfn)
+-		set_ptes(mm, addr, ptep, pfn_pte(pfn, hugeprot), 1);
++		__set_ptes(mm, addr, ptep, pfn_pte(pfn, hugeprot), 1);
+ }
+ 
+ pte_t huge_ptep_clear_flush(struct vm_area_struct *vma,
+@@ -510,7 +510,7 @@ pte_t huge_ptep_clear_flush(struct vm_area_struct *vma,
+ 	size_t pgsize;
+ 	int ncontig;
+ 
+-	if (!pte_cont(ptep_get(ptep)))
++	if (!pte_cont(__ptep_get(ptep)))
+ 		return ptep_clear_flush(vma, addr, ptep);
+ 
+ 	ncontig = find_num_contig(mm, addr, ptep, &pgsize);
+@@ -543,7 +543,7 @@ pte_t huge_ptep_modify_prot_start(struct vm_area_struct *vma, unsigned long addr
+ 		 * when the permission changes from executable to non-executable
+ 		 * in cases where cpu is affected with errata #2645198.
+ 		 */
+-		if (pte_user_exec(ptep_get(ptep)))
++		if (pte_user_exec(__ptep_get(ptep)))
+ 			return huge_ptep_clear_flush(vma, addr, ptep);
+ 	}
+ 	return huge_ptep_get_and_clear(vma->vm_mm, addr, ptep);
+diff --git a/arch/arm64/mm/kasan_init.c b/arch/arm64/mm/kasan_init.c
+index c2a9f4f6c7dd..9ee16cfce587 100644
+--- a/arch/arm64/mm/kasan_init.c
++++ b/arch/arm64/mm/kasan_init.c
+@@ -112,8 +112,8 @@ static void __init kasan_pte_populate(pmd_t *pmdp, unsigned long addr,
+ 		if (!early)
+ 			memset(__va(page_phys), KASAN_SHADOW_INIT, PAGE_SIZE);
+ 		next = addr + PAGE_SIZE;
+-		set_pte(ptep, pfn_pte(__phys_to_pfn(page_phys), PAGE_KERNEL));
+-	} while (ptep++, addr = next, addr != end && pte_none(ptep_get(ptep)));
++		__set_pte(ptep, pfn_pte(__phys_to_pfn(page_phys), PAGE_KERNEL));
++	} while (ptep++, addr = next, addr != end && pte_none(__ptep_get(ptep)));
+ }
+ 
+ static void __init kasan_pmd_populate(pud_t *pudp, unsigned long addr,
+@@ -271,7 +271,7 @@ static void __init kasan_init_shadow(void)
+ 	 * so we should make sure that it maps the zero page read-only.
+ 	 */
+ 	for (i = 0; i < PTRS_PER_PTE; i++)
+-		set_pte(&kasan_early_shadow_pte[i],
++		__set_pte(&kasan_early_shadow_pte[i],
+ 			pfn_pte(sym_to_pfn(kasan_early_shadow_page),
+ 				PAGE_KERNEL_RO));
+ 
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index 343629a17042..6208c7541f87 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -173,16 +173,16 @@ static void init_pte(pmd_t *pmdp, unsigned long addr, unsigned long end,
+ 
+ 	ptep = pte_set_fixmap_offset(pmdp, addr);
+ 	do {
+-		pte_t old_pte = ptep_get(ptep);
++		pte_t old_pte = __ptep_get(ptep);
+ 
+-		set_pte(ptep, pfn_pte(__phys_to_pfn(phys), prot));
++		__set_pte(ptep, pfn_pte(__phys_to_pfn(phys), prot));
+ 
+ 		/*
+ 		 * After the PTE entry has been populated once, we
+ 		 * only allow updates to the permission attributes.
+ 		 */
+ 		BUG_ON(!pgattr_change_is_safe(pte_val(old_pte),
+-					      pte_val(ptep_get(ptep))));
++					      pte_val(__ptep_get(ptep))));
+ 
+ 		phys += PAGE_SIZE;
+ 	} while (ptep++, addr += PAGE_SIZE, addr != end);
+@@ -852,12 +852,12 @@ static void unmap_hotplug_pte_range(pmd_t *pmdp, unsigned long addr,
+ 
+ 	do {
+ 		ptep = pte_offset_kernel(pmdp, addr);
+-		pte = ptep_get(ptep);
++		pte = __ptep_get(ptep);
+ 		if (pte_none(pte))
+ 			continue;
+ 
+ 		WARN_ON(!pte_present(pte));
+-		pte_clear(&init_mm, addr, ptep);
++		__pte_clear(&init_mm, addr, ptep);
+ 		flush_tlb_kernel_range(addr, addr + PAGE_SIZE);
+ 		if (free_mapped)
+ 			free_hotplug_page_range(pte_page(pte),
+@@ -985,7 +985,7 @@ static void free_empty_pte_table(pmd_t *pmdp, unsigned long addr,
+ 
+ 	do {
+ 		ptep = pte_offset_kernel(pmdp, addr);
+-		pte = ptep_get(ptep);
++		pte = __ptep_get(ptep);
+ 
+ 		/*
+ 		 * This is just a sanity check here which verifies that
+@@ -1004,7 +1004,7 @@ static void free_empty_pte_table(pmd_t *pmdp, unsigned long addr,
+ 	 */
+ 	ptep = pte_offset_kernel(pmdp, 0UL);
+ 	for (i = 0; i < PTRS_PER_PTE; i++) {
+-		if (!pte_none(ptep_get(&ptep[i])))
++		if (!pte_none(__ptep_get(&ptep[i])))
+ 			return;
+ 	}
+ 
+diff --git a/arch/arm64/mm/pageattr.c b/arch/arm64/mm/pageattr.c
+index 73a5e8f82586..0c4e3ecf989d 100644
+--- a/arch/arm64/mm/pageattr.c
++++ b/arch/arm64/mm/pageattr.c
+@@ -36,12 +36,12 @@ bool can_set_direct_map(void)
+ static int change_page_range(pte_t *ptep, unsigned long addr, void *data)
+ {
+ 	struct page_change_data *cdata = data;
+-	pte_t pte = ptep_get(ptep);
++	pte_t pte = __ptep_get(ptep);
+ 
+ 	pte = clear_pte_bit(pte, cdata->clear_mask);
+ 	pte = set_pte_bit(pte, cdata->set_mask);
+ 
+-	set_pte(ptep, pte);
++	__set_pte(ptep, pte);
+ 	return 0;
+ }
+ 
+@@ -245,5 +245,5 @@ bool kernel_page_present(struct page *page)
+ 		return true;
+ 
+ 	ptep = pte_offset_kernel(pmdp, addr);
+-	return pte_valid(ptep_get(ptep));
++	return pte_valid(__ptep_get(ptep));
+ }
+diff --git a/arch/arm64/mm/trans_pgd.c b/arch/arm64/mm/trans_pgd.c
+index f71ab4704cce..5139a28130c0 100644
+--- a/arch/arm64/mm/trans_pgd.c
++++ b/arch/arm64/mm/trans_pgd.c
+@@ -33,7 +33,7 @@ static void *trans_alloc(struct trans_pgd_info *info)
+ 
+ static void _copy_pte(pte_t *dst_ptep, pte_t *src_ptep, unsigned long addr)
+ {
+-	pte_t pte = ptep_get(src_ptep);
++	pte_t pte = __ptep_get(src_ptep);
+ 
+ 	if (pte_valid(pte)) {
+ 		/*
+@@ -41,7 +41,7 @@ static void _copy_pte(pte_t *dst_ptep, pte_t *src_ptep, unsigned long addr)
+ 		 * read only (code, rodata). Clear the RDONLY bit from
+ 		 * the temporary mappings we use during restore.
+ 		 */
+-		set_pte(dst_ptep, pte_mkwrite_novma(pte));
++		__set_pte(dst_ptep, pte_mkwrite_novma(pte));
+ 	} else if ((debug_pagealloc_enabled() ||
+ 		   is_kfence_address((void *)addr)) && !pte_none(pte)) {
+ 		/*
+@@ -55,7 +55,7 @@ static void _copy_pte(pte_t *dst_ptep, pte_t *src_ptep, unsigned long addr)
+ 		 */
+ 		BUG_ON(!pfn_valid(pte_pfn(pte)));
+ 
+-		set_pte(dst_ptep, pte_mkpresent(pte_mkwrite_novma(pte)));
++		__set_pte(dst_ptep, pte_mkpresent(pte_mkwrite_novma(pte)));
+ 	}
+ }
+ 
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 11/18] arm64/mm: Split __flush_tlb_range() to elide trailing DSB
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:58 +0000
+Message-Id: <20240215103205.2607016-12-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Split __flush_tlb_range() into __flush_tlb_range_nosync() +
+__flush_tlb_range(), in the same way as the existing flush_tlb_page()
+arrangement. This allows calling __flush_tlb_range_nosync() to elide the
+trailing DSB. Forthcoming "contpte" code will take advantage of this
+when clearing the young bit from a contiguous range of ptes.
+
+Ordering between dsb and mmu_notifier_arch_invalidate_secondary_tlbs()
+has changed, but now aligns with the ordering of __flush_tlb_page(). It
+has been discussed that __flush_tlb_page() may be wrong though.
+Regardless, both will be resolved separately if needed.
+
+Reviewed-by: David Hildenbrand <david@redhat.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+---
+ arch/arm64/include/asm/tlbflush.h | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+index 1deb5d789c2e..3b0e8248e1a4 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -422,7 +422,7 @@ do {									\
+ #define __flush_s2_tlb_range_op(op, start, pages, stride, tlb_level) \
+ 	__flush_tlb_range_op(op, start, pages, stride, 0, tlb_level, false, kvm_lpa2_is_enabled());
+ 
+-static inline void __flush_tlb_range(struct vm_area_struct *vma,
++static inline void __flush_tlb_range_nosync(struct vm_area_struct *vma,
+ 				     unsigned long start, unsigned long end,
+ 				     unsigned long stride, bool last_level,
+ 				     int tlb_level)
+@@ -456,10 +456,19 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+ 		__flush_tlb_range_op(vae1is, start, pages, stride, asid,
+ 				     tlb_level, true, lpa2_is_enabled());
+ 
+-	dsb(ish);
+ 	mmu_notifier_arch_invalidate_secondary_tlbs(vma->vm_mm, start, end);
+ }
+ 
++static inline void __flush_tlb_range(struct vm_area_struct *vma,
++				     unsigned long start, unsigned long end,
++				     unsigned long stride, bool last_level,
++				     int tlb_level)
++{
++	__flush_tlb_range_nosync(vma, start, end, stride,
++				 last_level, tlb_level);
++	dsb(ish);
++}
++
+ static inline void flush_tlb_range(struct vm_area_struct *vma,
+ 				   unsigned long start, unsigned long end)
+ {
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 12/18] arm64/mm: Wire up PTE_CONT for user mappings
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:31:59 +0000
+Message-Id: <20240215103205.2607016-13-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+With the ptep API sufficiently refactored, we can now introduce a new
+"contpte" API layer, which transparently manages the PTE_CONT bit for
+user mappings.
+
+In this initial implementation, only suitable batches of PTEs, set via
+set_ptes(), are mapped with the PTE_CONT bit. Any subsequent
+modification of individual PTEs will cause an "unfold" operation to
+repaint the contpte block as individual PTEs before performing the
+requested operation. While, a modification of a single PTE could cause
+the block of PTEs to which it belongs to become eligible for "folding"
+into a contpte entry, "folding" is not performed in this initial
+implementation due to the costs of checking the requirements are met.
+Due to this, contpte mappings will degrade back to normal pte mappings
+over time if/when protections are changed. This will be solved in a
+future patch.
+
+Since a contpte block only has a single access and dirty bit, the
+semantic here changes slightly; when getting a pte (e.g. ptep_get())
+that is part of a contpte mapping, the access and dirty information are
+pulled from the block (so all ptes in the block return the same
+access/dirty info). When changing the access/dirty info on a pte (e.g.
+ptep_set_access_flags()) that is part of a contpte mapping, this change
+will affect the whole contpte block. This is works fine in practice
+since we guarantee that only a single folio is mapped by a contpte
+block, and the core-mm tracks access/dirty information per folio.
+
+In order for the public functions, which used to be pure inline, to
+continue to be callable by modules, export all the contpte_* symbols
+that are now called by those public inline functions.
+
+The feature is enabled/disabled with the ARM64_CONTPTE Kconfig parameter
+at build time. It defaults to enabled as long as its dependency,
+TRANSPARENT_HUGEPAGE is also enabled. The core-mm depends upon
+TRANSPARENT_HUGEPAGE to be able to allocate large folios, so if its not
+enabled, then there is no chance of meeting the physical contiguity
+requirement for contpte mappings.
+
+Acked-by: Ard Biesheuvel <ardb@kernel.org>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/Kconfig               |   9 +
+ arch/arm64/include/asm/pgtable.h | 167 ++++++++++++++++++
+ arch/arm64/mm/Makefile           |   1 +
+ arch/arm64/mm/contpte.c          | 285 +++++++++++++++++++++++++++++++
+ include/linux/efi.h              |   5 +
+ 5 files changed, 467 insertions(+)
+ create mode 100644 arch/arm64/mm/contpte.c
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index e8275a40afbd..5a7ac1f37bdc 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2229,6 +2229,15 @@ config UNWIND_PATCH_PAC_INTO_SCS
+ 	select UNWIND_TABLES
+ 	select DYNAMIC_SCS
+ 
++config ARM64_CONTPTE
++	bool "Contiguous PTE mappings for user memory" if EXPERT
++	depends on TRANSPARENT_HUGEPAGE
++	default y
++	help
++	  When enabled, user mappings are configured using the PTE contiguous
++	  bit, for any mappings that meet the size and alignment requirements.
++	  This reduces TLB pressure and improves performance.
++
+ endmenu # "Kernel Features"
+ 
+ menu "Boot options"
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index 7336d40a893a..831099cfc96b 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -133,6 +133,10 @@ static inline pteval_t __phys_to_pte_val(phys_addr_t phys)
+  */
+ #define pte_valid_not_user(pte) \
+ 	((pte_val(pte) & (PTE_VALID | PTE_USER | PTE_UXN)) == (PTE_VALID | PTE_UXN))
++/*
++ * Returns true if the pte is valid and has the contiguous bit set.
++ */
++#define pte_valid_cont(pte)	(pte_valid(pte) && pte_cont(pte))
+ /*
+  * Could the pte be present in the TLB? We must check mm_tlb_flush_pending
+  * so that we don't erroneously return false for pages that have been
+@@ -1128,6 +1132,167 @@ extern void ptep_modify_prot_commit(struct vm_area_struct *vma,
+ 				    unsigned long addr, pte_t *ptep,
+ 				    pte_t old_pte, pte_t new_pte);
+ 
++#ifdef CONFIG_ARM64_CONTPTE
++
++/*
++ * The contpte APIs are used to transparently manage the contiguous bit in ptes
++ * where it is possible and makes sense to do so. The PTE_CONT bit is considered
++ * a private implementation detail of the public ptep API (see below).
++ */
++extern void __contpte_try_unfold(struct mm_struct *mm, unsigned long addr,
++				pte_t *ptep, pte_t pte);
++extern pte_t contpte_ptep_get(pte_t *ptep, pte_t orig_pte);
++extern pte_t contpte_ptep_get_lockless(pte_t *orig_ptep);
++extern void contpte_set_ptes(struct mm_struct *mm, unsigned long addr,
++				pte_t *ptep, pte_t pte, unsigned int nr);
++extern int contpte_ptep_test_and_clear_young(struct vm_area_struct *vma,
++				unsigned long addr, pte_t *ptep);
++extern int contpte_ptep_clear_flush_young(struct vm_area_struct *vma,
++				unsigned long addr, pte_t *ptep);
++extern int contpte_ptep_set_access_flags(struct vm_area_struct *vma,
++				unsigned long addr, pte_t *ptep,
++				pte_t entry, int dirty);
++
++static inline void contpte_try_unfold(struct mm_struct *mm, unsigned long addr,
++					pte_t *ptep, pte_t pte)
++{
++	if (unlikely(pte_valid_cont(pte)))
++		__contpte_try_unfold(mm, addr, ptep, pte);
++}
++
++/*
++ * The below functions constitute the public API that arm64 presents to the
++ * core-mm to manipulate PTE entries within their page tables (or at least this
++ * is the subset of the API that arm64 needs to implement). These public
++ * versions will automatically and transparently apply the contiguous bit where
++ * it makes sense to do so. Therefore any users that are contig-aware (e.g.
++ * hugetlb, kernel mapper) should NOT use these APIs, but instead use the
++ * private versions, which are prefixed with double underscore. All of these
++ * APIs except for ptep_get_lockless() are expected to be called with the PTL
++ * held. Although the contiguous bit is considered private to the
++ * implementation, it is deliberately allowed to leak through the getters (e.g.
++ * ptep_get()), back to core code. This is required so that pte_leaf_size() can
++ * provide an accurate size for perf_get_pgtable_size(). But this leakage means
++ * its possible a pte will be passed to a setter with the contiguous bit set, so
++ * we explicitly clear the contiguous bit in those cases to prevent accidentally
++ * setting it in the pgtable.
++ */
++
++#define ptep_get ptep_get
++static inline pte_t ptep_get(pte_t *ptep)
++{
++	pte_t pte = __ptep_get(ptep);
++
++	if (likely(!pte_valid_cont(pte)))
++		return pte;
++
++	return contpte_ptep_get(ptep, pte);
++}
++
++#define ptep_get_lockless ptep_get_lockless
++static inline pte_t ptep_get_lockless(pte_t *ptep)
++{
++	pte_t pte = __ptep_get(ptep);
++
++	if (likely(!pte_valid_cont(pte)))
++		return pte;
++
++	return contpte_ptep_get_lockless(ptep);
++}
++
++static inline void set_pte(pte_t *ptep, pte_t pte)
++{
++	/*
++	 * We don't have the mm or vaddr so cannot unfold contig entries (since
++	 * it requires tlb maintenance). set_pte() is not used in core code, so
++	 * this should never even be called. Regardless do our best to service
++	 * any call and emit a warning if there is any attempt to set a pte on
++	 * top of an existing contig range.
++	 */
++	pte_t orig_pte = __ptep_get(ptep);
++
++	WARN_ON_ONCE(pte_valid_cont(orig_pte));
++	__set_pte(ptep, pte_mknoncont(pte));
++}
++
++#define set_ptes set_ptes
++static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
++				pte_t *ptep, pte_t pte, unsigned int nr)
++{
++	pte = pte_mknoncont(pte);
++
++	if (likely(nr == 1)) {
++		contpte_try_unfold(mm, addr, ptep, __ptep_get(ptep));
++		__set_ptes(mm, addr, ptep, pte, 1);
++	} else {
++		contpte_set_ptes(mm, addr, ptep, pte, nr);
++	}
++}
++
++static inline void pte_clear(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep)
++{
++	contpte_try_unfold(mm, addr, ptep, __ptep_get(ptep));
++	__pte_clear(mm, addr, ptep);
++}
++
++#define __HAVE_ARCH_PTEP_GET_AND_CLEAR
++static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep)
++{
++	contpte_try_unfold(mm, addr, ptep, __ptep_get(ptep));
++	return __ptep_get_and_clear(mm, addr, ptep);
++}
++
++#define __HAVE_ARCH_PTEP_TEST_AND_CLEAR_YOUNG
++static inline int ptep_test_and_clear_young(struct vm_area_struct *vma,
++				unsigned long addr, pte_t *ptep)
++{
++	pte_t orig_pte = __ptep_get(ptep);
++
++	if (likely(!pte_valid_cont(orig_pte)))
++		return __ptep_test_and_clear_young(vma, addr, ptep);
++
++	return contpte_ptep_test_and_clear_young(vma, addr, ptep);
++}
++
++#define __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
++static inline int ptep_clear_flush_young(struct vm_area_struct *vma,
++				unsigned long addr, pte_t *ptep)
++{
++	pte_t orig_pte = __ptep_get(ptep);
++
++	if (likely(!pte_valid_cont(orig_pte)))
++		return __ptep_clear_flush_young(vma, addr, ptep);
++
++	return contpte_ptep_clear_flush_young(vma, addr, ptep);
++}
++
++#define __HAVE_ARCH_PTEP_SET_WRPROTECT
++static inline void ptep_set_wrprotect(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep)
++{
++	contpte_try_unfold(mm, addr, ptep, __ptep_get(ptep));
++	__ptep_set_wrprotect(mm, addr, ptep);
++}
++
++#define __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
++static inline int ptep_set_access_flags(struct vm_area_struct *vma,
++				unsigned long addr, pte_t *ptep,
++				pte_t entry, int dirty)
++{
++	pte_t orig_pte = __ptep_get(ptep);
++
++	entry = pte_mknoncont(entry);
++
++	if (likely(!pte_valid_cont(orig_pte)))
++		return __ptep_set_access_flags(vma, addr, ptep, entry, dirty);
++
++	return contpte_ptep_set_access_flags(vma, addr, ptep, entry, dirty);
++}
++
++#else /* CONFIG_ARM64_CONTPTE */
++
+ #define ptep_get				__ptep_get
+ #define set_pte					__set_pte
+ #define set_ptes				__set_ptes
+@@ -1143,6 +1308,8 @@ extern void ptep_modify_prot_commit(struct vm_area_struct *vma,
+ #define __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
+ #define ptep_set_access_flags			__ptep_set_access_flags
+ 
++#endif /* CONFIG_ARM64_CONTPTE */
++
+ #endif /* !__ASSEMBLY__ */
+ 
+ #endif /* __ASM_PGTABLE_H */
+diff --git a/arch/arm64/mm/Makefile b/arch/arm64/mm/Makefile
+index dbd1bc95967d..60454256945b 100644
+--- a/arch/arm64/mm/Makefile
++++ b/arch/arm64/mm/Makefile
+@@ -3,6 +3,7 @@ obj-y				:= dma-mapping.o extable.o fault.o init.o \
+ 				   cache.o copypage.o flush.o \
+ 				   ioremap.o mmap.o pgd.o mmu.o \
+ 				   context.o proc.o pageattr.o fixmap.o
++obj-$(CONFIG_ARM64_CONTPTE)	+= contpte.o
+ obj-$(CONFIG_HUGETLB_PAGE)	+= hugetlbpage.o
+ obj-$(CONFIG_PTDUMP_CORE)	+= ptdump.o
+ obj-$(CONFIG_PTDUMP_DEBUGFS)	+= ptdump_debugfs.o
+diff --git a/arch/arm64/mm/contpte.c b/arch/arm64/mm/contpte.c
+new file mode 100644
+index 000000000000..6d7f40667fa2
+--- /dev/null
++++ b/arch/arm64/mm/contpte.c
+@@ -0,0 +1,285 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2023 ARM Ltd.
++ */
++
++#include <linux/mm.h>
++#include <linux/efi.h>
++#include <linux/export.h>
++#include <asm/tlbflush.h>
++
++static inline bool mm_is_user(struct mm_struct *mm)
++{
++	/*
++	 * Don't attempt to apply the contig bit to kernel mappings, because
++	 * dynamically adding/removing the contig bit can cause page faults.
++	 * These racing faults are ok for user space, since they get serialized
++	 * on the PTL. But kernel mappings can't tolerate faults.
++	 */
++	if (unlikely(mm_is_efi(mm)))
++		return false;
++	return mm != &init_mm;
++}
++
++static inline pte_t *contpte_align_down(pte_t *ptep)
++{
++	return PTR_ALIGN_DOWN(ptep, sizeof(*ptep) * CONT_PTES);
++}
++
++static void contpte_convert(struct mm_struct *mm, unsigned long addr,
++			    pte_t *ptep, pte_t pte)
++{
++	struct vm_area_struct vma = TLB_FLUSH_VMA(mm, 0);
++	unsigned long start_addr;
++	pte_t *start_ptep;
++	int i;
++
++	start_ptep = ptep = contpte_align_down(ptep);
++	start_addr = addr = ALIGN_DOWN(addr, CONT_PTE_SIZE);
++	pte = pfn_pte(ALIGN_DOWN(pte_pfn(pte), CONT_PTES), pte_pgprot(pte));
++
++	for (i = 0; i < CONT_PTES; i++, ptep++, addr += PAGE_SIZE) {
++		pte_t ptent = __ptep_get_and_clear(mm, addr, ptep);
++
++		if (pte_dirty(ptent))
++			pte = pte_mkdirty(pte);
++
++		if (pte_young(ptent))
++			pte = pte_mkyoung(pte);
++	}
++
++	__flush_tlb_range(&vma, start_addr, addr, PAGE_SIZE, true, 3);
++
++	__set_ptes(mm, start_addr, start_ptep, pte, CONT_PTES);
++}
++
++void __contpte_try_unfold(struct mm_struct *mm, unsigned long addr,
++			pte_t *ptep, pte_t pte)
++{
++	/*
++	 * We have already checked that the ptes are contiguous in
++	 * contpte_try_unfold(), so just check that the mm is user space.
++	 */
++	if (!mm_is_user(mm))
++		return;
++
++	pte = pte_mknoncont(pte);
++	contpte_convert(mm, addr, ptep, pte);
++}
++EXPORT_SYMBOL(__contpte_try_unfold);
++
++pte_t contpte_ptep_get(pte_t *ptep, pte_t orig_pte)
++{
++	/*
++	 * Gather access/dirty bits, which may be populated in any of the ptes
++	 * of the contig range. We are guaranteed to be holding the PTL, so any
++	 * contiguous range cannot be unfolded or otherwise modified under our
++	 * feet.
++	 */
++
++	pte_t pte;
++	int i;
++
++	ptep = contpte_align_down(ptep);
++
++	for (i = 0; i < CONT_PTES; i++, ptep++) {
++		pte = __ptep_get(ptep);
++
++		if (pte_dirty(pte))
++			orig_pte = pte_mkdirty(orig_pte);
++
++		if (pte_young(pte))
++			orig_pte = pte_mkyoung(orig_pte);
++	}
++
++	return orig_pte;
++}
++EXPORT_SYMBOL(contpte_ptep_get);
++
++pte_t contpte_ptep_get_lockless(pte_t *orig_ptep)
++{
++	/*
++	 * Gather access/dirty bits, which may be populated in any of the ptes
++	 * of the contig range. We may not be holding the PTL, so any contiguous
++	 * range may be unfolded/modified/refolded under our feet. Therefore we
++	 * ensure we read a _consistent_ contpte range by checking that all ptes
++	 * in the range are valid and have CONT_PTE set, that all pfns are
++	 * contiguous and that all pgprots are the same (ignoring access/dirty).
++	 * If we find a pte that is not consistent, then we must be racing with
++	 * an update so start again. If the target pte does not have CONT_PTE
++	 * set then that is considered consistent on its own because it is not
++	 * part of a contpte range.
++	 */
++
++	pgprot_t orig_prot;
++	unsigned long pfn;
++	pte_t orig_pte;
++	pgprot_t prot;
++	pte_t *ptep;
++	pte_t pte;
++	int i;
++
++retry:
++	orig_pte = __ptep_get(orig_ptep);
++
++	if (!pte_valid_cont(orig_pte))
++		return orig_pte;
++
++	orig_prot = pte_pgprot(pte_mkold(pte_mkclean(orig_pte)));
++	ptep = contpte_align_down(orig_ptep);
++	pfn = pte_pfn(orig_pte) - (orig_ptep - ptep);
++
++	for (i = 0; i < CONT_PTES; i++, ptep++, pfn++) {
++		pte = __ptep_get(ptep);
++		prot = pte_pgprot(pte_mkold(pte_mkclean(pte)));
++
++		if (!pte_valid_cont(pte) ||
++		   pte_pfn(pte) != pfn ||
++		   pgprot_val(prot) != pgprot_val(orig_prot))
++			goto retry;
++
++		if (pte_dirty(pte))
++			orig_pte = pte_mkdirty(orig_pte);
++
++		if (pte_young(pte))
++			orig_pte = pte_mkyoung(orig_pte);
++	}
++
++	return orig_pte;
++}
++EXPORT_SYMBOL(contpte_ptep_get_lockless);
++
++void contpte_set_ptes(struct mm_struct *mm, unsigned long addr,
++					pte_t *ptep, pte_t pte, unsigned int nr)
++{
++	unsigned long next;
++	unsigned long end;
++	unsigned long pfn;
++	pgprot_t prot;
++
++	/*
++	 * The set_ptes() spec guarantees that when nr > 1, the initial state of
++	 * all ptes is not-present. Therefore we never need to unfold or
++	 * otherwise invalidate a range before we set the new ptes.
++	 * contpte_set_ptes() should never be called for nr < 2.
++	 */
++	VM_WARN_ON(nr == 1);
++
++	if (!mm_is_user(mm))
++		return __set_ptes(mm, addr, ptep, pte, nr);
++
++	end = addr + (nr << PAGE_SHIFT);
++	pfn = pte_pfn(pte);
++	prot = pte_pgprot(pte);
++
++	do {
++		next = pte_cont_addr_end(addr, end);
++		nr = (next - addr) >> PAGE_SHIFT;
++		pte = pfn_pte(pfn, prot);
++
++		if (((addr | next | (pfn << PAGE_SHIFT)) & ~CONT_PTE_MASK) == 0)
++			pte = pte_mkcont(pte);
++		else
++			pte = pte_mknoncont(pte);
++
++		__set_ptes(mm, addr, ptep, pte, nr);
++
++		addr = next;
++		ptep += nr;
++		pfn += nr;
++
++	} while (addr != end);
++}
++EXPORT_SYMBOL(contpte_set_ptes);
++
++int contpte_ptep_test_and_clear_young(struct vm_area_struct *vma,
++					unsigned long addr, pte_t *ptep)
++{
++	/*
++	 * ptep_clear_flush_young() technically requires us to clear the access
++	 * flag for a _single_ pte. However, the core-mm code actually tracks
++	 * access/dirty per folio, not per page. And since we only create a
++	 * contig range when the range is covered by a single folio, we can get
++	 * away with clearing young for the whole contig range here, so we avoid
++	 * having to unfold.
++	 */
++
++	int young = 0;
++	int i;
++
++	ptep = contpte_align_down(ptep);
++	addr = ALIGN_DOWN(addr, CONT_PTE_SIZE);
++
++	for (i = 0; i < CONT_PTES; i++, ptep++, addr += PAGE_SIZE)
++		young |= __ptep_test_and_clear_young(vma, addr, ptep);
++
++	return young;
++}
++EXPORT_SYMBOL(contpte_ptep_test_and_clear_young);
++
++int contpte_ptep_clear_flush_young(struct vm_area_struct *vma,
++					unsigned long addr, pte_t *ptep)
++{
++	int young;
++
++	young = contpte_ptep_test_and_clear_young(vma, addr, ptep);
++
++	if (young) {
++		/*
++		 * See comment in __ptep_clear_flush_young(); same rationale for
++		 * eliding the trailing DSB applies here.
++		 */
++		addr = ALIGN_DOWN(addr, CONT_PTE_SIZE);
++		__flush_tlb_range_nosync(vma, addr, addr + CONT_PTE_SIZE,
++					 PAGE_SIZE, true, 3);
++	}
++
++	return young;
++}
++EXPORT_SYMBOL(contpte_ptep_clear_flush_young);
++
++int contpte_ptep_set_access_flags(struct vm_area_struct *vma,
++					unsigned long addr, pte_t *ptep,
++					pte_t entry, int dirty)
++{
++	unsigned long start_addr;
++	pte_t orig_pte;
++	int i;
++
++	/*
++	 * Gather the access/dirty bits for the contiguous range. If nothing has
++	 * changed, its a noop.
++	 */
++	orig_pte = pte_mknoncont(ptep_get(ptep));
++	if (pte_val(orig_pte) == pte_val(entry))
++		return 0;
++
++	/*
++	 * We can fix up access/dirty bits without having to unfold the contig
++	 * range. But if the write bit is changing, we must unfold.
++	 */
++	if (pte_write(orig_pte) == pte_write(entry)) {
++		/*
++		 * For HW access management, we technically only need to update
++		 * the flag on a single pte in the range. But for SW access
++		 * management, we need to update all the ptes to prevent extra
++		 * faults. Avoid per-page tlb flush in __ptep_set_access_flags()
++		 * and instead flush the whole range at the end.
++		 */
++		ptep = contpte_align_down(ptep);
++		start_addr = addr = ALIGN_DOWN(addr, CONT_PTE_SIZE);
++
++		for (i = 0; i < CONT_PTES; i++, ptep++, addr += PAGE_SIZE)
++			__ptep_set_access_flags(vma, addr, ptep, entry, 0);
++
++		if (dirty)
++			__flush_tlb_range(vma, start_addr, addr,
++							PAGE_SIZE, true, 3);
++	} else {
++		__contpte_try_unfold(vma->vm_mm, addr, ptep, orig_pte);
++		__ptep_set_access_flags(vma, addr, ptep, entry, dirty);
++	}
++
++	return 1;
++}
++EXPORT_SYMBOL(contpte_ptep_set_access_flags);
+diff --git a/include/linux/efi.h b/include/linux/efi.h
+index c74f47711f0b..57da15e7429c 100644
+--- a/include/linux/efi.h
++++ b/include/linux/efi.h
+@@ -692,6 +692,11 @@ extern struct efi {
+ 
+ extern struct mm_struct efi_mm;
+ 
++static inline bool mm_is_efi(struct mm_struct *mm)
++{
++	return IS_ENABLED(CONFIG_EFI) && mm == &efi_mm;
++}
++
+ static inline int
+ efi_guidcmp (efi_guid_t left, efi_guid_t right)
+ {
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 13/18] arm64/mm: Implement new wrprotect_ptes() batch API
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:32:00 +0000
+Message-Id: <20240215103205.2607016-14-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Optimize the contpte implementation to fix some of the fork performance
+regression introduced by the initial contpte commit. Subsequent patches
+will solve it entirely.
+
+During fork(), any private memory in the parent must be write-protected.
+Previously this was done 1 PTE at a time. But the core-mm supports
+batched wrprotect via the new wrprotect_ptes() API. So let's implement
+that API and for fully covered contpte mappings, we no longer need to
+unfold the contpte. This has 2 benefits:
+
+  - reduced unfolding, reduces the number of tlbis that must be issued.
+  - The memory remains contpte-mapped ("folded") in the parent, so it
+    continues to benefit from the more efficient use of the TLB after
+    the fork.
+
+The optimization to wrprotect a whole contpte block without unfolding is
+possible thanks to the tightening of the Arm ARM in respect to the
+definition and behaviour when 'Misprogramming the Contiguous bit'. See
+section D21194 at https://developer.arm.com/documentation/102105/ja-07/
+
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/pgtable.h | 61 ++++++++++++++++++++++++++------
+ arch/arm64/mm/contpte.c          | 38 ++++++++++++++++++++
+ 2 files changed, 89 insertions(+), 10 deletions(-)
+
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index 831099cfc96b..8643227c318b 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -978,16 +978,12 @@ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
+ }
+ #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ 
+-/*
+- * __ptep_set_wrprotect - mark read-only while trasferring potential hardware
+- * dirty status (PTE_DBM && !PTE_RDONLY) to the software PTE_DIRTY bit.
+- */
+-static inline void __ptep_set_wrprotect(struct mm_struct *mm,
+-					unsigned long address, pte_t *ptep)
++static inline void ___ptep_set_wrprotect(struct mm_struct *mm,
++					unsigned long address, pte_t *ptep,
++					pte_t pte)
+ {
+-	pte_t old_pte, pte;
++	pte_t old_pte;
+ 
+-	pte = __ptep_get(ptep);
+ 	do {
+ 		old_pte = pte;
+ 		pte = pte_wrprotect(pte);
+@@ -996,6 +992,25 @@ static inline void __ptep_set_wrprotect(struct mm_struct *mm,
+ 	} while (pte_val(pte) != pte_val(old_pte));
+ }
+ 
++/*
++ * __ptep_set_wrprotect - mark read-only while trasferring potential hardware
++ * dirty status (PTE_DBM && !PTE_RDONLY) to the software PTE_DIRTY bit.
++ */
++static inline void __ptep_set_wrprotect(struct mm_struct *mm,
++					unsigned long address, pte_t *ptep)
++{
++	___ptep_set_wrprotect(mm, address, ptep, __ptep_get(ptep));
++}
++
++static inline void __wrprotect_ptes(struct mm_struct *mm, unsigned long address,
++				pte_t *ptep, unsigned int nr)
++{
++	unsigned int i;
++
++	for (i = 0; i < nr; i++, address += PAGE_SIZE, ptep++)
++		__ptep_set_wrprotect(mm, address, ptep);
++}
++
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ #define __HAVE_ARCH_PMDP_SET_WRPROTECT
+ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
+@@ -1149,6 +1164,8 @@ extern int contpte_ptep_test_and_clear_young(struct vm_area_struct *vma,
+ 				unsigned long addr, pte_t *ptep);
+ extern int contpte_ptep_clear_flush_young(struct vm_area_struct *vma,
+ 				unsigned long addr, pte_t *ptep);
++extern void contpte_wrprotect_ptes(struct mm_struct *mm, unsigned long addr,
++				pte_t *ptep, unsigned int nr);
+ extern int contpte_ptep_set_access_flags(struct vm_area_struct *vma,
+ 				unsigned long addr, pte_t *ptep,
+ 				pte_t entry, int dirty);
+@@ -1268,12 +1285,35 @@ static inline int ptep_clear_flush_young(struct vm_area_struct *vma,
+ 	return contpte_ptep_clear_flush_young(vma, addr, ptep);
+ }
+ 
++#define wrprotect_ptes wrprotect_ptes
++static inline void wrprotect_ptes(struct mm_struct *mm, unsigned long addr,
++				pte_t *ptep, unsigned int nr)
++{
++	if (likely(nr == 1)) {
++		/*
++		 * Optimization: wrprotect_ptes() can only be called for present
++		 * ptes so we only need to check contig bit as condition for
++		 * unfold, and we can remove the contig bit from the pte we read
++		 * to avoid re-reading. This speeds up fork() which is sensitive
++		 * for order-0 folios. Equivalent to contpte_try_unfold().
++		 */
++		pte_t orig_pte = __ptep_get(ptep);
++
++		if (unlikely(pte_cont(orig_pte))) {
++			__contpte_try_unfold(mm, addr, ptep, orig_pte);
++			orig_pte = pte_mknoncont(orig_pte);
++		}
++		___ptep_set_wrprotect(mm, addr, ptep, orig_pte);
++	} else {
++		contpte_wrprotect_ptes(mm, addr, ptep, nr);
++	}
++}
++
+ #define __HAVE_ARCH_PTEP_SET_WRPROTECT
+ static inline void ptep_set_wrprotect(struct mm_struct *mm,
+ 				unsigned long addr, pte_t *ptep)
+ {
+-	contpte_try_unfold(mm, addr, ptep, __ptep_get(ptep));
+-	__ptep_set_wrprotect(mm, addr, ptep);
++	wrprotect_ptes(mm, addr, ptep, 1);
+ }
+ 
+ #define __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
+@@ -1305,6 +1345,7 @@ static inline int ptep_set_access_flags(struct vm_area_struct *vma,
+ #define ptep_clear_flush_young			__ptep_clear_flush_young
+ #define __HAVE_ARCH_PTEP_SET_WRPROTECT
+ #define ptep_set_wrprotect			__ptep_set_wrprotect
++#define wrprotect_ptes				__wrprotect_ptes
+ #define __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
+ #define ptep_set_access_flags			__ptep_set_access_flags
+ 
+diff --git a/arch/arm64/mm/contpte.c b/arch/arm64/mm/contpte.c
+index 6d7f40667fa2..bedb58524535 100644
+--- a/arch/arm64/mm/contpte.c
++++ b/arch/arm64/mm/contpte.c
+@@ -26,6 +26,26 @@ static inline pte_t *contpte_align_down(pte_t *ptep)
+ 	return PTR_ALIGN_DOWN(ptep, sizeof(*ptep) * CONT_PTES);
+ }
+ 
++static void contpte_try_unfold_partial(struct mm_struct *mm, unsigned long addr,
++					pte_t *ptep, unsigned int nr)
++{
++	/*
++	 * Unfold any partially covered contpte block at the beginning and end
++	 * of the range.
++	 */
++
++	if (ptep != contpte_align_down(ptep) || nr < CONT_PTES)
++		contpte_try_unfold(mm, addr, ptep, __ptep_get(ptep));
++
++	if (ptep + nr != contpte_align_down(ptep + nr)) {
++		unsigned long last_addr = addr + PAGE_SIZE * (nr - 1);
++		pte_t *last_ptep = ptep + nr - 1;
++
++		contpte_try_unfold(mm, last_addr, last_ptep,
++				   __ptep_get(last_ptep));
++	}
++}
++
+ static void contpte_convert(struct mm_struct *mm, unsigned long addr,
+ 			    pte_t *ptep, pte_t pte)
+ {
+@@ -238,6 +258,24 @@ int contpte_ptep_clear_flush_young(struct vm_area_struct *vma,
+ }
+ EXPORT_SYMBOL(contpte_ptep_clear_flush_young);
+ 
++void contpte_wrprotect_ptes(struct mm_struct *mm, unsigned long addr,
++					pte_t *ptep, unsigned int nr)
++{
++	/*
++	 * If wrprotecting an entire contig range, we can avoid unfolding. Just
++	 * set wrprotect and wait for the later mmu_gather flush to invalidate
++	 * the tlb. Until the flush, the page may or may not be wrprotected.
++	 * After the flush, it is guaranteed wrprotected. If it's a partial
++	 * range though, we must unfold, because we can't have a case where
++	 * CONT_PTE is set but wrprotect applies to a subset of the PTEs; this
++	 * would cause it to continue to be unpredictable after the flush.
++	 */
++
++	contpte_try_unfold_partial(mm, addr, ptep, nr);
++	__wrprotect_ptes(mm, addr, ptep, nr);
++}
++EXPORT_SYMBOL(contpte_wrprotect_ptes);
++
+ int contpte_ptep_set_access_flags(struct vm_area_struct *vma,
+ 					unsigned long addr, pte_t *ptep,
+ 					pte_t entry, int dirty)
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 14/18] arm64/mm: Implement new [get_and_]clear_full_ptes() batch APIs
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:32:01 +0000
+Message-Id: <20240215103205.2607016-15-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Optimize the contpte implementation to fix some of the
+exit/munmap/dontneed performance regression introduced by the initial
+contpte commit. Subsequent patches will solve it entirely.
+
+During exit(), munmap() or madvise(MADV_DONTNEED), mappings must be
+cleared. Previously this was done 1 PTE at a time. But the core-mm
+supports batched clear via the new [get_and_]clear_full_ptes() APIs. So
+let's implement those APIs and for fully covered contpte mappings, we no
+longer need to unfold the contpte. This significantly reduces unfolding
+operations, reducing the number of tlbis that must be issued.
+
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+---
+ arch/arm64/include/asm/pgtable.h | 67 ++++++++++++++++++++++++++++++++
+ arch/arm64/mm/contpte.c          | 17 ++++++++
+ 2 files changed, 84 insertions(+)
+
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index 8643227c318b..a8f1a35e3086 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -965,6 +965,37 @@ static inline pte_t __ptep_get_and_clear(struct mm_struct *mm,
+ 	return pte;
+ }
+ 
++static inline void __clear_full_ptes(struct mm_struct *mm, unsigned long addr,
++				pte_t *ptep, unsigned int nr, int full)
++{
++	for (;;) {
++		__ptep_get_and_clear(mm, addr, ptep);
++		if (--nr == 0)
++			break;
++		ptep++;
++		addr += PAGE_SIZE;
++	}
++}
++
++static inline pte_t __get_and_clear_full_ptes(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep,
++				unsigned int nr, int full)
++{
++	pte_t pte, tmp_pte;
++
++	pte = __ptep_get_and_clear(mm, addr, ptep);
++	while (--nr) {
++		ptep++;
++		addr += PAGE_SIZE;
++		tmp_pte = __ptep_get_and_clear(mm, addr, ptep);
++		if (pte_dirty(tmp_pte))
++			pte = pte_mkdirty(pte);
++		if (pte_young(tmp_pte))
++			pte = pte_mkyoung(pte);
++	}
++	return pte;
++}
++
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ #define __HAVE_ARCH_PMDP_HUGE_GET_AND_CLEAR
+ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
+@@ -1160,6 +1191,11 @@ extern pte_t contpte_ptep_get(pte_t *ptep, pte_t orig_pte);
+ extern pte_t contpte_ptep_get_lockless(pte_t *orig_ptep);
+ extern void contpte_set_ptes(struct mm_struct *mm, unsigned long addr,
+ 				pte_t *ptep, pte_t pte, unsigned int nr);
++extern void contpte_clear_full_ptes(struct mm_struct *mm, unsigned long addr,
++				pte_t *ptep, unsigned int nr, int full);
++extern pte_t contpte_get_and_clear_full_ptes(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep,
++				unsigned int nr, int full);
+ extern int contpte_ptep_test_and_clear_young(struct vm_area_struct *vma,
+ 				unsigned long addr, pte_t *ptep);
+ extern int contpte_ptep_clear_flush_young(struct vm_area_struct *vma,
+@@ -1253,6 +1289,35 @@ static inline void pte_clear(struct mm_struct *mm,
+ 	__pte_clear(mm, addr, ptep);
+ }
+ 
++#define clear_full_ptes clear_full_ptes
++static inline void clear_full_ptes(struct mm_struct *mm, unsigned long addr,
++				pte_t *ptep, unsigned int nr, int full)
++{
++	if (likely(nr == 1)) {
++		contpte_try_unfold(mm, addr, ptep, __ptep_get(ptep));
++		__clear_full_ptes(mm, addr, ptep, nr, full);
++	} else {
++		contpte_clear_full_ptes(mm, addr, ptep, nr, full);
++	}
++}
++
++#define get_and_clear_full_ptes get_and_clear_full_ptes
++static inline pte_t get_and_clear_full_ptes(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep,
++				unsigned int nr, int full)
++{
++	pte_t pte;
++
++	if (likely(nr == 1)) {
++		contpte_try_unfold(mm, addr, ptep, __ptep_get(ptep));
++		pte = __get_and_clear_full_ptes(mm, addr, ptep, nr, full);
++	} else {
++		pte = contpte_get_and_clear_full_ptes(mm, addr, ptep, nr, full);
++	}
++
++	return pte;
++}
++
+ #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
+ static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
+ 				unsigned long addr, pte_t *ptep)
+@@ -1337,6 +1402,8 @@ static inline int ptep_set_access_flags(struct vm_area_struct *vma,
+ #define set_pte					__set_pte
+ #define set_ptes				__set_ptes
+ #define pte_clear				__pte_clear
++#define clear_full_ptes				__clear_full_ptes
++#define get_and_clear_full_ptes			__get_and_clear_full_ptes
+ #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
+ #define ptep_get_and_clear			__ptep_get_and_clear
+ #define __HAVE_ARCH_PTEP_TEST_AND_CLEAR_YOUNG
+diff --git a/arch/arm64/mm/contpte.c b/arch/arm64/mm/contpte.c
+index bedb58524535..50e0173dc5ee 100644
+--- a/arch/arm64/mm/contpte.c
++++ b/arch/arm64/mm/contpte.c
+@@ -212,6 +212,23 @@ void contpte_set_ptes(struct mm_struct *mm, unsigned long addr,
+ }
+ EXPORT_SYMBOL(contpte_set_ptes);
+ 
++void contpte_clear_full_ptes(struct mm_struct *mm, unsigned long addr,
++				pte_t *ptep, unsigned int nr, int full)
++{
++	contpte_try_unfold_partial(mm, addr, ptep, nr);
++	__clear_full_ptes(mm, addr, ptep, nr, full);
++}
++EXPORT_SYMBOL(contpte_clear_full_ptes);
++
++pte_t contpte_get_and_clear_full_ptes(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep,
++				unsigned int nr, int full)
++{
++	contpte_try_unfold_partial(mm, addr, ptep, nr);
++	return __get_and_clear_full_ptes(mm, addr, ptep, nr, full);
++}
++EXPORT_SYMBOL(contpte_get_and_clear_full_ptes);
++
+ int contpte_ptep_test_and_clear_young(struct vm_area_struct *vma,
+ 					unsigned long addr, pte_t *ptep)
+ {
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 15/18] mm: Add pte_batch_hint() to reduce scanning in folio_pte_batch()
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:32:02 +0000
+Message-Id: <20240215103205.2607016-16-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Some architectures (e.g. arm64) can tell from looking at a pte, if some
+follow-on ptes also map contiguous physical memory with the same pgprot.
+(for arm64, these are contpte mappings).
+
+Take advantage of this knowledge to optimize folio_pte_batch() so that
+it can skip these ptes when scanning to create a batch. By default, if
+an arch does not opt-in, folio_pte_batch() returns a compile-time 1, so
+the changes are optimized out and the behaviour is as before.
+
+arm64 will opt-in to providing this hint in the next patch, which will
+greatly reduce the cost of ptep_get() when scanning a range of contptes.
+
+Acked-by: David Hildenbrand <david@redhat.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+---
+ include/linux/pgtable.h | 21 +++++++++++++++++++++
+ mm/memory.c             | 19 ++++++++++++-------
+ 2 files changed, 33 insertions(+), 7 deletions(-)
+
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index bc005d84f764..a36cf4e124b0 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -212,6 +212,27 @@ static inline int pmd_dirty(pmd_t pmd)
+ #define arch_flush_lazy_mmu_mode()	do {} while (0)
+ #endif
+ 
++#ifndef pte_batch_hint
++/**
++ * pte_batch_hint - Number of pages that can be added to batch without scanning.
++ * @ptep: Page table pointer for the entry.
++ * @pte: Page table entry.
++ *
++ * Some architectures know that a set of contiguous ptes all map the same
++ * contiguous memory with the same permissions. In this case, it can provide a
++ * hint to aid pte batching without the core code needing to scan every pte.
++ *
++ * An architecture implementation may ignore the PTE accessed state. Further,
++ * the dirty state must apply atomically to all the PTEs described by the hint.
++ *
++ * May be overridden by the architecture, else pte_batch_hint is always 1.
++ */
++static inline unsigned int pte_batch_hint(pte_t *ptep, pte_t pte)
++{
++	return 1;
++}
++#endif
++
+ #ifndef pte_advance_pfn
+ static inline pte_t pte_advance_pfn(pte_t pte, unsigned long nr)
+ {
+diff --git a/mm/memory.c b/mm/memory.c
+index 3b8e56eb08a3..4dd8e35b593a 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -988,16 +988,20 @@ static inline int folio_pte_batch(struct folio *folio, unsigned long addr,
+ {
+ 	unsigned long folio_end_pfn = folio_pfn(folio) + folio_nr_pages(folio);
+ 	const pte_t *end_ptep = start_ptep + max_nr;
+-	pte_t expected_pte = __pte_batch_clear_ignored(pte_next_pfn(pte), flags);
+-	pte_t *ptep = start_ptep + 1;
++	pte_t expected_pte, *ptep;
+ 	bool writable;
++	int nr;
+ 
+ 	if (any_writable)
+ 		*any_writable = false;
+ 
+ 	VM_WARN_ON_FOLIO(!pte_present(pte), folio);
+ 
+-	while (ptep != end_ptep) {
++	nr = pte_batch_hint(start_ptep, pte);
++	expected_pte = __pte_batch_clear_ignored(pte_advance_pfn(pte, nr), flags);
++	ptep = start_ptep + nr;
++
++	while (ptep < end_ptep) {
+ 		pte = ptep_get(ptep);
+ 		if (any_writable)
+ 			writable = !!pte_write(pte);
+@@ -1011,17 +1015,18 @@ static inline int folio_pte_batch(struct folio *folio, unsigned long addr,
+ 		 * corner cases the next PFN might fall into a different
+ 		 * folio.
+ 		 */
+-		if (pte_pfn(pte) == folio_end_pfn)
++		if (pte_pfn(pte) >= folio_end_pfn)
+ 			break;
+ 
+ 		if (any_writable)
+ 			*any_writable |= writable;
+ 
+-		expected_pte = pte_next_pfn(expected_pte);
+-		ptep++;
++		nr = pte_batch_hint(ptep, pte);
++		expected_pte = pte_advance_pfn(expected_pte, nr);
++		ptep += nr;
+ 	}
+ 
+-	return ptep - start_ptep;
++	return min(ptep - start_ptep, max_nr);
+ }
+ 
+ /*
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 16/18] arm64/mm: Implement pte_batch_hint()
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:32:03 +0000
+Message-Id: <20240215103205.2607016-17-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+When core code iterates over a range of ptes and calls ptep_get() for
+each of them, if the range happens to cover contpte mappings, the number
+of pte reads becomes amplified by a factor of the number of PTEs in a
+contpte block. This is because for each call to ptep_get(), the
+implementation must read all of the ptes in the contpte block to which
+it belongs to gather the access and dirty bits.
+
+This causes a hotspot for fork(), as well as operations that unmap
+memory such as munmap(), exit and madvise(MADV_DONTNEED). Fortunately we
+can fix this by implementing pte_batch_hint() which allows their
+iterators to skip getting the contpte tail ptes when gathering the batch
+of ptes to operate on. This results in the number of PTE reads returning
+to 1 per pte.
+
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+Reviewed-by: David Hildenbrand <david@redhat.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/pgtable.h | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index a8f1a35e3086..d759a20d2929 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -1213,6 +1213,15 @@ static inline void contpte_try_unfold(struct mm_struct *mm, unsigned long addr,
+ 		__contpte_try_unfold(mm, addr, ptep, pte);
+ }
+ 
++#define pte_batch_hint pte_batch_hint
++static inline unsigned int pte_batch_hint(pte_t *ptep, pte_t pte)
++{
++	if (!pte_valid_cont(pte))
++		return 1;
++
++	return CONT_PTES - (((unsigned long)ptep >> 3) & (CONT_PTES - 1));
++}
++
+ /*
+  * The below functions constitute the public API that arm64 presents to the
+  * core-mm to manipulate PTE entries within their page tables (or at least this
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 17/18] arm64/mm: __always_inline to improve fork() perf
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:32:04 +0000
+Message-Id: <20240215103205.2607016-18-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+As set_ptes() and wrprotect_ptes() become a bit more complex, the
+compiler may choose not to inline them. But this is critical for fork()
+performance. So mark the functions, along with contpte_try_unfold()
+which is called by them, as __always_inline. This is worth ~1% on the
+fork() microbenchmark with order-0 folios (the common case).
+
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/pgtable.h | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index d759a20d2929..8310875133ff 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -1206,8 +1206,8 @@ extern int contpte_ptep_set_access_flags(struct vm_area_struct *vma,
+ 				unsigned long addr, pte_t *ptep,
+ 				pte_t entry, int dirty);
+ 
+-static inline void contpte_try_unfold(struct mm_struct *mm, unsigned long addr,
+-					pte_t *ptep, pte_t pte)
++static __always_inline void contpte_try_unfold(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep, pte_t pte)
+ {
+ 	if (unlikely(pte_valid_cont(pte)))
+ 		__contpte_try_unfold(mm, addr, ptep, pte);
+@@ -1278,7 +1278,7 @@ static inline void set_pte(pte_t *ptep, pte_t pte)
+ }
+ 
+ #define set_ptes set_ptes
+-static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
++static __always_inline void set_ptes(struct mm_struct *mm, unsigned long addr,
+ 				pte_t *ptep, pte_t pte, unsigned int nr)
+ {
+ 	pte = pte_mknoncont(pte);
+@@ -1360,8 +1360,8 @@ static inline int ptep_clear_flush_young(struct vm_area_struct *vma,
+ }
+ 
+ #define wrprotect_ptes wrprotect_ptes
+-static inline void wrprotect_ptes(struct mm_struct *mm, unsigned long addr,
+-				pte_t *ptep, unsigned int nr)
++static __always_inline void wrprotect_ptes(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep, unsigned int nr)
+ {
+ 	if (likely(nr == 1)) {
+ 		/*
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v6 18/18] arm64/mm: Automatically fold contpte mappings
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 15 Feb 2024 10:32:05 +0000
+Message-Id: <20240215103205.2607016-19-ryan.roberts@arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Andrey Ryabinin <ryabinin.a.a@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Mark Rutland <mark.rutland@arm.com>, David Hildenbrand <david@redhat.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, John Hubbard <jhubbard@nvidia.com>, Zi Yan <ziy@nvidia.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>, Yang Shi <shy828301@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20240215103205.2607016-1-ryan.roberts@arm.com>
+References: <20240215103205.2607016-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+There are situations where a change to a single PTE could cause the
+contpte block in which it resides to become foldable (i.e. could be
+repainted with the contiguous bit). Such situations arise, for example,
+when user space temporarily changes protections, via mprotect, for
+individual pages, such can be the case for certain garbage collectors.
+
+We would like to detect when such a PTE change occurs. However this can
+be expensive due to the amount of checking required. Therefore only
+perform the checks when an indiviual PTE is modified via mprotect
+(ptep_modify_prot_commit() -> set_pte_at() -> set_ptes(nr=1)) and only
+when we are setting the final PTE in a contpte-aligned block.
+
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/pgtable.h | 26 +++++++++++++
+ arch/arm64/mm/contpte.c          | 64 ++++++++++++++++++++++++++++++++
+ 2 files changed, 90 insertions(+)
+
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index 8310875133ff..401087e8a43d 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -1185,6 +1185,8 @@ extern void ptep_modify_prot_commit(struct vm_area_struct *vma,
+  * where it is possible and makes sense to do so. The PTE_CONT bit is considered
+  * a private implementation detail of the public ptep API (see below).
+  */
++extern void __contpte_try_fold(struct mm_struct *mm, unsigned long addr,
++				pte_t *ptep, pte_t pte);
+ extern void __contpte_try_unfold(struct mm_struct *mm, unsigned long addr,
+ 				pte_t *ptep, pte_t pte);
+ extern pte_t contpte_ptep_get(pte_t *ptep, pte_t orig_pte);
+@@ -1206,6 +1208,29 @@ extern int contpte_ptep_set_access_flags(struct vm_area_struct *vma,
+ 				unsigned long addr, pte_t *ptep,
+ 				pte_t entry, int dirty);
+ 
++static __always_inline void contpte_try_fold(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep, pte_t pte)
++{
++	/*
++	 * Only bother trying if both the virtual and physical addresses are
++	 * aligned and correspond to the last entry in a contig range. The core
++	 * code mostly modifies ranges from low to high, so this is the likely
++	 * the last modification in the contig range, so a good time to fold.
++	 * We can't fold special mappings, because there is no associated folio.
++	 */
++
++	const unsigned long contmask = CONT_PTES - 1;
++	bool valign = ((addr >> PAGE_SHIFT) & contmask) == contmask;
++
++	if (unlikely(valign)) {
++		bool palign = (pte_pfn(pte) & contmask) == contmask;
++
++		if (unlikely(palign &&
++		    pte_valid(pte) && !pte_cont(pte) && !pte_special(pte)))
++			__contpte_try_fold(mm, addr, ptep, pte);
++	}
++}
++
+ static __always_inline void contpte_try_unfold(struct mm_struct *mm,
+ 				unsigned long addr, pte_t *ptep, pte_t pte)
+ {
+@@ -1286,6 +1311,7 @@ static __always_inline void set_ptes(struct mm_struct *mm, unsigned long addr,
+ 	if (likely(nr == 1)) {
+ 		contpte_try_unfold(mm, addr, ptep, __ptep_get(ptep));
+ 		__set_ptes(mm, addr, ptep, pte, 1);
++		contpte_try_fold(mm, addr, ptep, pte);
+ 	} else {
+ 		contpte_set_ptes(mm, addr, ptep, pte, nr);
+ 	}
+diff --git a/arch/arm64/mm/contpte.c b/arch/arm64/mm/contpte.c
+index 50e0173dc5ee..16788f07716d 100644
+--- a/arch/arm64/mm/contpte.c
++++ b/arch/arm64/mm/contpte.c
+@@ -73,6 +73,70 @@ static void contpte_convert(struct mm_struct *mm, unsigned long addr,
+ 	__set_ptes(mm, start_addr, start_ptep, pte, CONT_PTES);
+ }
+ 
++void __contpte_try_fold(struct mm_struct *mm, unsigned long addr,
++			pte_t *ptep, pte_t pte)
++{
++	/*
++	 * We have already checked that the virtual and pysical addresses are
++	 * correctly aligned for a contpte mapping in contpte_try_fold() so the
++	 * remaining checks are to ensure that the contpte range is fully
++	 * covered by a single folio, and ensure that all the ptes are valid
++	 * with contiguous PFNs and matching prots. We ignore the state of the
++	 * access and dirty bits for the purpose of deciding if its a contiguous
++	 * range; the folding process will generate a single contpte entry which
++	 * has a single access and dirty bit. Those 2 bits are the logical OR of
++	 * their respective bits in the constituent pte entries. In order to
++	 * ensure the contpte range is covered by a single folio, we must
++	 * recover the folio from the pfn, but special mappings don't have a
++	 * folio backing them. Fortunately contpte_try_fold() already checked
++	 * that the pte is not special - we never try to fold special mappings.
++	 * Note we can't use vm_normal_page() for this since we don't have the
++	 * vma.
++	 */
++
++	unsigned long folio_start, folio_end;
++	unsigned long cont_start, cont_end;
++	pte_t expected_pte, subpte;
++	struct folio *folio;
++	struct page *page;
++	unsigned long pfn;
++	pte_t *orig_ptep;
++	pgprot_t prot;
++
++	int i;
++
++	if (!mm_is_user(mm))
++		return;
++
++	page = pte_page(pte);
++	folio = page_folio(page);
++	folio_start = addr - (page - &folio->page) * PAGE_SIZE;
++	folio_end = folio_start + folio_nr_pages(folio) * PAGE_SIZE;
++	cont_start = ALIGN_DOWN(addr, CONT_PTE_SIZE);
++	cont_end = cont_start + CONT_PTE_SIZE;
++
++	if (folio_start > cont_start || folio_end < cont_end)
++		return;
++
++	pfn = ALIGN_DOWN(pte_pfn(pte), CONT_PTES);
++	prot = pte_pgprot(pte_mkold(pte_mkclean(pte)));
++	expected_pte = pfn_pte(pfn, prot);
++	orig_ptep = ptep;
++	ptep = contpte_align_down(ptep);
++
++	for (i = 0; i < CONT_PTES; i++) {
++		subpte = pte_mkold(pte_mkclean(__ptep_get(ptep)));
++		if (!pte_same(subpte, expected_pte))
++			return;
++		expected_pte = pte_advance_pfn(expected_pte, 1);
++		ptep++;
++	}
++
++	pte = pte_mkcont(pte);
++	contpte_convert(mm, addr, orig_ptep, pte);
++}
++EXPORT_SYMBOL(__contpte_try_fold);
++
+ void __contpte_try_unfold(struct mm_struct *mm, unsigned long addr,
+ 			pte_t *ptep, pte_t pte)
+ {
+
+-- 
+2.25.1
+
+

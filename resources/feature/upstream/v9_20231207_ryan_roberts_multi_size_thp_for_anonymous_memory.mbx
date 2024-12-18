@@ -1,0 +1,3199 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v9 1/10] mm: Allow deferred splitting of arbitrary anon large folios
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 07 Dec 2023 16:12:02 +0000
+Message-Id: <20231207161211.2374093-2-ryan.roberts@arm.com>
+To: Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Yin Fengwei <fengwei.yin@intel.com>, David Hildenbrand <david@redhat.com>, Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Yang Shi <shy828301@gmail.com>, "Huang, Ying" <ying.huang@intel.com>, Zi Yan <ziy@nvidia.com>, Luis Chamberlain <mcgrof@kernel.org>, Itaru Kitayama <itaru.kitayama@gmail.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, John Hubbard <jhubbard@nvidia.com>, David Rientjes <rientjes@google.com>, Vlastimil Babka <vbabka@suse.cz>, Hugh Dickins <hughd@google.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Barry Song <v-songbaohua@oppo.com>
+In-Reply-To: <20231207161211.2374093-1-ryan.roberts@arm.com>
+References: <20231207161211.2374093-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+In preparation for the introduction of anonymous multi-size THP, we
+would like to be able to split them when they have unmapped subpages, in
+order to free those unused pages under memory pressure. So remove the
+artificial requirement that the large folio needed to be at least
+PMD-sized.
+
+Reviewed-by: Yu Zhao <yuzhao@google.com>
+Reviewed-by: Yin Fengwei <fengwei.yin@intel.com>
+Reviewed-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Reviewed-by: David Hildenbrand <david@redhat.com>
+Reviewed-by: Barry Song <v-songbaohua@oppo.com>
+Tested-by: Kefeng Wang <wangkefeng.wang@huawei.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+---
+ mm/rmap.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/mm/rmap.c b/mm/rmap.c
+index de9426ad0f1b..2a1e45e6419f 100644
+--- a/mm/rmap.c
++++ b/mm/rmap.c
+@@ -1518,11 +1518,11 @@ void page_remove_rmap(struct page *page, struct vm_area_struct *vma,
+ 		__lruvec_stat_mod_folio(folio, idx, -nr);
+ 
+ 		/*
+-		 * Queue anon THP for deferred split if at least one
++		 * Queue anon large folio for deferred split if at least one
+ 		 * page of the folio is unmapped and at least one page
+ 		 * is still mapped.
+ 		 */
+-		if (folio_test_pmd_mappable(folio) && folio_test_anon(folio))
++		if (folio_test_large(folio) && folio_test_anon(folio))
+ 			if (!compound || nr < nr_pmdmapped)
+ 				deferred_split_folio(folio);
+ 	}
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v9 2/10] mm: Non-pmd-mappable, large folios for folio_add_new_anon_rmap()
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 07 Dec 2023 16:12:03 +0000
+Message-Id: <20231207161211.2374093-3-ryan.roberts@arm.com>
+To: Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Yin Fengwei <fengwei.yin@intel.com>, David Hildenbrand <david@redhat.com>, Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Yang Shi <shy828301@gmail.com>, "Huang, Ying" <ying.huang@intel.com>, Zi Yan <ziy@nvidia.com>, Luis Chamberlain <mcgrof@kernel.org>, Itaru Kitayama <itaru.kitayama@gmail.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, John Hubbard <jhubbard@nvidia.com>, David Rientjes <rientjes@google.com>, Vlastimil Babka <vbabka@suse.cz>, Hugh Dickins <hughd@google.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Barry Song <v-songbaohua@oppo.com>
+In-Reply-To: <20231207161211.2374093-1-ryan.roberts@arm.com>
+References: <20231207161211.2374093-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+In preparation for supporting anonymous multi-size THP, improve
+folio_add_new_anon_rmap() to allow a non-pmd-mappable, large folio to be
+passed to it. In this case, all contained pages are accounted using the
+order-0 folio (or base page) scheme.
+
+Reviewed-by: Yu Zhao <yuzhao@google.com>
+Reviewed-by: Yin Fengwei <fengwei.yin@intel.com>
+Reviewed-by: David Hildenbrand <david@redhat.com>
+Reviewed-by: Barry Song <v-songbaohua@oppo.com>
+Tested-by: Kefeng Wang <wangkefeng.wang@huawei.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Tested-by: Jiri Olsa <jolsa@kernel.org>
+Signed-off-by: David Hildenbrand <david@redhat.com>
+Reviewed-by: Ryan Roberts <ryan.roberts@arm.com>
+---
+ mm/rmap.c | 28 ++++++++++++++++++++--------
+ 1 file changed, 20 insertions(+), 8 deletions(-)
+
+diff --git a/mm/rmap.c b/mm/rmap.c
+index 2a1e45e6419f..846fc79f3ca9 100644
+--- a/mm/rmap.c
++++ b/mm/rmap.c
+@@ -1335,32 +1335,44 @@ void page_add_anon_rmap(struct page *page, struct vm_area_struct *vma,
+  * This means the inc-and-test can be bypassed.
+  * The folio does not have to be locked.
+  *
+- * If the folio is large, it is accounted as a THP.  As the folio
++ * If the folio is pmd-mappable, it is accounted as a THP.  As the folio
+  * is new, it's assumed to be mapped exclusively by a single process.
+  */
+ void folio_add_new_anon_rmap(struct folio *folio, struct vm_area_struct *vma,
+ 		unsigned long address)
+ {
+-	int nr;
++	int nr = folio_nr_pages(folio);
+ 
+-	VM_BUG_ON_VMA(address < vma->vm_start || address >= vma->vm_end, vma);
++	VM_BUG_ON_VMA(address < vma->vm_start ||
++			address + (nr << PAGE_SHIFT) > vma->vm_end, vma);
+ 	__folio_set_swapbacked(folio);
++	__folio_set_anon(folio, vma, address, true);
+ 
+-	if (likely(!folio_test_pmd_mappable(folio))) {
++	if (likely(!folio_test_large(folio))) {
+ 		/* increment count (starts at -1) */
+ 		atomic_set(&folio->_mapcount, 0);
+-		nr = 1;
++		SetPageAnonExclusive(&folio->page);
++	} else if (!folio_test_pmd_mappable(folio)) {
++		int i;
++
++		for (i = 0; i < nr; i++) {
++			struct page *page = folio_page(folio, i);
++
++			/* increment count (starts at -1) */
++			atomic_set(&page->_mapcount, 0);
++			SetPageAnonExclusive(page);
++		}
++
++		atomic_set(&folio->_nr_pages_mapped, nr);
+ 	} else {
+ 		/* increment count (starts at -1) */
+ 		atomic_set(&folio->_entire_mapcount, 0);
+ 		atomic_set(&folio->_nr_pages_mapped, COMPOUND_MAPPED);
+-		nr = folio_nr_pages(folio);
++		SetPageAnonExclusive(&folio->page);
+ 		__lruvec_stat_mod_folio(folio, NR_ANON_THPS, nr);
+ 	}
+ 
+ 	__lruvec_stat_mod_folio(folio, NR_ANON_MAPPED, nr);
+-	__folio_set_anon(folio, vma, address, true);
+-	SetPageAnonExclusive(&folio->page);
+ }
+ 
+ /**
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v9 3/10] mm: thp: Introduce multi-size THP sysfs interface
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 07 Dec 2023 16:12:04 +0000
+Message-Id: <20231207161211.2374093-4-ryan.roberts@arm.com>
+To: Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Yin Fengwei <fengwei.yin@intel.com>, David Hildenbrand <david@redhat.com>, Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Yang Shi <shy828301@gmail.com>, "Huang, Ying" <ying.huang@intel.com>, Zi Yan <ziy@nvidia.com>, Luis Chamberlain <mcgrof@kernel.org>, Itaru Kitayama <itaru.kitayama@gmail.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, John Hubbard <jhubbard@nvidia.com>, David Rientjes <rientjes@google.com>, Vlastimil Babka <vbabka@suse.cz>, Hugh Dickins <hughd@google.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Barry Song <v-songbaohua@oppo.com>
+In-Reply-To: <20231207161211.2374093-1-ryan.roberts@arm.com>
+References: <20231207161211.2374093-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+In preparation for adding support for anonymous multi-size THP,
+introduce new sysfs structure that will be used to control the new
+behaviours. A new directory is added under transparent_hugepage for each
+supported THP size, and contains an `enabled` file, which can be set to
+"inherit" (to inherit the global setting), "always", "madvise" or
+"never". For now, the kernel still only supports PMD-sized anonymous
+THP, so only 1 directory is populated.
+
+The first half of the change converts transhuge_vma_suitable() and
+hugepage_vma_check() so that they take a bitfield of orders for which
+the user wants to determine support, and the functions filter out all
+the orders that can't be supported, given the current sysfs
+configuration and the VMA dimensions. The resulting functions are
+renamed to thp_vma_suitable_orders() and thp_vma_allowable_orders()
+respectively. Convenience functions that take a single, unencoded order
+and return a boolean are also defined as thp_vma_suitable_order() and
+thp_vma_allowable_order().
+
+The second half of the change implements the new sysfs interface. It has
+been done so that each supported THP size has a `struct thpsize`, which
+describes the relevant metadata and is itself a kobject. This is pretty
+minimal for now, but should make it easy to add new per-thpsize files to
+the interface if needed in future (e.g. per-size defrag). Rather than
+keep the `enabled` state directly in the struct thpsize, I've elected to
+directly encode it into huge_anon_orders_[always|madvise|inherit]
+bitfields since this reduces the amount of work required in
+thp_vma_allowable_orders() which is called for every page fault.
+
+See Documentation/admin-guide/mm/transhuge.rst, as modified by this
+commit, for details of how the new sysfs interface works.
+
+Reviewed-by: Barry Song <v-songbaohua@oppo.com>
+Tested-by: Kefeng Wang <wangkefeng.wang@huawei.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: David Hildenbrand <david@redhat.com>
+---
+ Documentation/admin-guide/mm/transhuge.rst |  97 +++++++--
+ Documentation/filesystems/proc.rst         |   6 +-
+ fs/proc/task_mmu.c                         |   3 +-
+ include/linux/huge_mm.h                    | 181 +++++++++++++---
+ mm/huge_memory.c                           | 231 ++++++++++++++++++---
+ mm/khugepaged.c                            |  20 +-
+ mm/memory.c                                |   6 +-
+ mm/page_vma_mapped.c                       |   3 +-
+ 8 files changed, 459 insertions(+), 88 deletions(-)
+
+diff --git a/Documentation/admin-guide/mm/transhuge.rst b/Documentation/admin-guide/mm/transhuge.rst
+index b0cc8243e093..04eb45a2f940 100644
+--- a/Documentation/admin-guide/mm/transhuge.rst
++++ b/Documentation/admin-guide/mm/transhuge.rst
+@@ -45,10 +45,25 @@ components:
+    the two is using hugepages just because of the fact the TLB miss is
+    going to run faster.
+ 
++Modern kernels support "multi-size THP" (mTHP), which introduces the
++ability to allocate memory in blocks that are bigger than a base page
++but smaller than traditional PMD-size (as described above), in
++increments of a power-of-2 number of pages. mTHP can back anonymous
++memory (for example 16K, 32K, 64K, etc). These THPs continue to be
++PTE-mapped, but in many cases can still provide similar benefits to
++those outlined above: Page faults are significantly reduced (by a
++factor of e.g. 4, 8, 16, etc), but latency spikes are much less
++prominent because the size of each page isn't as huge as the PMD-sized
++variant and there is less memory to clear in each page fault. Some
++architectures also employ TLB compression mechanisms to squeeze more
++entries in when a set of PTEs are virtually and physically contiguous
++and approporiately aligned. In this case, TLB misses will occur less
++often.
++
+ THP can be enabled system wide or restricted to certain tasks or even
+ memory ranges inside task's address space. Unless THP is completely
+ disabled, there is ``khugepaged`` daemon that scans memory and
+-collapses sequences of basic pages into huge pages.
++collapses sequences of basic pages into PMD-sized huge pages.
+ 
+ The THP behaviour is controlled via :ref:`sysfs <thp_sysfs>`
+ interface and using madvise(2) and prctl(2) system calls.
+@@ -95,12 +110,40 @@ Global THP controls
+ Transparent Hugepage Support for anonymous memory can be entirely disabled
+ (mostly for debugging purposes) or only enabled inside MADV_HUGEPAGE
+ regions (to avoid the risk of consuming more memory resources) or enabled
+-system wide. This can be achieved with one of::
++system wide. This can be achieved per-supported-THP-size with one of::
++
++	echo always >/sys/kernel/mm/transparent_hugepage/hugepages-<size>kB/enabled
++	echo madvise >/sys/kernel/mm/transparent_hugepage/hugepages-<size>kB/enabled
++	echo never >/sys/kernel/mm/transparent_hugepage/hugepages-<size>kB/enabled
++
++where <size> is the hugepage size being addressed, the available sizes
++for which vary by system.
++
++For example::
++
++	echo always >/sys/kernel/mm/transparent_hugepage/hugepages-2048kB/enabled
++
++Alternatively it is possible to specify that a given hugepage size
++will inherit the top-level "enabled" value::
++
++	echo inherit >/sys/kernel/mm/transparent_hugepage/hugepages-<size>kB/enabled
++
++For example::
++
++	echo inherit >/sys/kernel/mm/transparent_hugepage/hugepages-2048kB/enabled
++
++The top-level setting (for use with "inherit") can be set by issuing
++one of the following commands::
+ 
+ 	echo always >/sys/kernel/mm/transparent_hugepage/enabled
+ 	echo madvise >/sys/kernel/mm/transparent_hugepage/enabled
+ 	echo never >/sys/kernel/mm/transparent_hugepage/enabled
+ 
++By default, PMD-sized hugepages have enabled="inherit" and all other
++hugepage sizes have enabled="never". If enabling multiple hugepage
++sizes, the kernel will select the most appropriate enabled size for a
++given allocation.
++
+ It's also possible to limit defrag efforts in the VM to generate
+ anonymous hugepages in case they're not immediately free to madvise
+ regions or to never try to defrag memory and simply fallback to regular
+@@ -146,25 +189,34 @@ madvise
+ never
+ 	should be self-explanatory.
+ 
+-By default kernel tries to use huge zero page on read page fault to
+-anonymous mapping. It's possible to disable huge zero page by writing 0
+-or enable it back by writing 1::
++By default kernel tries to use huge, PMD-mappable zero page on read
++page fault to anonymous mapping. It's possible to disable huge zero
++page by writing 0 or enable it back by writing 1::
+ 
+ 	echo 0 >/sys/kernel/mm/transparent_hugepage/use_zero_page
+ 	echo 1 >/sys/kernel/mm/transparent_hugepage/use_zero_page
+ 
+-Some userspace (such as a test program, or an optimized memory allocation
+-library) may want to know the size (in bytes) of a transparent hugepage::
++Some userspace (such as a test program, or an optimized memory
++allocation library) may want to know the size (in bytes) of a
++PMD-mappable transparent hugepage::
+ 
+ 	cat /sys/kernel/mm/transparent_hugepage/hpage_pmd_size
+ 
+-khugepaged will be automatically started when
+-transparent_hugepage/enabled is set to "always" or "madvise, and it'll
+-be automatically shutdown if it's set to "never".
++khugepaged will be automatically started when one or more hugepage
++sizes are enabled (either by directly setting "always" or "madvise",
++or by setting "inherit" while the top-level enabled is set to "always"
++or "madvise"), and it'll be automatically shutdown when the last
++hugepage size is disabled (either by directly setting "never", or by
++setting "inherit" while the top-level enabled is set to "never").
+ 
+ Khugepaged controls
+ -------------------
+ 
++.. note::
++   khugepaged currently only searches for opportunities to collapse to
++   PMD-sized THP and no attempt is made to collapse to other THP
++   sizes.
++
+ khugepaged runs usually at low frequency so while one may not want to
+ invoke defrag algorithms synchronously during the page faults, it
+ should be worth invoking defrag at least in khugepaged. However it's
+@@ -282,19 +334,26 @@ force
+ Need of application restart
+ ===========================
+ 
+-The transparent_hugepage/enabled values and tmpfs mount option only affect
+-future behavior. So to make them effective you need to restart any
+-application that could have been using hugepages. This also applies to the
+-regions registered in khugepaged.
++The transparent_hugepage/enabled and
++transparent_hugepage/hugepages-<size>kB/enabled values and tmpfs mount
++option only affect future behavior. So to make them effective you need
++to restart any application that could have been using hugepages. This
++also applies to the regions registered in khugepaged.
+ 
+ Monitoring usage
+ ================
+ 
+-The number of anonymous transparent huge pages currently used by the
++.. note::
++   Currently the below counters only record events relating to
++   PMD-sized THP. Events relating to other THP sizes are not included.
++
++The number of PMD-sized anonymous transparent huge pages currently used by the
+ system is available by reading the AnonHugePages field in ``/proc/meminfo``.
+-To identify what applications are using anonymous transparent huge pages,
+-it is necessary to read ``/proc/PID/smaps`` and count the AnonHugePages fields
+-for each mapping.
++To identify what applications are using PMD-sized anonymous transparent huge
++pages, it is necessary to read ``/proc/PID/smaps`` and count the AnonHugePages
++fields for each mapping. (Note that AnonHugePages only applies to traditional
++PMD-sized THP for historical reasons and should have been called
++AnonHugePmdMapped).
+ 
+ The number of file transparent huge pages mapped to userspace is available
+ by reading ShmemPmdMapped and ShmemHugePages fields in ``/proc/meminfo``.
+@@ -413,7 +472,7 @@ for huge pages.
+ Optimizing the applications
+ ===========================
+ 
+-To be guaranteed that the kernel will map a 2M page immediately in any
++To be guaranteed that the kernel will map a THP immediately in any
+ memory region, the mmap region has to be hugepage naturally
+ aligned. posix_memalign() can provide that guarantee.
+ 
+diff --git a/Documentation/filesystems/proc.rst b/Documentation/filesystems/proc.rst
+index 49ef12df631b..104c6d047d9b 100644
+--- a/Documentation/filesystems/proc.rst
++++ b/Documentation/filesystems/proc.rst
+@@ -528,9 +528,9 @@ replaced by copy-on-write) part of the underlying shmem object out on swap.
+ does not take into account swapped out page of underlying shmem objects.
+ "Locked" indicates whether the mapping is locked in memory or not.
+ 
+-"THPeligible" indicates whether the mapping is eligible for allocating THP
+-pages as well as the THP is PMD mappable or not - 1 if true, 0 otherwise.
+-It just shows the current status.
++"THPeligible" indicates whether the mapping is eligible for allocating
++naturally aligned THP pages of any currently enabled size. 1 if true, 0
++otherwise.
+ 
+ "VmFlags" field deserves a separate description. This member represents the
+ kernel flags associated with the particular virtual memory area in two letter
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index d19924bf0a39..79855e1c5b57 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -865,7 +865,8 @@ static int show_smap(struct seq_file *m, void *v)
+ 	__show_smap(m, &mss, false);
+ 
+ 	seq_printf(m, "THPeligible:    %8u\n",
+-		   hugepage_vma_check(vma, vma->vm_flags, true, false, true));
++		   !!thp_vma_allowable_orders(vma, vma->vm_flags, true, false,
++					      true, THP_ORDERS_ALL));
+ 
+ 	if (arch_pkeys_enabled())
+ 		seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
+diff --git a/include/linux/huge_mm.h b/include/linux/huge_mm.h
+index fa0350b0812a..609c153bae57 100644
+--- a/include/linux/huge_mm.h
++++ b/include/linux/huge_mm.h
+@@ -67,6 +67,24 @@ extern struct kobj_attribute shmem_enabled_attr;
+ #define HPAGE_PMD_ORDER (HPAGE_PMD_SHIFT-PAGE_SHIFT)
+ #define HPAGE_PMD_NR (1<<HPAGE_PMD_ORDER)
+ 
++/*
++ * Mask of all large folio orders supported for anonymous THP.
++ */
++#define THP_ORDERS_ALL_ANON	BIT(PMD_ORDER)
++
++/*
++ * Mask of all large folio orders supported for file THP.
++ */
++#define THP_ORDERS_ALL_FILE	(BIT(PMD_ORDER) | BIT(PUD_ORDER))
++
++/*
++ * Mask of all large folio orders supported for THP.
++ */
++#define THP_ORDERS_ALL		(THP_ORDERS_ALL_ANON | THP_ORDERS_ALL_FILE)
++
++#define thp_vma_allowable_order(vma, vm_flags, smaps, in_pf, enforce_sysfs, order) \
++	(!!thp_vma_allowable_orders(vma, vm_flags, smaps, in_pf, enforce_sysfs, BIT(order)))
++
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ #define HPAGE_PMD_SHIFT PMD_SHIFT
+ #define HPAGE_PMD_SIZE	((1UL) << HPAGE_PMD_SHIFT)
+@@ -77,45 +95,105 @@ extern struct kobj_attribute shmem_enabled_attr;
+ #define HPAGE_PUD_MASK	(~(HPAGE_PUD_SIZE - 1))
+ 
+ extern unsigned long transparent_hugepage_flags;
++extern unsigned long huge_anon_orders_always;
++extern unsigned long huge_anon_orders_madvise;
++extern unsigned long huge_anon_orders_inherit;
+ 
+-#define hugepage_flags_enabled()					       \
+-	(transparent_hugepage_flags &				       \
+-	 ((1<<TRANSPARENT_HUGEPAGE_FLAG) |		       \
+-	  (1<<TRANSPARENT_HUGEPAGE_REQ_MADV_FLAG)))
+-#define hugepage_flags_always()				\
+-	(transparent_hugepage_flags &			\
+-	 (1<<TRANSPARENT_HUGEPAGE_FLAG))
++static inline bool hugepage_global_enabled(void)
++{
++	return transparent_hugepage_flags &
++			((1<<TRANSPARENT_HUGEPAGE_FLAG) |
++			(1<<TRANSPARENT_HUGEPAGE_REQ_MADV_FLAG));
++}
++
++static inline bool hugepage_global_always(void)
++{
++	return transparent_hugepage_flags &
++			(1<<TRANSPARENT_HUGEPAGE_FLAG);
++}
++
++static inline bool hugepage_flags_enabled(void)
++{
++	/*
++	 * We cover both the anon and the file-backed case here; we must return
++	 * true if globally enabled, even when all anon sizes are set to never.
++	 * So we don't need to look at huge_anon_orders_inherit.
++	 */
++	return hugepage_global_enabled() ||
++	       huge_anon_orders_always ||
++	       huge_anon_orders_madvise;
++}
++
++static inline int highest_order(unsigned long orders)
++{
++	return fls_long(orders) - 1;
++}
++
++static inline int next_order(unsigned long *orders, int prev)
++{
++	*orders &= ~BIT(prev);
++	return highest_order(*orders);
++}
+ 
+ /*
+  * Do the below checks:
+  *   - For file vma, check if the linear page offset of vma is
+- *     HPAGE_PMD_NR aligned within the file.  The hugepage is
+- *     guaranteed to be hugepage-aligned within the file, but we must
+- *     check that the PMD-aligned addresses in the VMA map to
+- *     PMD-aligned offsets within the file, else the hugepage will
+- *     not be PMD-mappable.
+- *   - For all vmas, check if the haddr is in an aligned HPAGE_PMD_SIZE
++ *     order-aligned within the file.  The hugepage is
++ *     guaranteed to be order-aligned within the file, but we must
++ *     check that the order-aligned addresses in the VMA map to
++ *     order-aligned offsets within the file, else the hugepage will
++ *     not be mappable.
++ *   - For all vmas, check if the haddr is in an aligned hugepage
+  *     area.
+  */
+-static inline bool transhuge_vma_suitable(struct vm_area_struct *vma,
+-		unsigned long addr)
++static inline bool thp_vma_suitable_order(struct vm_area_struct *vma,
++		unsigned long addr, int order)
+ {
++	unsigned long hpage_size = PAGE_SIZE << order;
+ 	unsigned long haddr;
+ 
+ 	/* Don't have to check pgoff for anonymous vma */
+ 	if (!vma_is_anonymous(vma)) {
+ 		if (!IS_ALIGNED((vma->vm_start >> PAGE_SHIFT) - vma->vm_pgoff,
+-				HPAGE_PMD_NR))
++				hpage_size >> PAGE_SHIFT))
+ 			return false;
+ 	}
+ 
+-	haddr = addr & HPAGE_PMD_MASK;
++	haddr = ALIGN_DOWN(addr, hpage_size);
+ 
+-	if (haddr < vma->vm_start || haddr + HPAGE_PMD_SIZE > vma->vm_end)
++	if (haddr < vma->vm_start || haddr + hpage_size > vma->vm_end)
+ 		return false;
+ 	return true;
+ }
+ 
++/*
++ * Filter the bitfield of input orders to the ones suitable for use in the vma.
++ * See thp_vma_suitable_order().
++ * All orders that pass the checks are returned as a bitfield.
++ */
++static inline unsigned long thp_vma_suitable_orders(struct vm_area_struct *vma,
++		unsigned long addr, unsigned long orders)
++{
++	int order;
++
++	/*
++	 * Iterate over orders, highest to lowest, removing orders that don't
++	 * meet alignment requirements from the set. Exit loop at first order
++	 * that meets requirements, since all lower orders must also meet
++	 * requirements.
++	 */
++
++	order = highest_order(orders);
++
++	while (orders) {
++		if (thp_vma_suitable_order(vma, addr, order))
++			break;
++		order = next_order(&orders, order);
++	}
++
++	return orders;
++}
++
+ static inline bool file_thp_enabled(struct vm_area_struct *vma)
+ {
+ 	struct inode *inode;
+@@ -130,8 +208,52 @@ static inline bool file_thp_enabled(struct vm_area_struct *vma)
+ 	       !inode_is_open_for_write(inode) && S_ISREG(inode->i_mode);
+ }
+ 
+-bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
+-			bool smaps, bool in_pf, bool enforce_sysfs);
++unsigned long __thp_vma_allowable_orders(struct vm_area_struct *vma,
++					 unsigned long vm_flags, bool smaps,
++					 bool in_pf, bool enforce_sysfs,
++					 unsigned long orders);
++
++/**
++ * thp_vma_allowable_orders - determine hugepage orders that are allowed for vma
++ * @vma:  the vm area to check
++ * @vm_flags: use these vm_flags instead of vma->vm_flags
++ * @smaps: whether answer will be used for smaps file
++ * @in_pf: whether answer will be used by page fault handler
++ * @enforce_sysfs: whether sysfs config should be taken into account
++ * @orders: bitfield of all orders to consider
++ *
++ * Calculates the intersection of the requested hugepage orders and the allowed
++ * hugepage orders for the provided vma. Permitted orders are encoded as a set
++ * bit at the corresponding bit position (bit-2 corresponds to order-2, bit-3
++ * corresponds to order-3, etc). Order-0 is never considered a hugepage order.
++ *
++ * Return: bitfield of orders allowed for hugepage in the vma. 0 if no hugepage
++ * orders are allowed.
++ */
++static inline
++unsigned long thp_vma_allowable_orders(struct vm_area_struct *vma,
++				       unsigned long vm_flags, bool smaps,
++				       bool in_pf, bool enforce_sysfs,
++				       unsigned long orders)
++{
++	/* Optimization to check if required orders are enabled early. */
++	if (enforce_sysfs && vma_is_anonymous(vma)) {
++		unsigned long mask = READ_ONCE(huge_anon_orders_always);
++
++		if (vm_flags & VM_HUGEPAGE)
++			mask |= READ_ONCE(huge_anon_orders_madvise);
++		if (hugepage_global_always() ||
++		    ((vm_flags & VM_HUGEPAGE) && hugepage_global_enabled()))
++			mask |= READ_ONCE(huge_anon_orders_inherit);
++
++		orders &= mask;
++		if (!orders)
++			return 0;
++	}
++
++	return __thp_vma_allowable_orders(vma, vm_flags, smaps, in_pf,
++					  enforce_sysfs, orders);
++}
+ 
+ #define transparent_hugepage_use_zero_page()				\
+ 	(transparent_hugepage_flags &					\
+@@ -267,17 +389,24 @@ static inline bool folio_test_pmd_mappable(struct folio *folio)
+ 	return false;
+ }
+ 
+-static inline bool transhuge_vma_suitable(struct vm_area_struct *vma,
+-		unsigned long addr)
++static inline bool thp_vma_suitable_order(struct vm_area_struct *vma,
++		unsigned long addr, int order)
+ {
+ 	return false;
+ }
+ 
+-static inline bool hugepage_vma_check(struct vm_area_struct *vma,
+-				      unsigned long vm_flags, bool smaps,
+-				      bool in_pf, bool enforce_sysfs)
++static inline unsigned long thp_vma_suitable_orders(struct vm_area_struct *vma,
++		unsigned long addr, unsigned long orders)
+ {
+-	return false;
++	return 0;
++}
++
++static inline unsigned long thp_vma_allowable_orders(struct vm_area_struct *vma,
++					unsigned long vm_flags, bool smaps,
++					bool in_pf, bool enforce_sysfs,
++					unsigned long orders)
++{
++	return 0;
+ }
+ 
+ static inline void folio_prep_large_rmappable(struct folio *folio) {}
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 8a65e2cb6126..cfb1d04a71b1 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -74,12 +74,24 @@ static unsigned long deferred_split_scan(struct shrinker *shrink,
+ static atomic_t huge_zero_refcount;
+ struct page *huge_zero_page __read_mostly;
+ unsigned long huge_zero_pfn __read_mostly = ~0UL;
++unsigned long huge_anon_orders_always __read_mostly;
++unsigned long huge_anon_orders_madvise __read_mostly;
++unsigned long huge_anon_orders_inherit __read_mostly;
++static DEFINE_SPINLOCK(huge_anon_orders_lock);
++
++unsigned long __thp_vma_allowable_orders(struct vm_area_struct *vma,
++					 unsigned long vm_flags, bool smaps,
++					 bool in_pf, bool enforce_sysfs,
++					 unsigned long orders)
++{
++	/* Check the intersection of requested and supported orders. */
++	orders &= vma_is_anonymous(vma) ?
++			THP_ORDERS_ALL_ANON : THP_ORDERS_ALL_FILE;
++	if (!orders)
++		return 0;
+ 
+-bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
+-			bool smaps, bool in_pf, bool enforce_sysfs)
+-{
+ 	if (!vma->vm_mm)		/* vdso */
+-		return false;
++		return 0;
+ 
+ 	/*
+ 	 * Explicitly disabled through madvise or prctl, or some
+@@ -88,16 +100,16 @@ bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
+ 	 * */
+ 	if ((vm_flags & VM_NOHUGEPAGE) ||
+ 	    test_bit(MMF_DISABLE_THP, &vma->vm_mm->flags))
+-		return false;
++		return 0;
+ 	/*
+ 	 * If the hardware/firmware marked hugepage support disabled.
+ 	 */
+ 	if (transparent_hugepage_flags & (1 << TRANSPARENT_HUGEPAGE_UNSUPPORTED))
+-		return false;
++		return 0;
+ 
+ 	/* khugepaged doesn't collapse DAX vma, but page fault is fine. */
+ 	if (vma_is_dax(vma))
+-		return in_pf;
++		return in_pf ? orders : 0;
+ 
+ 	/*
+ 	 * khugepaged special VMA and hugetlb VMA.
+@@ -105,17 +117,29 @@ bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
+ 	 * VM_MIXEDMAP set.
+ 	 */
+ 	if (!in_pf && !smaps && (vm_flags & VM_NO_KHUGEPAGED))
+-		return false;
++		return 0;
+ 
+ 	/*
+-	 * Check alignment for file vma and size for both file and anon vma.
++	 * Check alignment for file vma and size for both file and anon vma by
++	 * filtering out the unsuitable orders.
+ 	 *
+ 	 * Skip the check for page fault. Huge fault does the check in fault
+-	 * handlers. And this check is not suitable for huge PUD fault.
++	 * handlers.
+ 	 */
+-	if (!in_pf &&
+-	    !transhuge_vma_suitable(vma, (vma->vm_end - HPAGE_PMD_SIZE)))
+-		return false;
++	if (!in_pf) {
++		int order = highest_order(orders);
++		unsigned long addr;
++
++		while (orders) {
++			addr = vma->vm_end - (PAGE_SIZE << order);
++			if (thp_vma_suitable_order(vma, addr, order))
++				break;
++			order = next_order(&orders, order);
++		}
++
++		if (!orders)
++			return 0;
++	}
+ 
+ 	/*
+ 	 * Enabled via shmem mount options or sysfs settings.
+@@ -124,29 +148,33 @@ bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
+ 	 */
+ 	if (!in_pf && shmem_file(vma->vm_file))
+ 		return shmem_is_huge(file_inode(vma->vm_file), vma->vm_pgoff,
+-				     !enforce_sysfs, vma->vm_mm, vm_flags);
+-
+-	/* Enforce sysfs THP requirements as necessary */
+-	if (enforce_sysfs &&
+-	    (!hugepage_flags_enabled() || (!(vm_flags & VM_HUGEPAGE) &&
+-					   !hugepage_flags_always())))
+-		return false;
++				     !enforce_sysfs, vma->vm_mm, vm_flags)
++			? orders : 0;
+ 
+ 	if (!vma_is_anonymous(vma)) {
++		/*
++		 * Enforce sysfs THP requirements as necessary. Anonymous vmas
++		 * were already handled in thp_vma_allowable_orders().
++		 */
++		if (enforce_sysfs &&
++		    (!hugepage_global_enabled() || (!(vm_flags & VM_HUGEPAGE) &&
++						    !hugepage_global_always())))
++			return 0;
++
+ 		/*
+ 		 * Trust that ->huge_fault() handlers know what they are doing
+ 		 * in fault path.
+ 		 */
+ 		if (((in_pf || smaps)) && vma->vm_ops->huge_fault)
+-			return true;
++			return orders;
+ 		/* Only regular file is valid in collapse path */
+ 		if (((!in_pf || smaps)) && file_thp_enabled(vma))
+-			return true;
+-		return false;
++			return orders;
++		return 0;
+ 	}
+ 
+ 	if (vma_is_temporary_stack(vma))
+-		return false;
++		return 0;
+ 
+ 	/*
+ 	 * THPeligible bit of smaps should show 1 for proper VMAs even
+@@ -156,9 +184,9 @@ bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
+ 	 * the first page fault.
+ 	 */
+ 	if (!vma->anon_vma)
+-		return (smaps || in_pf);
++		return (smaps || in_pf) ? orders : 0;
+ 
+-	return true;
++	return orders;
+ }
+ 
+ static bool get_huge_zero_page(void)
+@@ -412,9 +440,135 @@ static const struct attribute_group hugepage_attr_group = {
+ 	.attrs = hugepage_attr,
+ };
+ 
++static void hugepage_exit_sysfs(struct kobject *hugepage_kobj);
++static void thpsize_release(struct kobject *kobj);
++static LIST_HEAD(thpsize_list);
++
++struct thpsize {
++	struct kobject kobj;
++	struct list_head node;
++	int order;
++};
++
++#define to_thpsize(kobj) container_of(kobj, struct thpsize, kobj)
++
++static ssize_t thpsize_enabled_show(struct kobject *kobj,
++				    struct kobj_attribute *attr, char *buf)
++{
++	int order = to_thpsize(kobj)->order;
++	const char *output;
++
++	if (test_bit(order, &huge_anon_orders_always))
++		output = "[always] inherit madvise never";
++	else if (test_bit(order, &huge_anon_orders_inherit))
++		output = "always [inherit] madvise never";
++	else if (test_bit(order, &huge_anon_orders_madvise))
++		output = "always inherit [madvise] never";
++	else
++		output = "always inherit madvise [never]";
++
++	return sysfs_emit(buf, "%s\n", output);
++}
++
++static ssize_t thpsize_enabled_store(struct kobject *kobj,
++				     struct kobj_attribute *attr,
++				     const char *buf, size_t count)
++{
++	int order = to_thpsize(kobj)->order;
++	ssize_t ret = count;
++
++	if (sysfs_streq(buf, "always")) {
++		spin_lock(&huge_anon_orders_lock);
++		clear_bit(order, &huge_anon_orders_inherit);
++		clear_bit(order, &huge_anon_orders_madvise);
++		set_bit(order, &huge_anon_orders_always);
++		spin_unlock(&huge_anon_orders_lock);
++	} else if (sysfs_streq(buf, "inherit")) {
++		spin_lock(&huge_anon_orders_lock);
++		clear_bit(order, &huge_anon_orders_always);
++		clear_bit(order, &huge_anon_orders_madvise);
++		set_bit(order, &huge_anon_orders_inherit);
++		spin_unlock(&huge_anon_orders_lock);
++	} else if (sysfs_streq(buf, "madvise")) {
++		spin_lock(&huge_anon_orders_lock);
++		clear_bit(order, &huge_anon_orders_always);
++		clear_bit(order, &huge_anon_orders_inherit);
++		set_bit(order, &huge_anon_orders_madvise);
++		spin_unlock(&huge_anon_orders_lock);
++	} else if (sysfs_streq(buf, "never")) {
++		spin_lock(&huge_anon_orders_lock);
++		clear_bit(order, &huge_anon_orders_always);
++		clear_bit(order, &huge_anon_orders_inherit);
++		clear_bit(order, &huge_anon_orders_madvise);
++		spin_unlock(&huge_anon_orders_lock);
++	} else
++		ret = -EINVAL;
++
++	return ret;
++}
++
++static struct kobj_attribute thpsize_enabled_attr =
++	__ATTR(enabled, 0644, thpsize_enabled_show, thpsize_enabled_store);
++
++static struct attribute *thpsize_attrs[] = {
++	&thpsize_enabled_attr.attr,
++	NULL,
++};
++
++static const struct attribute_group thpsize_attr_group = {
++	.attrs = thpsize_attrs,
++};
++
++static const struct kobj_type thpsize_ktype = {
++	.release = &thpsize_release,
++	.sysfs_ops = &kobj_sysfs_ops,
++};
++
++static struct thpsize *thpsize_create(int order, struct kobject *parent)
++{
++	unsigned long size = (PAGE_SIZE << order) / SZ_1K;
++	struct thpsize *thpsize;
++	int ret;
++
++	thpsize = kzalloc(sizeof(*thpsize), GFP_KERNEL);
++	if (!thpsize)
++		return ERR_PTR(-ENOMEM);
++
++	ret = kobject_init_and_add(&thpsize->kobj, &thpsize_ktype, parent,
++				   "hugepages-%lukB", size);
++	if (ret) {
++		kfree(thpsize);
++		return ERR_PTR(ret);
++	}
++
++	ret = sysfs_create_group(&thpsize->kobj, &thpsize_attr_group);
++	if (ret) {
++		kobject_put(&thpsize->kobj);
++		return ERR_PTR(ret);
++	}
++
++	thpsize->order = order;
++	return thpsize;
++}
++
++static void thpsize_release(struct kobject *kobj)
++{
++	kfree(to_thpsize(kobj));
++}
++
+ static int __init hugepage_init_sysfs(struct kobject **hugepage_kobj)
+ {
+ 	int err;
++	struct thpsize *thpsize;
++	unsigned long orders;
++	int order;
++
++	/*
++	 * Default to setting PMD-sized THP to inherit the global setting and
++	 * disable all other sizes. powerpc's PMD_ORDER isn't a compile-time
++	 * constant so we have to do this here.
++	 */
++	huge_anon_orders_inherit = BIT(PMD_ORDER);
+ 
+ 	*hugepage_kobj = kobject_create_and_add("transparent_hugepage", mm_kobj);
+ 	if (unlikely(!*hugepage_kobj)) {
+@@ -434,8 +588,24 @@ static int __init hugepage_init_sysfs(struct kobject **hugepage_kobj)
+ 		goto remove_hp_group;
+ 	}
+ 
++	orders = THP_ORDERS_ALL_ANON;
++	order = highest_order(orders);
++	while (orders) {
++		thpsize = thpsize_create(order, *hugepage_kobj);
++		if (IS_ERR(thpsize)) {
++			pr_err("failed to create thpsize for order %d\n", order);
++			err = PTR_ERR(thpsize);
++			goto remove_all;
++		}
++		list_add(&thpsize->node, &thpsize_list);
++		order = next_order(&orders, order);
++	}
++
+ 	return 0;
+ 
++remove_all:
++	hugepage_exit_sysfs(*hugepage_kobj);
++	return err;
+ remove_hp_group:
+ 	sysfs_remove_group(*hugepage_kobj, &hugepage_attr_group);
+ delete_obj:
+@@ -445,6 +615,13 @@ static int __init hugepage_init_sysfs(struct kobject **hugepage_kobj)
+ 
+ static void __init hugepage_exit_sysfs(struct kobject *hugepage_kobj)
+ {
++	struct thpsize *thpsize, *tmp;
++
++	list_for_each_entry_safe(thpsize, tmp, &thpsize_list, node) {
++		list_del(&thpsize->node);
++		kobject_put(&thpsize->kobj);
++	}
++
+ 	sysfs_remove_group(hugepage_kobj, &khugepaged_attr_group);
+ 	sysfs_remove_group(hugepage_kobj, &hugepage_attr_group);
+ 	kobject_put(hugepage_kobj);
+@@ -811,7 +988,7 @@ vm_fault_t do_huge_pmd_anonymous_page(struct vm_fault *vmf)
+ 	struct folio *folio;
+ 	unsigned long haddr = vmf->address & HPAGE_PMD_MASK;
+ 
+-	if (!transhuge_vma_suitable(vma, haddr))
++	if (!thp_vma_suitable_order(vma, haddr, PMD_ORDER))
+ 		return VM_FAULT_FALLBACK;
+ 	if (unlikely(anon_vma_prepare(vma)))
+ 		return VM_FAULT_OOM;
+diff --git a/mm/khugepaged.c b/mm/khugepaged.c
+index 0da6937572cf..de174d049e71 100644
+--- a/mm/khugepaged.c
++++ b/mm/khugepaged.c
+@@ -446,7 +446,8 @@ void khugepaged_enter_vma(struct vm_area_struct *vma,
+ {
+ 	if (!test_bit(MMF_VM_HUGEPAGE, &vma->vm_mm->flags) &&
+ 	    hugepage_flags_enabled()) {
+-		if (hugepage_vma_check(vma, vm_flags, false, false, true))
++		if (thp_vma_allowable_order(vma, vm_flags, false, false, true,
++					    PMD_ORDER))
+ 			__khugepaged_enter(vma->vm_mm);
+ 	}
+ }
+@@ -922,16 +923,16 @@ static int hugepage_vma_revalidate(struct mm_struct *mm, unsigned long address,
+ 	if (!vma)
+ 		return SCAN_VMA_NULL;
+ 
+-	if (!transhuge_vma_suitable(vma, address))
++	if (!thp_vma_suitable_order(vma, address, PMD_ORDER))
+ 		return SCAN_ADDRESS_RANGE;
+-	if (!hugepage_vma_check(vma, vma->vm_flags, false, false,
+-				cc->is_khugepaged))
++	if (!thp_vma_allowable_order(vma, vma->vm_flags, false, false,
++				     cc->is_khugepaged, PMD_ORDER))
+ 		return SCAN_VMA_CHECK;
+ 	/*
+ 	 * Anon VMA expected, the address may be unmapped then
+ 	 * remapped to file after khugepaged reaquired the mmap_lock.
+ 	 *
+-	 * hugepage_vma_check may return true for qualified file
++	 * thp_vma_allowable_order may return true for qualified file
+ 	 * vmas.
+ 	 */
+ 	if (expect_anon && (!(*vmap)->anon_vma || !vma_is_anonymous(*vmap)))
+@@ -1506,7 +1507,8 @@ int collapse_pte_mapped_thp(struct mm_struct *mm, unsigned long addr,
+ 	 * and map it by a PMD, regardless of sysfs THP settings. As such, let's
+ 	 * analogously elide sysfs THP settings here.
+ 	 */
+-	if (!hugepage_vma_check(vma, vma->vm_flags, false, false, false))
++	if (!thp_vma_allowable_order(vma, vma->vm_flags, false, false, false,
++				     PMD_ORDER))
+ 		return SCAN_VMA_CHECK;
+ 
+ 	/* Keep pmd pgtable for uffd-wp; see comment in retract_page_tables() */
+@@ -2371,7 +2373,8 @@ static unsigned int khugepaged_scan_mm_slot(unsigned int pages, int *result,
+ 			progress++;
+ 			break;
+ 		}
+-		if (!hugepage_vma_check(vma, vma->vm_flags, false, false, true)) {
++		if (!thp_vma_allowable_order(vma, vma->vm_flags, false, false,
++					     true, PMD_ORDER)) {
+ skip:
+ 			progress++;
+ 			continue;
+@@ -2708,7 +2711,8 @@ int madvise_collapse(struct vm_area_struct *vma, struct vm_area_struct **prev,
+ 
+ 	*prev = vma;
+ 
+-	if (!hugepage_vma_check(vma, vma->vm_flags, false, false, false))
++	if (!thp_vma_allowable_order(vma, vma->vm_flags, false, false, false,
++				     PMD_ORDER))
+ 		return -EINVAL;
+ 
+ 	cc = kmalloc(sizeof(*cc), GFP_KERNEL);
+diff --git a/mm/memory.c b/mm/memory.c
+index 99582b188ed2..8ab2d994d997 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -4322,7 +4322,7 @@ vm_fault_t do_set_pmd(struct vm_fault *vmf, struct page *page)
+ 	pmd_t entry;
+ 	vm_fault_t ret = VM_FAULT_FALLBACK;
+ 
+-	if (!transhuge_vma_suitable(vma, haddr))
++	if (!thp_vma_suitable_order(vma, haddr, PMD_ORDER))
+ 		return ret;
+ 
+ 	page = compound_head(page);
+@@ -5116,7 +5116,7 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
+ 		return VM_FAULT_OOM;
+ retry_pud:
+ 	if (pud_none(*vmf.pud) &&
+-	    hugepage_vma_check(vma, vm_flags, false, true, true)) {
++	    thp_vma_allowable_order(vma, vm_flags, false, true, true, PUD_ORDER)) {
+ 		ret = create_huge_pud(&vmf);
+ 		if (!(ret & VM_FAULT_FALLBACK))
+ 			return ret;
+@@ -5150,7 +5150,7 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
+ 		goto retry_pud;
+ 
+ 	if (pmd_none(*vmf.pmd) &&
+-	    hugepage_vma_check(vma, vm_flags, false, true, true)) {
++	    thp_vma_allowable_order(vma, vm_flags, false, true, true, PMD_ORDER)) {
+ 		ret = create_huge_pmd(&vmf);
+ 		if (!(ret & VM_FAULT_FALLBACK))
+ 			return ret;
+diff --git a/mm/page_vma_mapped.c b/mm/page_vma_mapped.c
+index e0b368e545ed..74d2de15fb5e 100644
+--- a/mm/page_vma_mapped.c
++++ b/mm/page_vma_mapped.c
+@@ -268,7 +268,8 @@ bool page_vma_mapped_walk(struct page_vma_mapped_walk *pvmw)
+ 			 * cleared *pmd but not decremented compound_mapcount().
+ 			 */
+ 			if ((pvmw->flags & PVMW_SYNC) &&
+-			    transhuge_vma_suitable(vma, pvmw->address) &&
++			    thp_vma_suitable_order(vma, pvmw->address,
++						   PMD_ORDER) &&
+ 			    (pvmw->nr_pages >= HPAGE_PMD_NR)) {
+ 				spinlock_t *ptl = pmd_lock(mm, pvmw->pmd);
+ 
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v9 4/10] mm: thp: Support allocation of anonymous multi-size THP
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 07 Dec 2023 16:12:05 +0000
+Message-Id: <20231207161211.2374093-5-ryan.roberts@arm.com>
+To: Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Yin Fengwei <fengwei.yin@intel.com>, David Hildenbrand <david@redhat.com>, Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Yang Shi <shy828301@gmail.com>, "Huang, Ying" <ying.huang@intel.com>, Zi Yan <ziy@nvidia.com>, Luis Chamberlain <mcgrof@kernel.org>, Itaru Kitayama <itaru.kitayama@gmail.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, John Hubbard <jhubbard@nvidia.com>, David Rientjes <rientjes@google.com>, Vlastimil Babka <vbabka@suse.cz>, Hugh Dickins <hughd@google.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20231207161211.2374093-1-ryan.roberts@arm.com>
+References: <20231207161211.2374093-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Introduce the logic to allow THP to be configured (through the new sysfs
+interface we just added) to allocate large folios to back anonymous
+memory, which are larger than the base page size but smaller than
+PMD-size. We call this new THP extension "multi-size THP" (mTHP).
+
+mTHP continues to be PTE-mapped, but in many cases can still provide
+similar benefits to traditional PMD-sized THP: Page faults are
+significantly reduced (by a factor of e.g. 4, 8, 16, etc. depending on
+the configured order), but latency spikes are much less prominent
+because the size of each page isn't as huge as the PMD-sized variant and
+there is less memory to clear in each page fault. The number of per-page
+operations (e.g. ref counting, rmap management, lru list management) are
+also significantly reduced since those ops now become per-folio.
+
+Some architectures also employ TLB compression mechanisms to squeeze
+more entries in when a set of PTEs are virtually and physically
+contiguous and approporiately aligned. In this case, TLB misses will
+occur less often.
+
+The new behaviour is disabled by default, but can be enabled at runtime
+by writing to /sys/kernel/mm/transparent_hugepage/hugepage-XXkb/enabled
+(see documentation in previous commit). The long term aim is to change
+the default to include suitable lower orders, but there are some risks
+around internal fragmentation that need to be better understood first.
+
+Tested-by: Kefeng Wang <wangkefeng.wang@huawei.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Acked-by: David Hildenbrand <david@redhat.com>
+---
+ include/linux/huge_mm.h |   6 ++-
+ mm/memory.c             | 111 ++++++++++++++++++++++++++++++++++++----
+ 2 files changed, 106 insertions(+), 11 deletions(-)
+
+diff --git a/include/linux/huge_mm.h b/include/linux/huge_mm.h
+index 609c153bae57..fa7a38a30fc6 100644
+--- a/include/linux/huge_mm.h
++++ b/include/linux/huge_mm.h
+@@ -68,9 +68,11 @@ extern struct kobj_attribute shmem_enabled_attr;
+ #define HPAGE_PMD_NR (1<<HPAGE_PMD_ORDER)
+ 
+ /*
+- * Mask of all large folio orders supported for anonymous THP.
++ * Mask of all large folio orders supported for anonymous THP; all orders up to
++ * and including PMD_ORDER, except order-0 (which is not "huge") and order-1
++ * (which is a limitation of the THP implementation).
+  */
+-#define THP_ORDERS_ALL_ANON	BIT(PMD_ORDER)
++#define THP_ORDERS_ALL_ANON	((BIT(PMD_ORDER + 1) - 1) & ~(BIT(0) | BIT(1)))
+ 
+ /*
+  * Mask of all large folio orders supported for file THP.
+diff --git a/mm/memory.c b/mm/memory.c
+index 8ab2d994d997..8f0b936b90b5 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -4125,6 +4125,87 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
+ 	return ret;
+ }
+ 
++static bool pte_range_none(pte_t *pte, int nr_pages)
++{
++	int i;
++
++	for (i = 0; i < nr_pages; i++) {
++		if (!pte_none(ptep_get_lockless(pte + i)))
++			return false;
++	}
++
++	return true;
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static struct folio *alloc_anon_folio(struct vm_fault *vmf)
++{
++	struct vm_area_struct *vma = vmf->vma;
++	unsigned long orders;
++	struct folio *folio;
++	unsigned long addr;
++	pte_t *pte;
++	gfp_t gfp;
++	int order;
++
++	/*
++	 * If uffd is active for the vma we need per-page fault fidelity to
++	 * maintain the uffd semantics.
++	 */
++	if (unlikely(userfaultfd_armed(vma)))
++		goto fallback;
++
++	/*
++	 * Get a list of all the (large) orders below PMD_ORDER that are enabled
++	 * for this vma. Then filter out the orders that can't be allocated over
++	 * the faulting address and still be fully contained in the vma.
++	 */
++	orders = thp_vma_allowable_orders(vma, vma->vm_flags, false, true, true,
++					  BIT(PMD_ORDER) - 1);
++	orders = thp_vma_suitable_orders(vma, vmf->address, orders);
++
++	if (!orders)
++		goto fallback;
++
++	pte = pte_offset_map(vmf->pmd, vmf->address & PMD_MASK);
++	if (!pte)
++		return ERR_PTR(-EAGAIN);
++
++	/*
++	 * Find the highest order where the aligned range is completely
++	 * pte_none(). Note that all remaining orders will be completely
++	 * pte_none().
++	 */
++	order = highest_order(orders);
++	while (orders) {
++		addr = ALIGN_DOWN(vmf->address, PAGE_SIZE << order);
++		if (pte_range_none(pte + pte_index(addr), 1 << order))
++			break;
++		order = next_order(&orders, order);
++	}
++
++	pte_unmap(pte);
++
++	/* Try allocating the highest of the remaining orders. */
++	gfp = vma_thp_gfp_mask(vma);
++	while (orders) {
++		addr = ALIGN_DOWN(vmf->address, PAGE_SIZE << order);
++		folio = vma_alloc_folio(gfp, order, vma, addr, true);
++		if (folio) {
++			clear_huge_page(&folio->page, vmf->address, 1 << order);
++			return folio;
++		}
++		order = next_order(&orders, order);
++	}
++
++fallback:
++	return vma_alloc_zeroed_movable_folio(vma, vmf->address);
++}
++#else
++#define alloc_anon_folio(vmf) \
++		vma_alloc_zeroed_movable_folio((vmf)->vma, (vmf)->address)
++#endif
++
+ /*
+  * We enter with non-exclusive mmap_lock (to exclude vma changes,
+  * but allow concurrent faults), and pte mapped but not yet locked.
+@@ -4134,9 +4215,12 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ {
+ 	bool uffd_wp = vmf_orig_pte_uffd_wp(vmf);
+ 	struct vm_area_struct *vma = vmf->vma;
++	unsigned long addr = vmf->address;
+ 	struct folio *folio;
+ 	vm_fault_t ret = 0;
++	int nr_pages = 1;
+ 	pte_t entry;
++	int i;
+ 
+ 	/* File mapping without ->vm_ops ? */
+ 	if (vma->vm_flags & VM_SHARED)
+@@ -4176,10 +4260,15 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 	/* Allocate our own private page. */
+ 	if (unlikely(anon_vma_prepare(vma)))
+ 		goto oom;
+-	folio = vma_alloc_zeroed_movable_folio(vma, vmf->address);
++	folio = alloc_anon_folio(vmf);
++	if (IS_ERR(folio))
++		return 0;
+ 	if (!folio)
+ 		goto oom;
+ 
++	nr_pages = folio_nr_pages(folio);
++	addr = ALIGN_DOWN(vmf->address, nr_pages * PAGE_SIZE);
++
+ 	if (mem_cgroup_charge(folio, vma->vm_mm, GFP_KERNEL))
+ 		goto oom_free_page;
+ 	folio_throttle_swaprate(folio, GFP_KERNEL);
+@@ -4196,12 +4285,15 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 	if (vma->vm_flags & VM_WRITE)
+ 		entry = pte_mkwrite(pte_mkdirty(entry), vma);
+ 
+-	vmf->pte = pte_offset_map_lock(vma->vm_mm, vmf->pmd, vmf->address,
+-			&vmf->ptl);
++	vmf->pte = pte_offset_map_lock(vma->vm_mm, vmf->pmd, addr, &vmf->ptl);
+ 	if (!vmf->pte)
+ 		goto release;
+-	if (vmf_pte_changed(vmf)) {
+-		update_mmu_tlb(vma, vmf->address, vmf->pte);
++	if (nr_pages == 1 && vmf_pte_changed(vmf)) {
++		update_mmu_tlb(vma, addr, vmf->pte);
++		goto release;
++	} else if (nr_pages > 1 && !pte_range_none(vmf->pte, nr_pages)) {
++		for (i = 0; i < nr_pages; i++)
++			update_mmu_tlb(vma, addr + PAGE_SIZE * i, vmf->pte + i);
+ 		goto release;
+ 	}
+ 
+@@ -4216,16 +4308,17 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 		return handle_userfault(vmf, VM_UFFD_MISSING);
+ 	}
+ 
+-	inc_mm_counter(vma->vm_mm, MM_ANONPAGES);
+-	folio_add_new_anon_rmap(folio, vma, vmf->address);
++	folio_ref_add(folio, nr_pages - 1);
++	add_mm_counter(vma->vm_mm, MM_ANONPAGES, nr_pages);
++	folio_add_new_anon_rmap(folio, vma, addr);
+ 	folio_add_lru_vma(folio, vma);
+ setpte:
+ 	if (uffd_wp)
+ 		entry = pte_mkuffd_wp(entry);
+-	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, entry);
++	set_ptes(vma->vm_mm, addr, vmf->pte, entry, nr_pages);
+ 
+ 	/* No need to invalidate - it was non-present before */
+-	update_mmu_cache_range(vmf, vma, vmf->address, vmf->pte, 1);
++	update_mmu_cache_range(vmf, vma, addr, vmf->pte, nr_pages);
+ unlock:
+ 	if (vmf->pte)
+ 		pte_unmap_unlock(vmf->pte, vmf->ptl);
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v9 5/10] selftests/mm/kugepaged: Restore thp settings at exit
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 07 Dec 2023 16:12:06 +0000
+Message-Id: <20231207161211.2374093-6-ryan.roberts@arm.com>
+To: Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Yin Fengwei <fengwei.yin@intel.com>, David Hildenbrand <david@redhat.com>, Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Yang Shi <shy828301@gmail.com>, "Huang, Ying" <ying.huang@intel.com>, Zi Yan <ziy@nvidia.com>, Luis Chamberlain <mcgrof@kernel.org>, Itaru Kitayama <itaru.kitayama@gmail.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, John Hubbard <jhubbard@nvidia.com>, David Rientjes <rientjes@google.com>, Vlastimil Babka <vbabka@suse.cz>, Hugh Dickins <hughd@google.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20231207161211.2374093-1-ryan.roberts@arm.com>
+References: <20231207161211.2374093-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Previously, the saved thp settings would be restored upon a signal or at
+the natural end of the test suite. But there are some tests that
+directly call exit() upon failure. In this case, the thp settings were
+not being restored, which could then influence other tests.
+
+Fix this by installing an atexit() handler to do the actual restore. The
+signal handler can now just call exit() and the atexit handler is
+invoked.
+
+Reviewed-by: Alistair Popple <apopple@nvidia.com>
+Reviewed-by: David Hildenbrand <david@redhat.com>
+Tested-by: Kefeng Wang <wangkefeng.wang@huawei.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+---
+ tools/testing/selftests/mm/khugepaged.c | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/tools/testing/selftests/mm/khugepaged.c b/tools/testing/selftests/mm/khugepaged.c
+index 030667cb5533..fc47a1c4944c 100644
+--- a/tools/testing/selftests/mm/khugepaged.c
++++ b/tools/testing/selftests/mm/khugepaged.c
+@@ -374,18 +374,22 @@ static void pop_settings(void)
+ 	write_settings(current_settings());
+ }
+ 
+-static void restore_settings(int sig)
++static void restore_settings_atexit(void)
+ {
+ 	if (skip_settings_restore)
+-		goto out;
++		return;
+ 
+ 	printf("Restore THP and khugepaged settings...");
+ 	write_settings(&saved_settings);
+ 	success("OK");
+-	if (sig)
+-		exit(EXIT_FAILURE);
+-out:
+-	exit(exit_status);
++
++	skip_settings_restore = true;
++}
++
++static void restore_settings(int sig)
++{
++	/* exit() will invoke the restore_settings_atexit handler. */
++	exit(sig ? EXIT_FAILURE : exit_status);
+ }
+ 
+ static void save_settings(void)
+@@ -415,6 +419,7 @@ static void save_settings(void)
+ 
+ 	success("OK");
+ 
++	atexit(restore_settings_atexit);
+ 	signal(SIGTERM, restore_settings);
+ 	signal(SIGINT, restore_settings);
+ 	signal(SIGHUP, restore_settings);
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v9 6/10] selftests/mm: Factor out thp settings management
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 07 Dec 2023 16:12:07 +0000
+Message-Id: <20231207161211.2374093-7-ryan.roberts@arm.com>
+To: Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Yin Fengwei <fengwei.yin@intel.com>, David Hildenbrand <david@redhat.com>, Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Yang Shi <shy828301@gmail.com>, "Huang, Ying" <ying.huang@intel.com>, Zi Yan <ziy@nvidia.com>, Luis Chamberlain <mcgrof@kernel.org>, Itaru Kitayama <itaru.kitayama@gmail.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, John Hubbard <jhubbard@nvidia.com>, David Rientjes <rientjes@google.com>, Vlastimil Babka <vbabka@suse.cz>, Hugh Dickins <hughd@google.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20231207161211.2374093-1-ryan.roberts@arm.com>
+References: <20231207161211.2374093-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+The khugepaged test has a useful framework for save/restore/pop/push of
+all thp settings via the sysfs interface. This will be useful to
+explicitly control multi-size THP settings in other tests, so let's
+move it out of khugepaged and into its own thp_settings.[c|h] utility.
+
+Tested-by: Alistair Popple <apopple@nvidia.com>
+Acked-by: David Hildenbrand <david@redhat.com>
+Tested-by: Kefeng Wang <wangkefeng.wang@huawei.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+---
+ tools/testing/selftests/mm/Makefile       |   4 +-
+ tools/testing/selftests/mm/khugepaged.c   | 346 ++--------------------
+ tools/testing/selftests/mm/thp_settings.c | 296 ++++++++++++++++++
+ tools/testing/selftests/mm/thp_settings.h |  71 +++++
+ 4 files changed, 391 insertions(+), 326 deletions(-)
+ create mode 100644 tools/testing/selftests/mm/thp_settings.c
+ create mode 100644 tools/testing/selftests/mm/thp_settings.h
+
+diff --git a/tools/testing/selftests/mm/Makefile b/tools/testing/selftests/mm/Makefile
+index dede0bcf97a3..2453add65d12 100644
+--- a/tools/testing/selftests/mm/Makefile
++++ b/tools/testing/selftests/mm/Makefile
+@@ -117,8 +117,8 @@ TEST_FILES += va_high_addr_switch.sh
+ 
+ include ../lib.mk
+ 
+-$(TEST_GEN_PROGS): vm_util.c
+-$(TEST_GEN_FILES): vm_util.c
++$(TEST_GEN_PROGS): vm_util.c thp_settings.c
++$(TEST_GEN_FILES): vm_util.c thp_settings.c
+ 
+ $(OUTPUT)/uffd-stress: uffd-common.c
+ $(OUTPUT)/uffd-unit-tests: uffd-common.c
+diff --git a/tools/testing/selftests/mm/khugepaged.c b/tools/testing/selftests/mm/khugepaged.c
+index fc47a1c4944c..b15e7fd70176 100644
+--- a/tools/testing/selftests/mm/khugepaged.c
++++ b/tools/testing/selftests/mm/khugepaged.c
+@@ -22,13 +22,13 @@
+ #include "linux/magic.h"
+ 
+ #include "vm_util.h"
++#include "thp_settings.h"
+ 
+ #define BASE_ADDR ((void *)(1UL << 30))
+ static unsigned long hpage_pmd_size;
+ static unsigned long page_size;
+ static int hpage_pmd_nr;
+ 
+-#define THP_SYSFS "/sys/kernel/mm/transparent_hugepage/"
+ #define PID_SMAPS "/proc/self/smaps"
+ #define TEST_FILE "collapse_test_file"
+ 
+@@ -71,78 +71,7 @@ struct file_info {
+ };
+ 
+ static struct file_info finfo;
+-
+-enum thp_enabled {
+-	THP_ALWAYS,
+-	THP_MADVISE,
+-	THP_NEVER,
+-};
+-
+-static const char *thp_enabled_strings[] = {
+-	"always",
+-	"madvise",
+-	"never",
+-	NULL
+-};
+-
+-enum thp_defrag {
+-	THP_DEFRAG_ALWAYS,
+-	THP_DEFRAG_DEFER,
+-	THP_DEFRAG_DEFER_MADVISE,
+-	THP_DEFRAG_MADVISE,
+-	THP_DEFRAG_NEVER,
+-};
+-
+-static const char *thp_defrag_strings[] = {
+-	"always",
+-	"defer",
+-	"defer+madvise",
+-	"madvise",
+-	"never",
+-	NULL
+-};
+-
+-enum shmem_enabled {
+-	SHMEM_ALWAYS,
+-	SHMEM_WITHIN_SIZE,
+-	SHMEM_ADVISE,
+-	SHMEM_NEVER,
+-	SHMEM_DENY,
+-	SHMEM_FORCE,
+-};
+-
+-static const char *shmem_enabled_strings[] = {
+-	"always",
+-	"within_size",
+-	"advise",
+-	"never",
+-	"deny",
+-	"force",
+-	NULL
+-};
+-
+-struct khugepaged_settings {
+-	bool defrag;
+-	unsigned int alloc_sleep_millisecs;
+-	unsigned int scan_sleep_millisecs;
+-	unsigned int max_ptes_none;
+-	unsigned int max_ptes_swap;
+-	unsigned int max_ptes_shared;
+-	unsigned long pages_to_scan;
+-};
+-
+-struct settings {
+-	enum thp_enabled thp_enabled;
+-	enum thp_defrag thp_defrag;
+-	enum shmem_enabled shmem_enabled;
+-	bool use_zero_page;
+-	struct khugepaged_settings khugepaged;
+-	unsigned long read_ahead_kb;
+-};
+-
+-static struct settings saved_settings;
+ static bool skip_settings_restore;
+-
+ static int exit_status;
+ 
+ static void success(const char *msg)
+@@ -161,226 +90,13 @@ static void skip(const char *msg)
+ 	printf(" \e[33m%s\e[0m\n", msg);
+ }
+ 
+-static int read_file(const char *path, char *buf, size_t buflen)
+-{
+-	int fd;
+-	ssize_t numread;
+-
+-	fd = open(path, O_RDONLY);
+-	if (fd == -1)
+-		return 0;
+-
+-	numread = read(fd, buf, buflen - 1);
+-	if (numread < 1) {
+-		close(fd);
+-		return 0;
+-	}
+-
+-	buf[numread] = '\0';
+-	close(fd);
+-
+-	return (unsigned int) numread;
+-}
+-
+-static int write_file(const char *path, const char *buf, size_t buflen)
+-{
+-	int fd;
+-	ssize_t numwritten;
+-
+-	fd = open(path, O_WRONLY);
+-	if (fd == -1) {
+-		printf("open(%s)\n", path);
+-		exit(EXIT_FAILURE);
+-		return 0;
+-	}
+-
+-	numwritten = write(fd, buf, buflen - 1);
+-	close(fd);
+-	if (numwritten < 1) {
+-		printf("write(%s)\n", buf);
+-		exit(EXIT_FAILURE);
+-		return 0;
+-	}
+-
+-	return (unsigned int) numwritten;
+-}
+-
+-static int read_string(const char *name, const char *strings[])
+-{
+-	char path[PATH_MAX];
+-	char buf[256];
+-	char *c;
+-	int ret;
+-
+-	ret = snprintf(path, PATH_MAX, THP_SYSFS "%s", name);
+-	if (ret >= PATH_MAX) {
+-		printf("%s: Pathname is too long\n", __func__);
+-		exit(EXIT_FAILURE);
+-	}
+-
+-	if (!read_file(path, buf, sizeof(buf))) {
+-		perror(path);
+-		exit(EXIT_FAILURE);
+-	}
+-
+-	c = strchr(buf, '[');
+-	if (!c) {
+-		printf("%s: Parse failure\n", __func__);
+-		exit(EXIT_FAILURE);
+-	}
+-
+-	c++;
+-	memmove(buf, c, sizeof(buf) - (c - buf));
+-
+-	c = strchr(buf, ']');
+-	if (!c) {
+-		printf("%s: Parse failure\n", __func__);
+-		exit(EXIT_FAILURE);
+-	}
+-	*c = '\0';
+-
+-	ret = 0;
+-	while (strings[ret]) {
+-		if (!strcmp(strings[ret], buf))
+-			return ret;
+-		ret++;
+-	}
+-
+-	printf("Failed to parse %s\n", name);
+-	exit(EXIT_FAILURE);
+-}
+-
+-static void write_string(const char *name, const char *val)
+-{
+-	char path[PATH_MAX];
+-	int ret;
+-
+-	ret = snprintf(path, PATH_MAX, THP_SYSFS "%s", name);
+-	if (ret >= PATH_MAX) {
+-		printf("%s: Pathname is too long\n", __func__);
+-		exit(EXIT_FAILURE);
+-	}
+-
+-	if (!write_file(path, val, strlen(val) + 1)) {
+-		perror(path);
+-		exit(EXIT_FAILURE);
+-	}
+-}
+-
+-static const unsigned long _read_num(const char *path)
+-{
+-	char buf[21];
+-
+-	if (read_file(path, buf, sizeof(buf)) < 0) {
+-		perror("read_file(read_num)");
+-		exit(EXIT_FAILURE);
+-	}
+-
+-	return strtoul(buf, NULL, 10);
+-}
+-
+-static const unsigned long read_num(const char *name)
+-{
+-	char path[PATH_MAX];
+-	int ret;
+-
+-	ret = snprintf(path, PATH_MAX, THP_SYSFS "%s", name);
+-	if (ret >= PATH_MAX) {
+-		printf("%s: Pathname is too long\n", __func__);
+-		exit(EXIT_FAILURE);
+-	}
+-	return _read_num(path);
+-}
+-
+-static void _write_num(const char *path, unsigned long num)
+-{
+-	char buf[21];
+-
+-	sprintf(buf, "%ld", num);
+-	if (!write_file(path, buf, strlen(buf) + 1)) {
+-		perror(path);
+-		exit(EXIT_FAILURE);
+-	}
+-}
+-
+-static void write_num(const char *name, unsigned long num)
+-{
+-	char path[PATH_MAX];
+-	int ret;
+-
+-	ret = snprintf(path, PATH_MAX, THP_SYSFS "%s", name);
+-	if (ret >= PATH_MAX) {
+-		printf("%s: Pathname is too long\n", __func__);
+-		exit(EXIT_FAILURE);
+-	}
+-	_write_num(path, num);
+-}
+-
+-static void write_settings(struct settings *settings)
+-{
+-	struct khugepaged_settings *khugepaged = &settings->khugepaged;
+-
+-	write_string("enabled", thp_enabled_strings[settings->thp_enabled]);
+-	write_string("defrag", thp_defrag_strings[settings->thp_defrag]);
+-	write_string("shmem_enabled",
+-			shmem_enabled_strings[settings->shmem_enabled]);
+-	write_num("use_zero_page", settings->use_zero_page);
+-
+-	write_num("khugepaged/defrag", khugepaged->defrag);
+-	write_num("khugepaged/alloc_sleep_millisecs",
+-			khugepaged->alloc_sleep_millisecs);
+-	write_num("khugepaged/scan_sleep_millisecs",
+-			khugepaged->scan_sleep_millisecs);
+-	write_num("khugepaged/max_ptes_none", khugepaged->max_ptes_none);
+-	write_num("khugepaged/max_ptes_swap", khugepaged->max_ptes_swap);
+-	write_num("khugepaged/max_ptes_shared", khugepaged->max_ptes_shared);
+-	write_num("khugepaged/pages_to_scan", khugepaged->pages_to_scan);
+-
+-	if (file_ops && finfo.type == VMA_FILE)
+-		_write_num(finfo.dev_queue_read_ahead_path,
+-			   settings->read_ahead_kb);
+-}
+-
+-#define MAX_SETTINGS_DEPTH 4
+-static struct settings settings_stack[MAX_SETTINGS_DEPTH];
+-static int settings_index;
+-
+-static struct settings *current_settings(void)
+-{
+-	if (!settings_index) {
+-		printf("Fail: No settings set");
+-		exit(EXIT_FAILURE);
+-	}
+-	return settings_stack + settings_index - 1;
+-}
+-
+-static void push_settings(struct settings *settings)
+-{
+-	if (settings_index >= MAX_SETTINGS_DEPTH) {
+-		printf("Fail: Settings stack exceeded");
+-		exit(EXIT_FAILURE);
+-	}
+-	settings_stack[settings_index++] = *settings;
+-	write_settings(current_settings());
+-}
+-
+-static void pop_settings(void)
+-{
+-	if (settings_index <= 0) {
+-		printf("Fail: Settings stack empty");
+-		exit(EXIT_FAILURE);
+-	}
+-	--settings_index;
+-	write_settings(current_settings());
+-}
+-
+ static void restore_settings_atexit(void)
+ {
+ 	if (skip_settings_restore)
+ 		return;
+ 
+ 	printf("Restore THP and khugepaged settings...");
+-	write_settings(&saved_settings);
++	thp_restore_settings();
+ 	success("OK");
+ 
+ 	skip_settings_restore = true;
+@@ -395,27 +111,9 @@ static void restore_settings(int sig)
+ static void save_settings(void)
+ {
+ 	printf("Save THP and khugepaged settings...");
+-	saved_settings = (struct settings) {
+-		.thp_enabled = read_string("enabled", thp_enabled_strings),
+-		.thp_defrag = read_string("defrag", thp_defrag_strings),
+-		.shmem_enabled =
+-			read_string("shmem_enabled", shmem_enabled_strings),
+-		.use_zero_page = read_num("use_zero_page"),
+-	};
+-	saved_settings.khugepaged = (struct khugepaged_settings) {
+-		.defrag = read_num("khugepaged/defrag"),
+-		.alloc_sleep_millisecs =
+-			read_num("khugepaged/alloc_sleep_millisecs"),
+-		.scan_sleep_millisecs =
+-			read_num("khugepaged/scan_sleep_millisecs"),
+-		.max_ptes_none = read_num("khugepaged/max_ptes_none"),
+-		.max_ptes_swap = read_num("khugepaged/max_ptes_swap"),
+-		.max_ptes_shared = read_num("khugepaged/max_ptes_shared"),
+-		.pages_to_scan = read_num("khugepaged/pages_to_scan"),
+-	};
+ 	if (file_ops && finfo.type == VMA_FILE)
+-		saved_settings.read_ahead_kb =
+-				_read_num(finfo.dev_queue_read_ahead_path);
++		thp_set_read_ahead_path(finfo.dev_queue_read_ahead_path);
++	thp_save_settings();
+ 
+ 	success("OK");
+ 
+@@ -798,7 +496,7 @@ static void __madvise_collapse(const char *msg, char *p, int nr_hpages,
+ 			       struct mem_ops *ops, bool expect)
+ {
+ 	int ret;
+-	struct settings settings = *current_settings();
++	struct thp_settings settings = *thp_current_settings();
+ 
+ 	printf("%s...", msg);
+ 
+@@ -808,7 +506,7 @@ static void __madvise_collapse(const char *msg, char *p, int nr_hpages,
+ 	 */
+ 	settings.thp_enabled = THP_NEVER;
+ 	settings.shmem_enabled = SHMEM_NEVER;
+-	push_settings(&settings);
++	thp_push_settings(&settings);
+ 
+ 	/* Clear VM_NOHUGEPAGE */
+ 	madvise(p, nr_hpages * hpage_pmd_size, MADV_HUGEPAGE);
+@@ -820,7 +518,7 @@ static void __madvise_collapse(const char *msg, char *p, int nr_hpages,
+ 	else
+ 		success("OK");
+ 
+-	pop_settings();
++	thp_pop_settings();
+ }
+ 
+ static void madvise_collapse(const char *msg, char *p, int nr_hpages,
+@@ -850,13 +548,13 @@ static bool wait_for_scan(const char *msg, char *p, int nr_hpages,
+ 	madvise(p, nr_hpages * hpage_pmd_size, MADV_HUGEPAGE);
+ 
+ 	/* Wait until the second full_scan completed */
+-	full_scans = read_num("khugepaged/full_scans") + 2;
++	full_scans = thp_read_num("khugepaged/full_scans") + 2;
+ 
+ 	printf("%s...", msg);
+ 	while (timeout--) {
+ 		if (ops->check_huge(p, nr_hpages))
+ 			break;
+-		if (read_num("khugepaged/full_scans") >= full_scans)
++		if (thp_read_num("khugepaged/full_scans") >= full_scans)
+ 			break;
+ 		printf(".");
+ 		usleep(TICK);
+@@ -911,11 +609,11 @@ static bool is_tmpfs(struct mem_ops *ops)
+ 
+ static void alloc_at_fault(void)
+ {
+-	struct settings settings = *current_settings();
++	struct thp_settings settings = *thp_current_settings();
+ 	char *p;
+ 
+ 	settings.thp_enabled = THP_ALWAYS;
+-	push_settings(&settings);
++	thp_push_settings(&settings);
+ 
+ 	p = alloc_mapping(1);
+ 	*p = 1;
+@@ -925,7 +623,7 @@ static void alloc_at_fault(void)
+ 	else
+ 		fail("Fail");
+ 
+-	pop_settings();
++	thp_pop_settings();
+ 
+ 	madvise(p, page_size, MADV_DONTNEED);
+ 	printf("Split huge PMD on MADV_DONTNEED...");
+@@ -973,11 +671,11 @@ static void collapse_single_pte_entry(struct collapse_context *c, struct mem_ops
+ static void collapse_max_ptes_none(struct collapse_context *c, struct mem_ops *ops)
+ {
+ 	int max_ptes_none = hpage_pmd_nr / 2;
+-	struct settings settings = *current_settings();
++	struct thp_settings settings = *thp_current_settings();
+ 	void *p;
+ 
+ 	settings.khugepaged.max_ptes_none = max_ptes_none;
+-	push_settings(&settings);
++	thp_push_settings(&settings);
+ 
+ 	p = ops->setup_area(1);
+ 
+@@ -1002,7 +700,7 @@ static void collapse_max_ptes_none(struct collapse_context *c, struct mem_ops *o
+ 	}
+ skip:
+ 	ops->cleanup_area(p, hpage_pmd_size);
+-	pop_settings();
++	thp_pop_settings();
+ }
+ 
+ static void collapse_swapin_single_pte(struct collapse_context *c, struct mem_ops *ops)
+@@ -1033,7 +731,7 @@ static void collapse_swapin_single_pte(struct collapse_context *c, struct mem_op
+ 
+ static void collapse_max_ptes_swap(struct collapse_context *c, struct mem_ops *ops)
+ {
+-	int max_ptes_swap = read_num("khugepaged/max_ptes_swap");
++	int max_ptes_swap = thp_read_num("khugepaged/max_ptes_swap");
+ 	void *p;
+ 
+ 	p = ops->setup_area(1);
+@@ -1250,11 +948,11 @@ static void collapse_fork_compound(struct collapse_context *c, struct mem_ops *o
+ 			fail("Fail");
+ 		ops->fault(p, 0, page_size);
+ 
+-		write_num("khugepaged/max_ptes_shared", hpage_pmd_nr - 1);
++		thp_write_num("khugepaged/max_ptes_shared", hpage_pmd_nr - 1);
+ 		c->collapse("Collapse PTE table full of compound pages in child",
+ 			    p, 1, ops, true);
+-		write_num("khugepaged/max_ptes_shared",
+-			  current_settings()->khugepaged.max_ptes_shared);
++		thp_write_num("khugepaged/max_ptes_shared",
++			  thp_current_settings()->khugepaged.max_ptes_shared);
+ 
+ 		validate_memory(p, 0, hpage_pmd_size);
+ 		ops->cleanup_area(p, hpage_pmd_size);
+@@ -1275,7 +973,7 @@ static void collapse_fork_compound(struct collapse_context *c, struct mem_ops *o
+ 
+ static void collapse_max_ptes_shared(struct collapse_context *c, struct mem_ops *ops)
+ {
+-	int max_ptes_shared = read_num("khugepaged/max_ptes_shared");
++	int max_ptes_shared = thp_read_num("khugepaged/max_ptes_shared");
+ 	int wstatus;
+ 	void *p;
+ 
+@@ -1443,7 +1141,7 @@ static void parse_test_type(int argc, const char **argv)
+ 
+ int main(int argc, const char **argv)
+ {
+-	struct settings default_settings = {
++	struct thp_settings default_settings = {
+ 		.thp_enabled = THP_MADVISE,
+ 		.thp_defrag = THP_DEFRAG_ALWAYS,
+ 		.shmem_enabled = SHMEM_ADVISE,
+@@ -1484,7 +1182,7 @@ int main(int argc, const char **argv)
+ 	default_settings.khugepaged.pages_to_scan = hpage_pmd_nr * 8;
+ 
+ 	save_settings();
+-	push_settings(&default_settings);
++	thp_push_settings(&default_settings);
+ 
+ 	alloc_at_fault();
+ 
+diff --git a/tools/testing/selftests/mm/thp_settings.c b/tools/testing/selftests/mm/thp_settings.c
+new file mode 100644
+index 000000000000..5e8ec792cac7
+--- /dev/null
++++ b/tools/testing/selftests/mm/thp_settings.c
+@@ -0,0 +1,296 @@
++// SPDX-License-Identifier: GPL-2.0
++#include <fcntl.h>
++#include <limits.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <unistd.h>
++
++#include "thp_settings.h"
++
++#define THP_SYSFS "/sys/kernel/mm/transparent_hugepage/"
++#define MAX_SETTINGS_DEPTH 4
++static struct thp_settings settings_stack[MAX_SETTINGS_DEPTH];
++static int settings_index;
++static struct thp_settings saved_settings;
++static char dev_queue_read_ahead_path[PATH_MAX];
++
++static const char * const thp_enabled_strings[] = {
++	"always",
++	"madvise",
++	"never",
++	NULL
++};
++
++static const char * const thp_defrag_strings[] = {
++	"always",
++	"defer",
++	"defer+madvise",
++	"madvise",
++	"never",
++	NULL
++};
++
++static const char * const shmem_enabled_strings[] = {
++	"always",
++	"within_size",
++	"advise",
++	"never",
++	"deny",
++	"force",
++	NULL
++};
++
++int read_file(const char *path, char *buf, size_t buflen)
++{
++	int fd;
++	ssize_t numread;
++
++	fd = open(path, O_RDONLY);
++	if (fd == -1)
++		return 0;
++
++	numread = read(fd, buf, buflen - 1);
++	if (numread < 1) {
++		close(fd);
++		return 0;
++	}
++
++	buf[numread] = '\0';
++	close(fd);
++
++	return (unsigned int) numread;
++}
++
++int write_file(const char *path, const char *buf, size_t buflen)
++{
++	int fd;
++	ssize_t numwritten;
++
++	fd = open(path, O_WRONLY);
++	if (fd == -1) {
++		printf("open(%s)\n", path);
++		exit(EXIT_FAILURE);
++		return 0;
++	}
++
++	numwritten = write(fd, buf, buflen - 1);
++	close(fd);
++	if (numwritten < 1) {
++		printf("write(%s)\n", buf);
++		exit(EXIT_FAILURE);
++		return 0;
++	}
++
++	return (unsigned int) numwritten;
++}
++
++const unsigned long read_num(const char *path)
++{
++	char buf[21];
++
++	if (read_file(path, buf, sizeof(buf)) < 0) {
++		perror("read_file()");
++		exit(EXIT_FAILURE);
++	}
++
++	return strtoul(buf, NULL, 10);
++}
++
++void write_num(const char *path, unsigned long num)
++{
++	char buf[21];
++
++	sprintf(buf, "%ld", num);
++	if (!write_file(path, buf, strlen(buf) + 1)) {
++		perror(path);
++		exit(EXIT_FAILURE);
++	}
++}
++
++int thp_read_string(const char *name, const char * const strings[])
++{
++	char path[PATH_MAX];
++	char buf[256];
++	char *c;
++	int ret;
++
++	ret = snprintf(path, PATH_MAX, THP_SYSFS "%s", name);
++	if (ret >= PATH_MAX) {
++		printf("%s: Pathname is too long\n", __func__);
++		exit(EXIT_FAILURE);
++	}
++
++	if (!read_file(path, buf, sizeof(buf))) {
++		perror(path);
++		exit(EXIT_FAILURE);
++	}
++
++	c = strchr(buf, '[');
++	if (!c) {
++		printf("%s: Parse failure\n", __func__);
++		exit(EXIT_FAILURE);
++	}
++
++	c++;
++	memmove(buf, c, sizeof(buf) - (c - buf));
++
++	c = strchr(buf, ']');
++	if (!c) {
++		printf("%s: Parse failure\n", __func__);
++		exit(EXIT_FAILURE);
++	}
++	*c = '\0';
++
++	ret = 0;
++	while (strings[ret]) {
++		if (!strcmp(strings[ret], buf))
++			return ret;
++		ret++;
++	}
++
++	printf("Failed to parse %s\n", name);
++	exit(EXIT_FAILURE);
++}
++
++void thp_write_string(const char *name, const char *val)
++{
++	char path[PATH_MAX];
++	int ret;
++
++	ret = snprintf(path, PATH_MAX, THP_SYSFS "%s", name);
++	if (ret >= PATH_MAX) {
++		printf("%s: Pathname is too long\n", __func__);
++		exit(EXIT_FAILURE);
++	}
++
++	if (!write_file(path, val, strlen(val) + 1)) {
++		perror(path);
++		exit(EXIT_FAILURE);
++	}
++}
++
++const unsigned long thp_read_num(const char *name)
++{
++	char path[PATH_MAX];
++	int ret;
++
++	ret = snprintf(path, PATH_MAX, THP_SYSFS "%s", name);
++	if (ret >= PATH_MAX) {
++		printf("%s: Pathname is too long\n", __func__);
++		exit(EXIT_FAILURE);
++	}
++	return read_num(path);
++}
++
++void thp_write_num(const char *name, unsigned long num)
++{
++	char path[PATH_MAX];
++	int ret;
++
++	ret = snprintf(path, PATH_MAX, THP_SYSFS "%s", name);
++	if (ret >= PATH_MAX) {
++		printf("%s: Pathname is too long\n", __func__);
++		exit(EXIT_FAILURE);
++	}
++	write_num(path, num);
++}
++
++void thp_read_settings(struct thp_settings *settings)
++{
++	*settings = (struct thp_settings) {
++		.thp_enabled = thp_read_string("enabled", thp_enabled_strings),
++		.thp_defrag = thp_read_string("defrag", thp_defrag_strings),
++		.shmem_enabled =
++			thp_read_string("shmem_enabled", shmem_enabled_strings),
++		.use_zero_page = thp_read_num("use_zero_page"),
++	};
++	settings->khugepaged = (struct khugepaged_settings) {
++		.defrag = thp_read_num("khugepaged/defrag"),
++		.alloc_sleep_millisecs =
++			thp_read_num("khugepaged/alloc_sleep_millisecs"),
++		.scan_sleep_millisecs =
++			thp_read_num("khugepaged/scan_sleep_millisecs"),
++		.max_ptes_none = thp_read_num("khugepaged/max_ptes_none"),
++		.max_ptes_swap = thp_read_num("khugepaged/max_ptes_swap"),
++		.max_ptes_shared = thp_read_num("khugepaged/max_ptes_shared"),
++		.pages_to_scan = thp_read_num("khugepaged/pages_to_scan"),
++	};
++	if (dev_queue_read_ahead_path[0])
++		settings->read_ahead_kb = read_num(dev_queue_read_ahead_path);
++}
++
++void thp_write_settings(struct thp_settings *settings)
++{
++	struct khugepaged_settings *khugepaged = &settings->khugepaged;
++
++	thp_write_string("enabled", thp_enabled_strings[settings->thp_enabled]);
++	thp_write_string("defrag", thp_defrag_strings[settings->thp_defrag]);
++	thp_write_string("shmem_enabled",
++			shmem_enabled_strings[settings->shmem_enabled]);
++	thp_write_num("use_zero_page", settings->use_zero_page);
++
++	thp_write_num("khugepaged/defrag", khugepaged->defrag);
++	thp_write_num("khugepaged/alloc_sleep_millisecs",
++			khugepaged->alloc_sleep_millisecs);
++	thp_write_num("khugepaged/scan_sleep_millisecs",
++			khugepaged->scan_sleep_millisecs);
++	thp_write_num("khugepaged/max_ptes_none", khugepaged->max_ptes_none);
++	thp_write_num("khugepaged/max_ptes_swap", khugepaged->max_ptes_swap);
++	thp_write_num("khugepaged/max_ptes_shared", khugepaged->max_ptes_shared);
++	thp_write_num("khugepaged/pages_to_scan", khugepaged->pages_to_scan);
++
++	if (dev_queue_read_ahead_path[0])
++		write_num(dev_queue_read_ahead_path, settings->read_ahead_kb);
++}
++
++struct thp_settings *thp_current_settings(void)
++{
++	if (!settings_index) {
++		printf("Fail: No settings set");
++		exit(EXIT_FAILURE);
++	}
++	return settings_stack + settings_index - 1;
++}
++
++void thp_push_settings(struct thp_settings *settings)
++{
++	if (settings_index >= MAX_SETTINGS_DEPTH) {
++		printf("Fail: Settings stack exceeded");
++		exit(EXIT_FAILURE);
++	}
++	settings_stack[settings_index++] = *settings;
++	thp_write_settings(thp_current_settings());
++}
++
++void thp_pop_settings(void)
++{
++	if (settings_index <= 0) {
++		printf("Fail: Settings stack empty");
++		exit(EXIT_FAILURE);
++	}
++	--settings_index;
++	thp_write_settings(thp_current_settings());
++}
++
++void thp_restore_settings(void)
++{
++	thp_write_settings(&saved_settings);
++}
++
++void thp_save_settings(void)
++{
++	thp_read_settings(&saved_settings);
++}
++
++void thp_set_read_ahead_path(char *path)
++{
++	if (!path) {
++		dev_queue_read_ahead_path[0] = '\0';
++		return;
++	}
++
++	strncpy(dev_queue_read_ahead_path, path,
++		sizeof(dev_queue_read_ahead_path));
++	dev_queue_read_ahead_path[sizeof(dev_queue_read_ahead_path) - 1] = '\0';
++}
+diff --git a/tools/testing/selftests/mm/thp_settings.h b/tools/testing/selftests/mm/thp_settings.h
+new file mode 100644
+index 000000000000..ff3d98c30617
+--- /dev/null
++++ b/tools/testing/selftests/mm/thp_settings.h
+@@ -0,0 +1,71 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __THP_SETTINGS_H__
++#define __THP_SETTINGS_H__
++
++#include <stdbool.h>
++#include <stddef.h>
++#include <stdint.h>
++
++enum thp_enabled {
++	THP_ALWAYS,
++	THP_MADVISE,
++	THP_NEVER,
++};
++
++enum thp_defrag {
++	THP_DEFRAG_ALWAYS,
++	THP_DEFRAG_DEFER,
++	THP_DEFRAG_DEFER_MADVISE,
++	THP_DEFRAG_MADVISE,
++	THP_DEFRAG_NEVER,
++};
++
++enum shmem_enabled {
++	SHMEM_ALWAYS,
++	SHMEM_WITHIN_SIZE,
++	SHMEM_ADVISE,
++	SHMEM_NEVER,
++	SHMEM_DENY,
++	SHMEM_FORCE,
++};
++
++struct khugepaged_settings {
++	bool defrag;
++	unsigned int alloc_sleep_millisecs;
++	unsigned int scan_sleep_millisecs;
++	unsigned int max_ptes_none;
++	unsigned int max_ptes_swap;
++	unsigned int max_ptes_shared;
++	unsigned long pages_to_scan;
++};
++
++struct thp_settings {
++	enum thp_enabled thp_enabled;
++	enum thp_defrag thp_defrag;
++	enum shmem_enabled shmem_enabled;
++	bool use_zero_page;
++	struct khugepaged_settings khugepaged;
++	unsigned long read_ahead_kb;
++};
++
++int read_file(const char *path, char *buf, size_t buflen);
++int write_file(const char *path, const char *buf, size_t buflen);
++const unsigned long read_num(const char *path);
++void write_num(const char *path, unsigned long num);
++
++int thp_read_string(const char *name, const char * const strings[]);
++void thp_write_string(const char *name, const char *val);
++const unsigned long thp_read_num(const char *name);
++void thp_write_num(const char *name, unsigned long num);
++
++void thp_write_settings(struct thp_settings *settings);
++void thp_read_settings(struct thp_settings *settings);
++struct thp_settings *thp_current_settings(void);
++void thp_push_settings(struct thp_settings *settings);
++void thp_pop_settings(void);
++void thp_restore_settings(void);
++void thp_save_settings(void);
++
++void thp_set_read_ahead_path(char *path);
++
++#endif /* __THP_SETTINGS_H__ */
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v9 7/10] selftests/mm: Support multi-size THP interface in thp_settings
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 07 Dec 2023 16:12:08 +0000
+Message-Id: <20231207161211.2374093-8-ryan.roberts@arm.com>
+To: Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Yin Fengwei <fengwei.yin@intel.com>, David Hildenbrand <david@redhat.com>, Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Yang Shi <shy828301@gmail.com>, "Huang, Ying" <ying.huang@intel.com>, Zi Yan <ziy@nvidia.com>, Luis Chamberlain <mcgrof@kernel.org>, Itaru Kitayama <itaru.kitayama@gmail.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, John Hubbard <jhubbard@nvidia.com>, David Rientjes <rientjes@google.com>, Vlastimil Babka <vbabka@suse.cz>, Hugh Dickins <hughd@google.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20231207161211.2374093-1-ryan.roberts@arm.com>
+References: <20231207161211.2374093-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Save and restore the new per-size hugepage enabled setting, if available
+on the running kernel.
+
+Since the number of per-size directories is not fixed, solve this as
+simply as possible by catering for a maximum number in the thp_settings
+struct (20). Each array index is the order. The value of THP_NEVER is
+changed to 0 so that all of these new settings default to THP_NEVER and
+the user only needs to fill in the ones they want to enable.
+
+Tested-by: Kefeng Wang <wangkefeng.wang@huawei.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+---
+ tools/testing/selftests/mm/khugepaged.c   |  3 ++
+ tools/testing/selftests/mm/thp_settings.c | 55 ++++++++++++++++++++++-
+ tools/testing/selftests/mm/thp_settings.h | 11 ++++-
+ 3 files changed, 67 insertions(+), 2 deletions(-)
+
+diff --git a/tools/testing/selftests/mm/khugepaged.c b/tools/testing/selftests/mm/khugepaged.c
+index b15e7fd70176..7bd3baa9d34b 100644
+--- a/tools/testing/selftests/mm/khugepaged.c
++++ b/tools/testing/selftests/mm/khugepaged.c
+@@ -1141,6 +1141,7 @@ static void parse_test_type(int argc, const char **argv)
+ 
+ int main(int argc, const char **argv)
+ {
++	int hpage_pmd_order;
+ 	struct thp_settings default_settings = {
+ 		.thp_enabled = THP_MADVISE,
+ 		.thp_defrag = THP_DEFRAG_ALWAYS,
+@@ -1175,11 +1176,13 @@ int main(int argc, const char **argv)
+ 		exit(EXIT_FAILURE);
+ 	}
+ 	hpage_pmd_nr = hpage_pmd_size / page_size;
++	hpage_pmd_order = __builtin_ctz(hpage_pmd_nr);
+ 
+ 	default_settings.khugepaged.max_ptes_none = hpage_pmd_nr - 1;
+ 	default_settings.khugepaged.max_ptes_swap = hpage_pmd_nr / 8;
+ 	default_settings.khugepaged.max_ptes_shared = hpage_pmd_nr / 2;
+ 	default_settings.khugepaged.pages_to_scan = hpage_pmd_nr * 8;
++	default_settings.hugepages[hpage_pmd_order].enabled = THP_INHERIT;
+ 
+ 	save_settings();
+ 	thp_push_settings(&default_settings);
+diff --git a/tools/testing/selftests/mm/thp_settings.c b/tools/testing/selftests/mm/thp_settings.c
+index 5e8ec792cac7..a4163438108e 100644
+--- a/tools/testing/selftests/mm/thp_settings.c
++++ b/tools/testing/selftests/mm/thp_settings.c
+@@ -16,9 +16,10 @@ static struct thp_settings saved_settings;
+ static char dev_queue_read_ahead_path[PATH_MAX];
+ 
+ static const char * const thp_enabled_strings[] = {
++	"never",
+ 	"always",
++	"inherit",
+ 	"madvise",
+-	"never",
+ 	NULL
+ };
+ 
+@@ -198,6 +199,10 @@ void thp_write_num(const char *name, unsigned long num)
+ 
+ void thp_read_settings(struct thp_settings *settings)
+ {
++	unsigned long orders = thp_supported_orders();
++	char path[PATH_MAX];
++	int i;
++
+ 	*settings = (struct thp_settings) {
+ 		.thp_enabled = thp_read_string("enabled", thp_enabled_strings),
+ 		.thp_defrag = thp_read_string("defrag", thp_defrag_strings),
+@@ -218,11 +223,26 @@ void thp_read_settings(struct thp_settings *settings)
+ 	};
+ 	if (dev_queue_read_ahead_path[0])
+ 		settings->read_ahead_kb = read_num(dev_queue_read_ahead_path);
++
++	for (i = 0; i < NR_ORDERS; i++) {
++		if (!((1 << i) & orders)) {
++			settings->hugepages[i].enabled = THP_NEVER;
++			continue;
++		}
++		snprintf(path, PATH_MAX, "hugepages-%ukB/enabled",
++			(getpagesize() >> 10) << i);
++		settings->hugepages[i].enabled =
++			thp_read_string(path, thp_enabled_strings);
++	}
+ }
+ 
+ void thp_write_settings(struct thp_settings *settings)
+ {
+ 	struct khugepaged_settings *khugepaged = &settings->khugepaged;
++	unsigned long orders = thp_supported_orders();
++	char path[PATH_MAX];
++	int enabled;
++	int i;
+ 
+ 	thp_write_string("enabled", thp_enabled_strings[settings->thp_enabled]);
+ 	thp_write_string("defrag", thp_defrag_strings[settings->thp_defrag]);
+@@ -242,6 +262,15 @@ void thp_write_settings(struct thp_settings *settings)
+ 
+ 	if (dev_queue_read_ahead_path[0])
+ 		write_num(dev_queue_read_ahead_path, settings->read_ahead_kb);
++
++	for (i = 0; i < NR_ORDERS; i++) {
++		if (!((1 << i) & orders))
++			continue;
++		snprintf(path, PATH_MAX, "hugepages-%ukB/enabled",
++			(getpagesize() >> 10) << i);
++		enabled = settings->hugepages[i].enabled;
++		thp_write_string(path, thp_enabled_strings[enabled]);
++	}
+ }
+ 
+ struct thp_settings *thp_current_settings(void)
+@@ -294,3 +323,27 @@ void thp_set_read_ahead_path(char *path)
+ 		sizeof(dev_queue_read_ahead_path));
+ 	dev_queue_read_ahead_path[sizeof(dev_queue_read_ahead_path) - 1] = '\0';
+ }
++
++unsigned long thp_supported_orders(void)
++{
++	unsigned long orders = 0;
++	char path[PATH_MAX];
++	char buf[256];
++	int ret;
++	int i;
++
++	for (i = 0; i < NR_ORDERS; i++) {
++		ret = snprintf(path, PATH_MAX, THP_SYSFS "hugepages-%ukB/enabled",
++			(getpagesize() >> 10) << i);
++		if (ret >= PATH_MAX) {
++			printf("%s: Pathname is too long\n", __func__);
++			exit(EXIT_FAILURE);
++		}
++
++		ret = read_file(path, buf, sizeof(buf));
++		if (ret)
++			orders |= 1UL << i;
++	}
++
++	return orders;
++}
+diff --git a/tools/testing/selftests/mm/thp_settings.h b/tools/testing/selftests/mm/thp_settings.h
+index ff3d98c30617..71cbff05f4c7 100644
+--- a/tools/testing/selftests/mm/thp_settings.h
++++ b/tools/testing/selftests/mm/thp_settings.h
+@@ -7,9 +7,10 @@
+ #include <stdint.h>
+ 
+ enum thp_enabled {
++	THP_NEVER,
+ 	THP_ALWAYS,
++	THP_INHERIT,
+ 	THP_MADVISE,
+-	THP_NEVER,
+ };
+ 
+ enum thp_defrag {
+@@ -29,6 +30,12 @@ enum shmem_enabled {
+ 	SHMEM_FORCE,
+ };
+ 
++#define NR_ORDERS 20
++
++struct hugepages_settings {
++	enum thp_enabled enabled;
++};
++
+ struct khugepaged_settings {
+ 	bool defrag;
+ 	unsigned int alloc_sleep_millisecs;
+@@ -46,6 +53,7 @@ struct thp_settings {
+ 	bool use_zero_page;
+ 	struct khugepaged_settings khugepaged;
+ 	unsigned long read_ahead_kb;
++	struct hugepages_settings hugepages[NR_ORDERS];
+ };
+ 
+ int read_file(const char *path, char *buf, size_t buflen);
+@@ -67,5 +75,6 @@ void thp_restore_settings(void);
+ void thp_save_settings(void);
+ 
+ void thp_set_read_ahead_path(char *path);
++unsigned long thp_supported_orders(void);
+ 
+ #endif /* __THP_SETTINGS_H__ */
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v9 8/10] selftests/mm/khugepaged: Enlighten for multi-size THP
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 07 Dec 2023 16:12:09 +0000
+Message-Id: <20231207161211.2374093-9-ryan.roberts@arm.com>
+To: Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Yin Fengwei <fengwei.yin@intel.com>, David Hildenbrand <david@redhat.com>, Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Yang Shi <shy828301@gmail.com>, "Huang, Ying" <ying.huang@intel.com>, Zi Yan <ziy@nvidia.com>, Luis Chamberlain <mcgrof@kernel.org>, Itaru Kitayama <itaru.kitayama@gmail.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, John Hubbard <jhubbard@nvidia.com>, David Rientjes <rientjes@google.com>, Vlastimil Babka <vbabka@suse.cz>, Hugh Dickins <hughd@google.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20231207161211.2374093-1-ryan.roberts@arm.com>
+References: <20231207161211.2374093-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+The `collapse_max_ptes_none` test was previously failing when a THP size
+less than PMD-size had enabled="always". The root cause is because the
+test faults in 1 page less than the threshold it set for collapsing. But
+when THP is enabled always, we "over allocate" and therefore the
+threshold is passed, and collapse unexpectedly succeeds.
+
+Solve this by enlightening khugepaged selftest. Add a command line
+option to pass in the desired THP size that should be used for all
+anonymous allocations. The harness will then explicitly configure a THP
+size as requested and modify the `collapse_max_ptes_none` test so that
+it faults in the threshold minus the number of pages in the configured
+THP size. If no command line option is provided, default to order 0, as
+per previous behaviour.
+
+I chose to use an order in the command line interface, since this makes
+the interface agnostic of base page size, making it easier to invoke
+from run_vmtests.sh.
+
+Tested-by: Kefeng Wang <wangkefeng.wang@huawei.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+---
+ tools/testing/selftests/mm/khugepaged.c   | 48 +++++++++++++++++------
+ tools/testing/selftests/mm/run_vmtests.sh |  2 +
+ 2 files changed, 39 insertions(+), 11 deletions(-)
+
+diff --git a/tools/testing/selftests/mm/khugepaged.c b/tools/testing/selftests/mm/khugepaged.c
+index 7bd3baa9d34b..829320a519e7 100644
+--- a/tools/testing/selftests/mm/khugepaged.c
++++ b/tools/testing/selftests/mm/khugepaged.c
+@@ -28,6 +28,7 @@
+ static unsigned long hpage_pmd_size;
+ static unsigned long page_size;
+ static int hpage_pmd_nr;
++static int anon_order;
+ 
+ #define PID_SMAPS "/proc/self/smaps"
+ #define TEST_FILE "collapse_test_file"
+@@ -607,6 +608,11 @@ static bool is_tmpfs(struct mem_ops *ops)
+ 	return ops == &__file_ops && finfo.type == VMA_SHMEM;
+ }
+ 
++static bool is_anon(struct mem_ops *ops)
++{
++	return ops == &__anon_ops;
++}
++
+ static void alloc_at_fault(void)
+ {
+ 	struct thp_settings settings = *thp_current_settings();
+@@ -673,6 +679,7 @@ static void collapse_max_ptes_none(struct collapse_context *c, struct mem_ops *o
+ 	int max_ptes_none = hpage_pmd_nr / 2;
+ 	struct thp_settings settings = *thp_current_settings();
+ 	void *p;
++	int fault_nr_pages = is_anon(ops) ? 1 << anon_order : 1;
+ 
+ 	settings.khugepaged.max_ptes_none = max_ptes_none;
+ 	thp_push_settings(&settings);
+@@ -686,10 +693,10 @@ static void collapse_max_ptes_none(struct collapse_context *c, struct mem_ops *o
+ 		goto skip;
+ 	}
+ 
+-	ops->fault(p, 0, (hpage_pmd_nr - max_ptes_none - 1) * page_size);
++	ops->fault(p, 0, (hpage_pmd_nr - max_ptes_none - fault_nr_pages) * page_size);
+ 	c->collapse("Maybe collapse with max_ptes_none exceeded", p, 1,
+ 		    ops, !c->enforce_pte_scan_limits);
+-	validate_memory(p, 0, (hpage_pmd_nr - max_ptes_none - 1) * page_size);
++	validate_memory(p, 0, (hpage_pmd_nr - max_ptes_none - fault_nr_pages) * page_size);
+ 
+ 	if (c->enforce_pte_scan_limits) {
+ 		ops->fault(p, 0, (hpage_pmd_nr - max_ptes_none) * page_size);
+@@ -1076,7 +1083,7 @@ static void madvise_retracted_page_tables(struct collapse_context *c,
+ 
+ static void usage(void)
+ {
+-	fprintf(stderr, "\nUsage: ./khugepaged <test type> [dir]\n\n");
++	fprintf(stderr, "\nUsage: ./khugepaged [OPTIONS] <test type> [dir]\n\n");
+ 	fprintf(stderr, "\t<test type>\t: <context>:<mem_type>\n");
+ 	fprintf(stderr, "\t<context>\t: [all|khugepaged|madvise]\n");
+ 	fprintf(stderr, "\t<mem_type>\t: [all|anon|file|shmem]\n");
+@@ -1085,15 +1092,34 @@ static void usage(void)
+ 	fprintf(stderr,	"\tCONFIG_READ_ONLY_THP_FOR_FS=y\n");
+ 	fprintf(stderr, "\n\tif [dir] is a (sub)directory of a tmpfs mount, tmpfs must be\n");
+ 	fprintf(stderr,	"\tmounted with huge=madvise option for khugepaged tests to work\n");
++	fprintf(stderr,	"\n\tSupported Options:\n");
++	fprintf(stderr,	"\t\t-h: This help message.\n");
++	fprintf(stderr,	"\t\t-s: mTHP size, expressed as page order.\n");
++	fprintf(stderr,	"\t\t    Defaults to 0. Use this size for anon allocations.\n");
+ 	exit(1);
+ }
+ 
+-static void parse_test_type(int argc, const char **argv)
++static void parse_test_type(int argc, char **argv)
+ {
++	int opt;
+ 	char *buf;
+ 	const char *token;
+ 
+-	if (argc == 1) {
++	while ((opt = getopt(argc, argv, "s:h")) != -1) {
++		switch (opt) {
++		case 's':
++			anon_order = atoi(optarg);
++			break;
++		case 'h':
++		default:
++			usage();
++		}
++	}
++
++	argv += optind;
++	argc -= optind;
++
++	if (argc == 0) {
+ 		/* Backwards compatibility */
+ 		khugepaged_context =  &__khugepaged_context;
+ 		madvise_context =  &__madvise_context;
+@@ -1101,7 +1127,7 @@ static void parse_test_type(int argc, const char **argv)
+ 		return;
+ 	}
+ 
+-	buf = strdup(argv[1]);
++	buf = strdup(argv[0]);
+ 	token = strsep(&buf, ":");
+ 
+ 	if (!strcmp(token, "all")) {
+@@ -1135,11 +1161,13 @@ static void parse_test_type(int argc, const char **argv)
+ 	if (!file_ops)
+ 		return;
+ 
+-	if (argc != 3)
++	if (argc != 2)
+ 		usage();
++
++	get_finfo(argv[1]);
+ }
+ 
+-int main(int argc, const char **argv)
++int main(int argc, char **argv)
+ {
+ 	int hpage_pmd_order;
+ 	struct thp_settings default_settings = {
+@@ -1164,9 +1192,6 @@ int main(int argc, const char **argv)
+ 
+ 	parse_test_type(argc, argv);
+ 
+-	if (file_ops)
+-		get_finfo(argv[2]);
+-
+ 	setbuf(stdout, NULL);
+ 
+ 	page_size = getpagesize();
+@@ -1183,6 +1208,7 @@ int main(int argc, const char **argv)
+ 	default_settings.khugepaged.max_ptes_shared = hpage_pmd_nr / 2;
+ 	default_settings.khugepaged.pages_to_scan = hpage_pmd_nr * 8;
+ 	default_settings.hugepages[hpage_pmd_order].enabled = THP_INHERIT;
++	default_settings.hugepages[anon_order].enabled = THP_ALWAYS;
+ 
+ 	save_settings();
+ 	thp_push_settings(&default_settings);
+diff --git a/tools/testing/selftests/mm/run_vmtests.sh b/tools/testing/selftests/mm/run_vmtests.sh
+index c0212258b852..87f513f5cf91 100755
+--- a/tools/testing/selftests/mm/run_vmtests.sh
++++ b/tools/testing/selftests/mm/run_vmtests.sh
+@@ -357,6 +357,8 @@ CATEGORY="cow" run_test ./cow
+ 
+ CATEGORY="thp" run_test ./khugepaged
+ 
++CATEGORY="thp" run_test ./khugepaged -s 2
++
+ CATEGORY="thp" run_test ./transhuge-stress -d 20
+ 
+ CATEGORY="thp" run_test ./split_huge_page_test
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v9 9/10] selftests/mm/cow: Generalize do_run_with_thp() helper
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 07 Dec 2023 16:12:10 +0000
+Message-Id: <20231207161211.2374093-10-ryan.roberts@arm.com>
+To: Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Yin Fengwei <fengwei.yin@intel.com>, David Hildenbrand <david@redhat.com>, Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Yang Shi <shy828301@gmail.com>, "Huang, Ying" <ying.huang@intel.com>, Zi Yan <ziy@nvidia.com>, Luis Chamberlain <mcgrof@kernel.org>, Itaru Kitayama <itaru.kitayama@gmail.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, John Hubbard <jhubbard@nvidia.com>, David Rientjes <rientjes@google.com>, Vlastimil Babka <vbabka@suse.cz>, Hugh Dickins <hughd@google.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20231207161211.2374093-1-ryan.roberts@arm.com>
+References: <20231207161211.2374093-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+do_run_with_thp() prepares (PMD-sized) THP memory into different states
+before running tests. With the introduction of multi-size THP, we would
+like to reuse this logic to also test those smaller THP sizes. So let's
+add a thpsize parameter which tells the function what size THP it should
+operate on.
+
+A separate commit will utilize this change to add new tests for
+multi-size THP, where available.
+
+Reviewed-by: David Hildenbrand <david@redhat.com>
+Tested-by: Kefeng Wang <wangkefeng.wang@huawei.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+Tested-by: Itaru Kitayama <itaru.kitayama@linux.dev>
+---
+ tools/testing/selftests/mm/cow.c | 121 +++++++++++++++++--------------
+ 1 file changed, 67 insertions(+), 54 deletions(-)
+
+diff --git a/tools/testing/selftests/mm/cow.c b/tools/testing/selftests/mm/cow.c
+index 7324ce5363c0..4d0b5a125d3c 100644
+--- a/tools/testing/selftests/mm/cow.c
++++ b/tools/testing/selftests/mm/cow.c
+@@ -32,7 +32,7 @@
+ 
+ static size_t pagesize;
+ static int pagemap_fd;
+-static size_t thpsize;
++static size_t pmdsize;
+ static int nr_hugetlbsizes;
+ static size_t hugetlbsizes[10];
+ static int gup_fd;
+@@ -734,7 +734,7 @@ enum thp_run {
+ 	THP_RUN_PARTIAL_SHARED,
+ };
+ 
+-static void do_run_with_thp(test_fn fn, enum thp_run thp_run)
++static void do_run_with_thp(test_fn fn, enum thp_run thp_run, size_t thpsize)
+ {
+ 	char *mem, *mmap_mem, *tmp, *mremap_mem = MAP_FAILED;
+ 	size_t size, mmap_size, mremap_size;
+@@ -759,11 +759,11 @@ static void do_run_with_thp(test_fn fn, enum thp_run thp_run)
+ 	}
+ 
+ 	/*
+-	 * Try to populate a THP. Touch the first sub-page and test if we get
+-	 * another sub-page populated automatically.
++	 * Try to populate a THP. Touch the first sub-page and test if
++	 * we get the last sub-page populated automatically.
+ 	 */
+ 	mem[0] = 0;
+-	if (!pagemap_is_populated(pagemap_fd, mem + pagesize)) {
++	if (!pagemap_is_populated(pagemap_fd, mem + thpsize - pagesize)) {
+ 		ksft_test_result_skip("Did not get a THP populated\n");
+ 		goto munmap;
+ 	}
+@@ -773,12 +773,14 @@ static void do_run_with_thp(test_fn fn, enum thp_run thp_run)
+ 	switch (thp_run) {
+ 	case THP_RUN_PMD:
+ 	case THP_RUN_PMD_SWAPOUT:
++		assert(thpsize == pmdsize);
+ 		break;
+ 	case THP_RUN_PTE:
+ 	case THP_RUN_PTE_SWAPOUT:
+ 		/*
+ 		 * Trigger PTE-mapping the THP by temporarily mapping a single
+-		 * subpage R/O.
++		 * subpage R/O. This is a noop if the THP is not pmdsize (and
++		 * therefore already PTE-mapped).
+ 		 */
+ 		ret = mprotect(mem + pagesize, pagesize, PROT_READ);
+ 		if (ret) {
+@@ -875,52 +877,60 @@ static void do_run_with_thp(test_fn fn, enum thp_run thp_run)
+ 		munmap(mremap_mem, mremap_size);
+ }
+ 
+-static void run_with_thp(test_fn fn, const char *desc)
++static void run_with_thp(test_fn fn, const char *desc, size_t size)
+ {
+-	ksft_print_msg("[RUN] %s ... with THP\n", desc);
+-	do_run_with_thp(fn, THP_RUN_PMD);
++	ksft_print_msg("[RUN] %s ... with THP (%zu kB)\n",
++		desc, size / 1024);
++	do_run_with_thp(fn, THP_RUN_PMD, size);
+ }
+ 
+-static void run_with_thp_swap(test_fn fn, const char *desc)
++static void run_with_thp_swap(test_fn fn, const char *desc, size_t size)
+ {
+-	ksft_print_msg("[RUN] %s ... with swapped-out THP\n", desc);
+-	do_run_with_thp(fn, THP_RUN_PMD_SWAPOUT);
++	ksft_print_msg("[RUN] %s ... with swapped-out THP (%zu kB)\n",
++		desc, size / 1024);
++	do_run_with_thp(fn, THP_RUN_PMD_SWAPOUT, size);
+ }
+ 
+-static void run_with_pte_mapped_thp(test_fn fn, const char *desc)
++static void run_with_pte_mapped_thp(test_fn fn, const char *desc, size_t size)
+ {
+-	ksft_print_msg("[RUN] %s ... with PTE-mapped THP\n", desc);
+-	do_run_with_thp(fn, THP_RUN_PTE);
++	ksft_print_msg("[RUN] %s ... with PTE-mapped THP (%zu kB)\n",
++		desc, size / 1024);
++	do_run_with_thp(fn, THP_RUN_PTE, size);
+ }
+ 
+-static void run_with_pte_mapped_thp_swap(test_fn fn, const char *desc)
++static void run_with_pte_mapped_thp_swap(test_fn fn, const char *desc, size_t size)
+ {
+-	ksft_print_msg("[RUN] %s ... with swapped-out, PTE-mapped THP\n", desc);
+-	do_run_with_thp(fn, THP_RUN_PTE_SWAPOUT);
++	ksft_print_msg("[RUN] %s ... with swapped-out, PTE-mapped THP (%zu kB)\n",
++		desc, size / 1024);
++	do_run_with_thp(fn, THP_RUN_PTE_SWAPOUT, size);
+ }
+ 
+-static void run_with_single_pte_of_thp(test_fn fn, const char *desc)
++static void run_with_single_pte_of_thp(test_fn fn, const char *desc, size_t size)
+ {
+-	ksft_print_msg("[RUN] %s ... with single PTE of THP\n", desc);
+-	do_run_with_thp(fn, THP_RUN_SINGLE_PTE);
++	ksft_print_msg("[RUN] %s ... with single PTE of THP (%zu kB)\n",
++		desc, size / 1024);
++	do_run_with_thp(fn, THP_RUN_SINGLE_PTE, size);
+ }
+ 
+-static void run_with_single_pte_of_thp_swap(test_fn fn, const char *desc)
++static void run_with_single_pte_of_thp_swap(test_fn fn, const char *desc, size_t size)
+ {
+-	ksft_print_msg("[RUN] %s ... with single PTE of swapped-out THP\n", desc);
+-	do_run_with_thp(fn, THP_RUN_SINGLE_PTE_SWAPOUT);
++	ksft_print_msg("[RUN] %s ... with single PTE of swapped-out THP (%zu kB)\n",
++		desc, size / 1024);
++	do_run_with_thp(fn, THP_RUN_SINGLE_PTE_SWAPOUT, size);
+ }
+ 
+-static void run_with_partial_mremap_thp(test_fn fn, const char *desc)
++static void run_with_partial_mremap_thp(test_fn fn, const char *desc, size_t size)
+ {
+-	ksft_print_msg("[RUN] %s ... with partially mremap()'ed THP\n", desc);
+-	do_run_with_thp(fn, THP_RUN_PARTIAL_MREMAP);
++	ksft_print_msg("[RUN] %s ... with partially mremap()'ed THP (%zu kB)\n",
++		desc, size / 1024);
++	do_run_with_thp(fn, THP_RUN_PARTIAL_MREMAP, size);
+ }
+ 
+-static void run_with_partial_shared_thp(test_fn fn, const char *desc)
++static void run_with_partial_shared_thp(test_fn fn, const char *desc, size_t size)
+ {
+-	ksft_print_msg("[RUN] %s ... with partially shared THP\n", desc);
+-	do_run_with_thp(fn, THP_RUN_PARTIAL_SHARED);
++	ksft_print_msg("[RUN] %s ... with partially shared THP (%zu kB)\n",
++		desc, size / 1024);
++	do_run_with_thp(fn, THP_RUN_PARTIAL_SHARED, size);
+ }
+ 
+ static void run_with_hugetlb(test_fn fn, const char *desc, size_t hugetlbsize)
+@@ -1091,15 +1101,15 @@ static void run_anon_test_case(struct test_case const *test_case)
+ 
+ 	run_with_base_page(test_case->fn, test_case->desc);
+ 	run_with_base_page_swap(test_case->fn, test_case->desc);
+-	if (thpsize) {
+-		run_with_thp(test_case->fn, test_case->desc);
+-		run_with_thp_swap(test_case->fn, test_case->desc);
+-		run_with_pte_mapped_thp(test_case->fn, test_case->desc);
+-		run_with_pte_mapped_thp_swap(test_case->fn, test_case->desc);
+-		run_with_single_pte_of_thp(test_case->fn, test_case->desc);
+-		run_with_single_pte_of_thp_swap(test_case->fn, test_case->desc);
+-		run_with_partial_mremap_thp(test_case->fn, test_case->desc);
+-		run_with_partial_shared_thp(test_case->fn, test_case->desc);
++	if (pmdsize) {
++		run_with_thp(test_case->fn, test_case->desc, pmdsize);
++		run_with_thp_swap(test_case->fn, test_case->desc, pmdsize);
++		run_with_pte_mapped_thp(test_case->fn, test_case->desc, pmdsize);
++		run_with_pte_mapped_thp_swap(test_case->fn, test_case->desc, pmdsize);
++		run_with_single_pte_of_thp(test_case->fn, test_case->desc, pmdsize);
++		run_with_single_pte_of_thp_swap(test_case->fn, test_case->desc, pmdsize);
++		run_with_partial_mremap_thp(test_case->fn, test_case->desc, pmdsize);
++		run_with_partial_shared_thp(test_case->fn, test_case->desc, pmdsize);
+ 	}
+ 	for (i = 0; i < nr_hugetlbsizes; i++)
+ 		run_with_hugetlb(test_case->fn, test_case->desc,
+@@ -1120,7 +1130,7 @@ static int tests_per_anon_test_case(void)
+ {
+ 	int tests = 2 + nr_hugetlbsizes;
+ 
+-	if (thpsize)
++	if (pmdsize)
+ 		tests += 8;
+ 	return tests;
+ }
+@@ -1329,7 +1339,7 @@ static void run_anon_thp_test_cases(void)
+ {
+ 	int i;
+ 
+-	if (!thpsize)
++	if (!pmdsize)
+ 		return;
+ 
+ 	ksft_print_msg("[INFO] Anonymous THP tests\n");
+@@ -1338,13 +1348,13 @@ static void run_anon_thp_test_cases(void)
+ 		struct test_case const *test_case = &anon_thp_test_cases[i];
+ 
+ 		ksft_print_msg("[RUN] %s\n", test_case->desc);
+-		do_run_with_thp(test_case->fn, THP_RUN_PMD);
++		do_run_with_thp(test_case->fn, THP_RUN_PMD, pmdsize);
+ 	}
+ }
+ 
+ static int tests_per_anon_thp_test_case(void)
+ {
+-	return thpsize ? 1 : 0;
++	return pmdsize ? 1 : 0;
+ }
+ 
+ typedef void (*non_anon_test_fn)(char *mem, const char *smem, size_t size);
+@@ -1419,7 +1429,7 @@ static void run_with_huge_zeropage(non_anon_test_fn fn, const char *desc)
+ 	}
+ 
+ 	/* For alignment purposes, we need twice the thp size. */
+-	mmap_size = 2 * thpsize;
++	mmap_size = 2 * pmdsize;
+ 	mmap_mem = mmap(NULL, mmap_size, PROT_READ | PROT_WRITE,
+ 			MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+ 	if (mmap_mem == MAP_FAILED) {
+@@ -1434,11 +1444,11 @@ static void run_with_huge_zeropage(non_anon_test_fn fn, const char *desc)
+ 	}
+ 
+ 	/* We need a THP-aligned memory area. */
+-	mem = (char *)(((uintptr_t)mmap_mem + thpsize) & ~(thpsize - 1));
+-	smem = (char *)(((uintptr_t)mmap_smem + thpsize) & ~(thpsize - 1));
++	mem = (char *)(((uintptr_t)mmap_mem + pmdsize) & ~(pmdsize - 1));
++	smem = (char *)(((uintptr_t)mmap_smem + pmdsize) & ~(pmdsize - 1));
+ 
+-	ret = madvise(mem, thpsize, MADV_HUGEPAGE);
+-	ret |= madvise(smem, thpsize, MADV_HUGEPAGE);
++	ret = madvise(mem, pmdsize, MADV_HUGEPAGE);
++	ret |= madvise(smem, pmdsize, MADV_HUGEPAGE);
+ 	if (ret) {
+ 		ksft_test_result_fail("MADV_HUGEPAGE failed\n");
+ 		goto munmap;
+@@ -1457,7 +1467,7 @@ static void run_with_huge_zeropage(non_anon_test_fn fn, const char *desc)
+ 		goto munmap;
+ 	}
+ 
+-	fn(mem, smem, thpsize);
++	fn(mem, smem, pmdsize);
+ munmap:
+ 	munmap(mmap_mem, mmap_size);
+ 	if (mmap_smem != MAP_FAILED)
+@@ -1650,7 +1660,7 @@ static void run_non_anon_test_case(struct non_anon_test_case const *test_case)
+ 	run_with_zeropage(test_case->fn, test_case->desc);
+ 	run_with_memfd(test_case->fn, test_case->desc);
+ 	run_with_tmpfile(test_case->fn, test_case->desc);
+-	if (thpsize)
++	if (pmdsize)
+ 		run_with_huge_zeropage(test_case->fn, test_case->desc);
+ 	for (i = 0; i < nr_hugetlbsizes; i++)
+ 		run_with_memfd_hugetlb(test_case->fn, test_case->desc,
+@@ -1671,7 +1681,7 @@ static int tests_per_non_anon_test_case(void)
+ {
+ 	int tests = 3 + nr_hugetlbsizes;
+ 
+-	if (thpsize)
++	if (pmdsize)
+ 		tests += 1;
+ 	return tests;
+ }
+@@ -1681,10 +1691,13 @@ int main(int argc, char **argv)
+ 	int err;
+ 
+ 	pagesize = getpagesize();
+-	thpsize = read_pmd_pagesize();
+-	if (thpsize)
++	pmdsize = read_pmd_pagesize();
++	if (pmdsize) {
++		ksft_print_msg("[INFO] detected PMD size: %zu KiB\n",
++			       pmdsize / 1024);
+ 		ksft_print_msg("[INFO] detected THP size: %zu KiB\n",
+-			       thpsize / 1024);
++			       pmdsize / 1024);
++	}
+ 	nr_hugetlbsizes = detect_hugetlb_page_sizes(hugetlbsizes,
+ 						    ARRAY_SIZE(hugetlbsizes));
+ 	detect_huge_zeropage();
+
+-- 
+2.25.1
+
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v9 10/10] selftests/mm/cow: Add tests for anonymous multi-size THP
+From: Ryan Roberts <ryan.roberts@arm.com>
+Date: Thu, 07 Dec 2023 16:12:11 +0000
+Message-Id: <20231207161211.2374093-11-ryan.roberts@arm.com>
+To: Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@infradead.org>, Yin Fengwei <fengwei.yin@intel.com>, David Hildenbrand <david@redhat.com>, Yu Zhao <yuzhao@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Yang Shi <shy828301@gmail.com>, "Huang, Ying" <ying.huang@intel.com>, Zi Yan <ziy@nvidia.com>, Luis Chamberlain <mcgrof@kernel.org>, Itaru Kitayama <itaru.kitayama@gmail.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, John Hubbard <jhubbard@nvidia.com>, David Rientjes <rientjes@google.com>, Vlastimil Babka <vbabka@suse.cz>, Hugh Dickins <hughd@google.com>, Kefeng Wang <wangkefeng.wang@huawei.com>, Barry Song <21cnbao@gmail.com>, Alistair Popple <apopple@nvidia.com>
+Cc: Ryan Roberts <ryan.roberts@arm.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20231207161211.2374093-1-ryan.roberts@arm.com>
+References: <20231207161211.2374093-1-ryan.roberts@arm.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Add tests similar to the existing PMD-sized THP tests, but which operate
+on memory backed by (PTE-mapped) multi-size THP. This reuses all the
+existing infrastructure. If the test suite detects that multi-size THP
+is not supported by the kernel, the new tests are skipped.
+
+Reviewed-by: David Hildenbrand <david@redhat.com>
+Tested-by: Kefeng Wang <wangkefeng.wang@huawei.com>
+Tested-by: John Hubbard <jhubbard@nvidia.com>
+Signed-off-by: Ryan Roberts <ryan.roberts@arm.com>
+---
+ tools/testing/selftests/mm/cow.c | 84 +++++++++++++++++++++++++++-----
+ 1 file changed, 72 insertions(+), 12 deletions(-)
+
+diff --git a/tools/testing/selftests/mm/cow.c b/tools/testing/selftests/mm/cow.c
+index 4d0b5a125d3c..37b4d7d28ae9 100644
+--- a/tools/testing/selftests/mm/cow.c
++++ b/tools/testing/selftests/mm/cow.c
+@@ -29,15 +29,49 @@
+ #include "../../../../mm/gup_test.h"
+ #include "../kselftest.h"
+ #include "vm_util.h"
++#include "thp_settings.h"
+ 
+ static size_t pagesize;
+ static int pagemap_fd;
+ static size_t pmdsize;
++static int nr_thpsizes;
++static size_t thpsizes[20];
+ static int nr_hugetlbsizes;
+ static size_t hugetlbsizes[10];
+ static int gup_fd;
+ static bool has_huge_zeropage;
+ 
++static int sz2ord(size_t size)
++{
++	return __builtin_ctzll(size / pagesize);
++}
++
++static int detect_thp_sizes(size_t sizes[], int max)
++{
++	int count = 0;
++	unsigned long orders;
++	size_t kb;
++	int i;
++
++	/* thp not supported at all. */
++	if (!pmdsize)
++		return 0;
++
++	orders = 1UL << sz2ord(pmdsize);
++	orders |= thp_supported_orders();
++
++	for (i = 0; orders && count < max; i++) {
++		if (!(orders & (1UL << i)))
++			continue;
++		orders &= ~(1UL << i);
++		kb = (pagesize >> 10) << i;
++		sizes[count++] = kb * 1024;
++		ksft_print_msg("[INFO] detected THP size: %zu KiB\n", kb);
++	}
++
++	return count;
++}
++
+ static void detect_huge_zeropage(void)
+ {
+ 	int fd = open("/sys/kernel/mm/transparent_hugepage/use_zero_page",
+@@ -1101,15 +1135,27 @@ static void run_anon_test_case(struct test_case const *test_case)
+ 
+ 	run_with_base_page(test_case->fn, test_case->desc);
+ 	run_with_base_page_swap(test_case->fn, test_case->desc);
+-	if (pmdsize) {
+-		run_with_thp(test_case->fn, test_case->desc, pmdsize);
+-		run_with_thp_swap(test_case->fn, test_case->desc, pmdsize);
+-		run_with_pte_mapped_thp(test_case->fn, test_case->desc, pmdsize);
+-		run_with_pte_mapped_thp_swap(test_case->fn, test_case->desc, pmdsize);
+-		run_with_single_pte_of_thp(test_case->fn, test_case->desc, pmdsize);
+-		run_with_single_pte_of_thp_swap(test_case->fn, test_case->desc, pmdsize);
+-		run_with_partial_mremap_thp(test_case->fn, test_case->desc, pmdsize);
+-		run_with_partial_shared_thp(test_case->fn, test_case->desc, pmdsize);
++	for (i = 0; i < nr_thpsizes; i++) {
++		size_t size = thpsizes[i];
++		struct thp_settings settings = *thp_current_settings();
++
++		settings.hugepages[sz2ord(pmdsize)].enabled = THP_NEVER;
++		settings.hugepages[sz2ord(size)].enabled = THP_ALWAYS;
++		thp_push_settings(&settings);
++
++		if (size == pmdsize) {
++			run_with_thp(test_case->fn, test_case->desc, size);
++			run_with_thp_swap(test_case->fn, test_case->desc, size);
++		}
++
++		run_with_pte_mapped_thp(test_case->fn, test_case->desc, size);
++		run_with_pte_mapped_thp_swap(test_case->fn, test_case->desc, size);
++		run_with_single_pte_of_thp(test_case->fn, test_case->desc, size);
++		run_with_single_pte_of_thp_swap(test_case->fn, test_case->desc, size);
++		run_with_partial_mremap_thp(test_case->fn, test_case->desc, size);
++		run_with_partial_shared_thp(test_case->fn, test_case->desc, size);
++
++		thp_pop_settings();
+ 	}
+ 	for (i = 0; i < nr_hugetlbsizes; i++)
+ 		run_with_hugetlb(test_case->fn, test_case->desc,
+@@ -1130,8 +1176,9 @@ static int tests_per_anon_test_case(void)
+ {
+ 	int tests = 2 + nr_hugetlbsizes;
+ 
++	tests += 6 * nr_thpsizes;
+ 	if (pmdsize)
+-		tests += 8;
++		tests += 2;
+ 	return tests;
+ }
+ 
+@@ -1689,15 +1736,23 @@ static int tests_per_non_anon_test_case(void)
+ int main(int argc, char **argv)
+ {
+ 	int err;
++	struct thp_settings default_settings;
+ 
+ 	pagesize = getpagesize();
+ 	pmdsize = read_pmd_pagesize();
+ 	if (pmdsize) {
++		/* Only if THP is supported. */
++		thp_read_settings(&default_settings);
++		default_settings.hugepages[sz2ord(pmdsize)].enabled = THP_INHERIT;
++		thp_save_settings();
++		thp_push_settings(&default_settings);
++
+ 		ksft_print_msg("[INFO] detected PMD size: %zu KiB\n",
+ 			       pmdsize / 1024);
+-		ksft_print_msg("[INFO] detected THP size: %zu KiB\n",
+-			       pmdsize / 1024);
++
++		nr_thpsizes = detect_thp_sizes(thpsizes, ARRAY_SIZE(thpsizes));
+ 	}
++
+ 	nr_hugetlbsizes = detect_hugetlb_page_sizes(hugetlbsizes,
+ 						    ARRAY_SIZE(hugetlbsizes));
+ 	detect_huge_zeropage();
+@@ -1716,6 +1771,11 @@ int main(int argc, char **argv)
+ 	run_anon_thp_test_cases();
+ 	run_non_anon_test_cases();
+ 
++	if (pmdsize) {
++		/* Only if THP is supported. */
++		thp_restore_settings();
++	}
++
+ 	err = ksft_get_fail_cnt();
+ 	if (err)
+ 		ksft_exit_fail_msg("%d out of %d tests failed\n",
+
+-- 
+2.25.1
+
+
