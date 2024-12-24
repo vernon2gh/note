@@ -1,4 +1,4 @@
-From 4624af32a1d5546d0526a3888fda655b2099091e Mon Sep 17 00:00:00 2001
+From d4429005cbcc790ed8a048ed794758001b155c50 Mon Sep 17 00:00:00 2001
 From: Vernon Yang <vernon2gm@gmail.com>
 Date: Mon, 23 Dec 2024 18:30:54 +0800
 Subject: [PATCH 1/2] Backpatch Multi-size THP for anonymous memory to v6.6.x
@@ -12,7 +12,7 @@ Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
  include/linux/huge_mm.h                    | 183 +++++++--
  mm/huge_memory.c                           | 230 ++++++++++--
  mm/khugepaged.c                            |  20 +-
- mm/memory.c                                | 117 +++++-
+ mm/memory.c                                | 115 +++++-
  mm/page_vma_mapped.c                       |   3 +-
  mm/rmap.c                                  |  28 +-
  tools/testing/selftests/mm/Makefile        |   4 +-
@@ -21,7 +21,7 @@ Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
  tools/testing/selftests/mm/run_vmtests.sh  |   2 +
  tools/testing/selftests/mm/thp_settings.c  | 349 ++++++++++++++++++
  tools/testing/selftests/mm/thp_settings.h  |  80 ++++
- 15 files changed, 1215 insertions(+), 502 deletions(-)
+ 15 files changed, 1213 insertions(+), 502 deletions(-)
  create mode 100644 tools/testing/selftests/mm/thp_settings.c
  create mode 100644 tools/testing/selftests/mm/thp_settings.h
 
@@ -458,17 +458,16 @@ index fc789c0ac85b..09179237dac4 100644
  
  static inline void folio_prep_large_rmappable(struct folio *folio) {}
 diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 635f0f0f6860..05fe79169c95 100644
+index 635f0f0f6860..65646e5ee00c 100644
 --- a/mm/huge_memory.c
 +++ b/mm/huge_memory.c
-@@ -71,19 +71,31 @@ static struct shrinker deferred_split_shrinker;
+@@ -71,19 +71,30 @@ static struct shrinker deferred_split_shrinker;
  static atomic_t huge_zero_refcount;
  struct page *huge_zero_page __read_mostly;
  unsigned long huge_zero_pfn __read_mostly = ~0UL;
 +unsigned long huge_anon_orders_always __read_mostly;
 +unsigned long huge_anon_orders_madvise __read_mostly;
 +unsigned long huge_anon_orders_inherit __read_mostly;
-+static DEFINE_SPINLOCK(huge_anon_orders_lock);
 +
 +unsigned long __thp_vma_allowable_orders(struct vm_area_struct *vma,
 +					 unsigned long vm_flags, bool smaps,
@@ -499,7 +498,7 @@ index 635f0f0f6860..05fe79169c95 100644
  
  	/*
  	 * Special VMA and hugetlb VMA.
-@@ -91,17 +103,29 @@ bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
+@@ -91,17 +102,29 @@ bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
  	 * VM_MIXEDMAP set.
  	 */
  	if (vm_flags & VM_NO_KHUGEPAGED)
@@ -535,7 +534,7 @@ index 635f0f0f6860..05fe79169c95 100644
  
  	/*
  	 * Enabled via shmem mount options or sysfs settings.
-@@ -110,23 +134,28 @@ bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
+@@ -110,23 +133,28 @@ bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
  	 */
  	if (!in_pf && shmem_file(vma->vm_file))
  		return shmem_is_huge(file_inode(vma->vm_file), vma->vm_pgoff,
@@ -575,7 +574,7 @@ index 635f0f0f6860..05fe79169c95 100644
  
  	/*
  	 * THPeligible bit of smaps should show 1 for proper VMAs even
-@@ -136,9 +165,9 @@ bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
+@@ -136,9 +164,9 @@ bool hugepage_vma_check(struct vm_area_struct *vma, unsigned long vm_flags,
  	 * the first page fault.
  	 */
  	if (!vma->anon_vma)
@@ -587,12 +586,13 @@ index 635f0f0f6860..05fe79169c95 100644
  }
  
  static bool get_huge_zero_page(void)
-@@ -396,9 +425,135 @@ static const struct attribute_group hugepage_attr_group = {
+@@ -396,9 +424,136 @@ static const struct attribute_group hugepage_attr_group = {
  	.attrs = hugepage_attr,
  };
  
 +static void hugepage_exit_sysfs(struct kobject *hugepage_kobj);
 +static void thpsize_release(struct kobject *kobj);
++static DEFINE_SPINLOCK(huge_anon_orders_lock);
 +static LIST_HEAD(thpsize_list);
 +
 +struct thpsize {
@@ -837,10 +837,10 @@ index a87cfe1d4b7b..927c7295d4cb 100644
  
  	cc = kmalloc(sizeof(*cc), GFP_KERNEL);
 diff --git a/mm/memory.c b/mm/memory.c
-index 742c2f65c2c8..b62ab2d28253 100644
+index 742c2f65c2c8..c8ba60945afc 100644
 --- a/mm/memory.c
 +++ b/mm/memory.c
-@@ -4096,6 +4096,87 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
+@@ -4096,6 +4096,84 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
  	return ret;
  }
  
@@ -856,9 +856,9 @@ index 742c2f65c2c8..b62ab2d28253 100644
 +	return true;
 +}
 +
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
 +static struct folio *alloc_anon_folio(struct vm_fault *vmf)
 +{
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
 +	struct vm_area_struct *vma = vmf->vma;
 +	unsigned long orders;
 +	struct folio *folio;
@@ -918,17 +918,14 @@ index 742c2f65c2c8..b62ab2d28253 100644
 +	}
 +
 +fallback:
-+	return vma_alloc_zeroed_movable_folio(vma, vmf->address);
-+}
-+#else
-+#define alloc_anon_folio(vmf) \
-+		vma_alloc_zeroed_movable_folio((vmf)->vma, (vmf)->address)
 +#endif
++	return vma_alloc_zeroed_movable_folio(vmf->vma, vmf->address);
++}
 +
  /*
   * We enter with non-exclusive mmap_lock (to exclude vma changes,
   * but allow concurrent faults), and pte mapped but not yet locked.
-@@ -4105,9 +4186,12 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+@@ -4105,9 +4183,12 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
  {
  	bool uffd_wp = vmf_orig_pte_uffd_wp(vmf);
  	struct vm_area_struct *vma = vmf->vma;
@@ -941,11 +938,12 @@ index 742c2f65c2c8..b62ab2d28253 100644
  
  	/* File mapping without ->vm_ops ? */
  	if (vma->vm_flags & VM_SHARED)
-@@ -4147,10 +4231,15 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+@@ -4147,10 +4228,16 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
  	/* Allocate our own private page. */
  	if (unlikely(anon_vma_prepare(vma)))
  		goto oom;
 -	folio = vma_alloc_zeroed_movable_folio(vma, vmf->address);
++	/* Returns NULL on OOM or ERR_PTR(-EAGAIN) if we must retry the fault */
 +	folio = alloc_anon_folio(vmf);
 +	if (IS_ERR(folio))
 +		return 0;
@@ -958,7 +956,7 @@ index 742c2f65c2c8..b62ab2d28253 100644
  	if (mem_cgroup_charge(folio, vma->vm_mm, GFP_KERNEL))
  		goto oom_free_page;
  	folio_throttle_swaprate(folio, GFP_KERNEL);
-@@ -4167,12 +4256,15 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+@@ -4167,12 +4254,15 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
  	if (vma->vm_flags & VM_WRITE)
  		entry = pte_mkwrite(pte_mkdirty(entry), vma);
  
@@ -978,7 +976,7 @@ index 742c2f65c2c8..b62ab2d28253 100644
  		goto release;
  	}
  
-@@ -4187,16 +4279,17 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+@@ -4187,16 +4277,17 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
  		return handle_userfault(vmf, VM_UFFD_MISSING);
  	}
  
@@ -1000,7 +998,7 @@ index 742c2f65c2c8..b62ab2d28253 100644
  unlock:
  	if (vmf->pte)
  		pte_unmap_unlock(vmf->pte, vmf->ptl);
-@@ -4302,7 +4395,7 @@ vm_fault_t do_set_pmd(struct vm_fault *vmf, struct page *page)
+@@ -4302,7 +4393,7 @@ vm_fault_t do_set_pmd(struct vm_fault *vmf, struct page *page)
  	if (thp_disabled_by_hw() || vma_thp_disabled(vma, vma->vm_flags))
  		return ret;
  
@@ -1009,7 +1007,7 @@ index 742c2f65c2c8..b62ab2d28253 100644
  		return ret;
  
  	page = compound_head(page);
-@@ -5100,7 +5193,7 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
+@@ -5100,7 +5191,7 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
  		return VM_FAULT_OOM;
  retry_pud:
  	if (pud_none(*vmf.pud) &&
@@ -1018,7 +1016,7 @@ index 742c2f65c2c8..b62ab2d28253 100644
  		ret = create_huge_pud(&vmf);
  		if (!(ret & VM_FAULT_FALLBACK))
  			return ret;
-@@ -5134,7 +5227,7 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
+@@ -5134,7 +5225,7 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
  		goto retry_pud;
  
  	if (pmd_none(*vmf.pmd) &&

@@ -1,4 +1,4 @@
-From 3ab4a77899205a7176f742eae59e45c2c1c27932 Mon Sep 17 00:00:00 2001
+From 0b69a35a7dd13d07a40202d1cb186b37421a21c8 Mon Sep 17 00:00:00 2001
 From: Vernon Yang <vernon2gm@gmail.com>
 Date: Mon, 23 Dec 2024 20:08:10 +0800
 Subject: [PATCH 2/2] Backpatch Transparent Contiguous PTEs for User Mappings
@@ -1598,7 +1598,7 @@ index 8b7daccd11be..a9ed2f78323c 100644
   * set_pte() and PFN_PTE_SHIFT.
   *
 diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 05fe79169c95..2cad614afebd 100644
+index 65646e5ee00c..d9e230a99b6c 100644
 --- a/mm/huge_memory.c
 +++ b/mm/huge_memory.c
 @@ -2374,15 +2374,16 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
