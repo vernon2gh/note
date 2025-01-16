@@ -413,3 +413,118 @@ int main(int argc, char *argv[])
 	return 0;
 }
 ```
+
+## 链表反转
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+struct node {
+	int data;
+	struct node *next;
+};
+
+struct node *list_create(int data)
+{
+	struct node *n;
+
+	n = malloc(sizeof(struct node));
+	if (n == NULL) {
+		printf("Allocate memory failed.\n");
+		return NULL;
+	}
+
+	n->data = data;
+	n->next = NULL;
+}
+
+void list_insert(struct node **head, struct node *n)
+{
+	struct node *tmp;
+
+	if (head == NULL || n == NULL)
+		return;
+
+	n->next = *head;
+	*head = n;
+}
+
+struct node *list_reverse(struct node *head)
+{
+	struct node *cur = head;
+	struct node *next = NULL;
+	struct node *prev = NULL;
+
+	while (cur != NULL) {
+		next = cur->next;
+		cur->next = prev;
+		prev = cur;
+		cur = next;
+	};
+
+	return prev;
+}
+
+struct node *list_reverse_range(struct node *head, int start, int end)
+{
+	struct node *cur = head;
+	struct node *next = NULL;
+	struct node *prev = NULL;
+	struct node *start_node, *bstart_node;
+	int i;
+
+	for (i = 1; i < start; i++) {
+		prev = cur;
+		cur = cur->next;
+	}
+
+	bstart_node = prev;
+	start_node = cur;
+
+	for (i = start; i < end; i++) {
+		next = cur->next;
+		cur->next = prev;
+		prev = cur;
+		cur = next;
+	}
+
+	bstart_node->next = prev;
+	start_node->next = cur;
+
+	return head;
+}
+
+void list_print(struct node *head)
+{
+	struct node *tmp = head;
+
+	while (tmp != NULL) {
+		printf("%d ", tmp->data);
+		tmp = tmp->next;
+	}
+	printf("\n");
+}
+
+int main(int argc, char *argv[])
+{
+	struct node *head, *n;
+	int i;
+
+	head = list_create(1);
+
+	for (i = 2; i < 10; i++) {
+		n = list_create(i);
+		list_insert(&head, n);
+	}
+	list_print(head);
+
+	head = list_reverse(head);
+	list_print(head);
+
+	head = list_reverse_range(head, 2, 5);
+	list_print(head);
+
+	return 0;
+}
+```
