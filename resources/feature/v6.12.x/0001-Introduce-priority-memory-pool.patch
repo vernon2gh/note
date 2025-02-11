@@ -1,0 +1,356 @@
+From 3c4df5b7d2b9969bd9dc2372a026e59c7dce82b8 Mon Sep 17 00:00:00 2001
+From: Vernon Yang <vernon2gm@gmail.com>
+Date: Sun, 26 Jan 2025 10:58:42 +0800
+Subject: [PATCH] Introduce priority memory pool
+
+This feature is priority memory buffer pool support. Such pools are
+mostly used for hight priority thread to allocate memory.
+
+Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
+---
+ include/linux/priority_mempool.h |  55 ++++++++
+ mm/Kconfig                       |   6 +
+ mm/Makefile                      |   1 +
+ mm/page_alloc.c                  |   5 +
+ mm/priority_mempool.c            | 218 +++++++++++++++++++++++++++++++
+ 5 files changed, 285 insertions(+)
+ create mode 100644 include/linux/priority_mempool.h
+ create mode 100644 mm/priority_mempool.c
+
+diff --git a/include/linux/priority_mempool.h b/include/linux/priority_mempool.h
+new file mode 100644
+index 000000000000..f69a8c41fc54
+--- /dev/null
++++ b/include/linux/priority_mempool.h
+@@ -0,0 +1,55 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * priority memory buffer pool support
++ */
++#ifndef _LINUX_PMEMPOOL_H
++#define _LINUX_PMEMPOOL_H
++
++#include <linux/mm_types.h>
++
++#ifdef CONFIG_PMEMPOOL
++
++struct page *__priority_mempool_alloc(gfp_t gfp_mask, unsigned int order,
++							bool prealloc);
++void priority_mempool_free(struct page *page, unsigned int order);
++
++static inline struct page *priority_mempool_alloc(gfp_t gfp_mask,
++						  unsigned int order)
++{
++	return __priority_mempool_alloc(gfp_mask, order, false);
++}
++
++static inline struct page *priority_mempool_prealloc(gfp_t gfp_mask,
++						     unsigned int order)
++{
++	return __priority_mempool_alloc(gfp_mask, order, true);
++}
++
++#else
++
++static inline struct page *__priority_mempool_alloc(gfp_t gfp_mask,
++						    unsigned int order,
++						    bool prealloc)
++{
++	return NULL;
++}
++
++static inline void priority_mempool_free(struct page *page, unsigned int order)
++{
++}
++
++static inline struct page *priority_mempool_alloc(gfp_t gfp_mask,
++						  unsigned int order)
++{
++	return NULL;
++}
++
++static inline struct page *priority_mempool_prealloc(gfp_t gfp_mask,
++						     unsigned int order)
++{
++	return NULL;
++}
++
++#endif
++
++#endif /* _LINUX_PMEMPOOL_H */
+diff --git a/mm/Kconfig b/mm/Kconfig
+index 84000b016808..510ec8f0653e 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -1301,6 +1301,12 @@ config ARCH_HAS_USER_SHADOW_STACK
+ 	  The architecture has hardware support for userspace shadow call
+           stacks (eg, x86 CET, arm64 GCS or RISC-V Zicfiss).
+ 
++config PMEMPOOL
++	bool "priority memory pool"
++	help
++	  This feature is priority memory buffer pool support. Such pools are
++	  mostly used for hight priority thread to allocate memory.
++
+ source "mm/damon/Kconfig"
+ 
+ endmenu
+diff --git a/mm/Makefile b/mm/Makefile
+index dba52bb0da8a..56a7f1ca070d 100644
+--- a/mm/Makefile
++++ b/mm/Makefile
+@@ -146,3 +146,4 @@ obj-$(CONFIG_GENERIC_IOREMAP) += ioremap.o
+ obj-$(CONFIG_SHRINKER_DEBUG) += shrinker_debug.o
+ obj-$(CONFIG_EXECMEM) += execmem.o
+ obj-$(CONFIG_TMPFS_QUOTA) += shmem_quota.o
++obj-$(CONFIG_PMEMPOOL) += priority_mempool.o
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 01eab25edf89..2b3571a9919c 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -55,6 +55,7 @@
+ #include <linux/delayacct.h>
+ #include <linux/cacheinfo.h>
+ #include <linux/pgalloc_tag.h>
++#include <linux/priority_mempool.h>
+ #include <asm/div64.h>
+ #include "internal.h"
+ #include "shuffle.h"
+@@ -4378,6 +4379,10 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
+ 	if (current->flags & PF_MEMALLOC)
+ 		goto nopage;
+ 
++	page = priority_mempool_prealloc(gfp_mask, order);
++	if (page)
++		goto got_pg;
++
+ 	/* Try direct reclaim and then allocating */
+ 	page = __alloc_pages_direct_reclaim(gfp_mask, order, alloc_flags, ac,
+ 							&did_some_progress);
+diff --git a/mm/priority_mempool.c b/mm/priority_mempool.c
+new file mode 100644
+index 000000000000..12d2ecdde037
+--- /dev/null
++++ b/mm/priority_mempool.c
+@@ -0,0 +1,218 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ *  linux/mm/priority_mempool.c
++ *
++ *  priority memory buffer pool support. Such pools are mostly used
++ *  for hight priority thread to allocate memory.
++ *
++ *  started by Vernon Yang, Copyright (C) 2025
++ */
++
++#include <linux/module.h>
++#include <linux/kthread.h>
++#include <linux/debugfs.h>
++#include <linux/seq_file.h>
++#include <linux/sched/rt.h>
++#include <linux/mempool.h>
++#include <linux/priority_mempool.h>
++
++#define SIZE_KB(size)	(size * 1024)
++#define SIZE_MB(size)	(size * 1024 * 1024)
++
++struct priority_mempool {
++	mempool_t *pool;
++	int order;
++	int max_size;
++};
++
++static struct priority_mempool pmempool[] = {
++	{
++		.pool = NULL,
++		.order = 0,
++		.max_size = SIZE_MB(50),
++	},
++	{
++		.pool = NULL,
++		.order = 1,
++		.max_size = SIZE_MB(50),
++	},
++};
++
++#define PMEMPOOL_NR	ARRAY_SIZE(pmempool)
++static int max_order;
++
++struct task_struct *kpmempoold;
++static struct wait_queue_head wq;
++static int refill;
++
++struct dentry *pmempool_debugfs_dir;
++
++static bool is_high_priority(struct task_struct *task)
++{
++	if (rt_or_dl_task_policy(task))
++		return true;
++
++	return false;
++}
++
++static mempool_t *look_for_mempool(unsigned int order)
++{
++	struct priority_mempool *p;
++	int i;
++
++	if (order > max_order)
++		return NULL;
++
++	for (i = 0; i < PMEMPOOL_NR; i++) {
++		p = pmempool + i;
++		if (p->order == order)
++			return p->pool;
++	}
++
++	return NULL;
++}
++
++struct page *__priority_mempool_alloc(gfp_t gfp_mask, unsigned int order,
++							bool prealloc)
++{
++	mempool_t *pool;
++	struct page *page;
++
++	/* skip kpmempoold thread */
++	if (current->pid == kpmempoold->pid)
++		return NULL;
++
++	if (!is_high_priority(current))
++		return NULL;
++
++	pool = look_for_mempool(order);
++	if (pool == NULL)
++		return NULL;
++
++	if (prealloc)
++		page = mempool_alloc_preallocated(pool);
++	else
++		page = mempool_alloc(pool, gfp_mask);
++
++	if (!mempool_is_saturated(pool) && (refill == 0)) {
++		refill = 1;
++		wake_up_interruptible(&wq);
++	}
++
++	return page;
++}
++EXPORT_SYMBOL(__priority_mempool_alloc);
++
++void priority_mempool_free(struct page *page, unsigned int order)
++{
++	mempool_t *pool;
++
++	pool = look_for_mempool(order);
++	if (pool == NULL)
++		return;
++
++	mempool_free(page, pool);
++}
++EXPORT_SYMBOL(priority_mempool_free);
++
++static int pmempool_refill(void *arg)
++{
++	struct priority_mempool *p;
++	struct page *page;
++	int i;
++
++	while (!kthread_should_stop()) {
++		if (wait_event_interruptible(wq, refill == 1))
++			continue;
++
++		for (i = 0; i < PMEMPOOL_NR; i++) {
++			p = pmempool + i;
++			while (!mempool_is_saturated(p->pool)) {
++				page = alloc_pages_noprof(GFP_KERNEL, p->order);
++				if (page == NULL)
++					continue;
++
++				mempool_free(page, p->pool);
++			}
++		}
++
++		refill = 0;
++	}
++
++	return 0;
++}
++
++static int stat_show(struct seq_file *s, void *data)
++{
++	struct priority_mempool *p;
++	mempool_t *pool;
++	int i;
++
++	for (i = 0; i < PMEMPOOL_NR; i++) {
++		p = pmempool + i;
++		pool = p->pool;
++
++		seq_printf(s, "order %d\n", p->order);
++		seq_printf(s, "  max_size %d\n", p->max_size);
++		seq_printf(s, "  min_nr   %d\n", pool ? pool->min_nr  : 0);
++		seq_printf(s, "  curr_nr  %d\n", pool ? pool->curr_nr : 0);
++	}
++
++	return 0;
++}
++DEFINE_SHOW_ATTRIBUTE(stat);
++
++static int __init priority_mempool_init(void)
++{
++	struct priority_mempool *p;
++	int order;
++	int min_nr;
++	int i;
++
++	for (i = 0; i < PMEMPOOL_NR; i++) {
++		p = pmempool + i;
++		order = p->order;
++		min_nr = (p->max_size / PAGE_SIZE) >> order;
++
++		p->pool = mempool_create_page_pool(min_nr, order);
++
++		if (order > max_order)
++			max_order = order;
++	}
++
++	init_waitqueue_head(&wq);
++	kpmempoold = kthread_run(pmempool_refill, NULL, "kpmempoold");
++	if (IS_ERR(kpmempoold)) {
++		pr_err("Failed to start kpmempoold，ret=%ld\n",
++					PTR_ERR(kpmempoold));
++	}
++
++	if (debugfs_initialized()) {
++		pmempool_debugfs_dir = debugfs_create_dir("pmempool", NULL);
++		debugfs_create_file("stat", 0444, pmempool_debugfs_dir, NULL,
++				    &stat_fops);
++	}
++
++	return 0;
++}
++
++static void __exit priority_mempool_exit(void)
++{
++	struct priority_mempool *p;
++	int i;
++
++	debugfs_remove(pmempool_debugfs_dir);
++	kthread_stop(kpmempoold);
++
++	for (i = 0; i < PMEMPOOL_NR; i++) {
++		p = pmempool + i;
++		mempool_destroy(p->pool);
++	}
++}
++
++module_init(priority_mempool_init);
++module_exit(priority_mempool_exit);
++
++MODULE_AUTHOR("Vernon Yang <vernon2gm@gmail.com>");
++MODULE_DESCRIPTION("PRIORITY MEMPOOL MODULE");
++MODULE_LICENSE("GPL");
+-- 
+2.34.1
+

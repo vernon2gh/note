@@ -1,0 +1,85 @@
+From cd58b6163ec758bced607efb4e0acb7576b237af Mon Sep 17 00:00:00 2001
+From: Vernon Yang <vernon2gm@gmail.com>
+Date: Sun, 10 Nov 2024 11:18:25 +0800
+Subject: [PATCH] Introduce reclaim anon lru by swappiness
+
+no_cache_trim
+
+Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
+---
+ include/linux/swap.h | 1 +
+ mm/memcontrol.c      | 9 +++++++--
+ mm/vmscan.c          | 1 +
+ 3 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/include/linux/swap.h b/include/linux/swap.h
+index b13b72645db3..3a51475c1644 100644
+--- a/include/linux/swap.h
++++ b/include/linux/swap.h
+@@ -417,6 +417,7 @@ extern unsigned long try_to_free_pages(struct zonelist *zonelist, int order,
+ 
+ #define MEMCG_RECLAIM_MAY_SWAP (1 << 1)
+ #define MEMCG_RECLAIM_PROACTIVE (1 << 2)
++#define MEMCG_RECLAIM_NO_CACHE_TRIM (1 << 3)
+ #define MIN_SWAPPINESS 0
+ #define MAX_SWAPPINESS 200
+ extern unsigned long try_to_free_mem_cgroup_pages(struct mem_cgroup *memcg,
+diff --git a/mm/memcontrol.c b/mm/memcontrol.c
+index 46f8b372d212..0d741d0d4eab 100644
+--- a/mm/memcontrol.c
++++ b/mm/memcontrol.c
+@@ -4290,11 +4290,13 @@ static ssize_t memory_oom_group_write(struct kernfs_open_file *of,
+ 
+ enum {
+ 	MEMORY_RECLAIM_SWAPPINESS = 0,
++	MEMORY_RECLAIM_NO_CACHE_TRIM,
+ 	MEMORY_RECLAIM_NULL,
+ };
+ 
+ static const match_table_t tokens = {
+ 	{ MEMORY_RECLAIM_SWAPPINESS, "swappiness=%d"},
++	{ MEMORY_RECLAIM_NO_CACHE_TRIM, "no_cache_trim"},
+ 	{ MEMORY_RECLAIM_NULL, NULL },
+ };
+ 
+@@ -4305,7 +4307,7 @@ static ssize_t memory_reclaim(struct kernfs_open_file *of, char *buf,
+ 	unsigned int nr_retries = MAX_RECLAIM_RETRIES;
+ 	unsigned long nr_to_reclaim, nr_reclaimed = 0;
+ 	int swappiness = -1;
+-	unsigned int reclaim_options;
++	unsigned int reclaim_options = 0;
+ 	char *old_buf, *start;
+ 	substring_t args[MAX_OPT_ARGS];
+ 
+@@ -4328,12 +4330,15 @@ static ssize_t memory_reclaim(struct kernfs_open_file *of, char *buf,
+ 			if (swappiness < MIN_SWAPPINESS || swappiness > MAX_SWAPPINESS)
+ 				return -EINVAL;
+ 			break;
++		case MEMORY_RECLAIM_NO_CACHE_TRIM:
++			reclaim_options |= MEMCG_RECLAIM_NO_CACHE_TRIM;
++			break;
+ 		default:
+ 			return -EINVAL;
+ 		}
+ 	}
+ 
+-	reclaim_options	= MEMCG_RECLAIM_MAY_SWAP | MEMCG_RECLAIM_PROACTIVE;
++	reclaim_options	|= MEMCG_RECLAIM_MAY_SWAP | MEMCG_RECLAIM_PROACTIVE;
+ 	while (nr_reclaimed < nr_to_reclaim) {
+ 		/* Will converge on zero, but reclaim enforces a minimum */
+ 		unsigned long batch_size = (nr_to_reclaim - nr_reclaimed) / 4;
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index c767d71c43d7..c146fe9147ae 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -6616,6 +6616,7 @@ unsigned long try_to_free_mem_cgroup_pages(struct mem_cgroup *memcg,
+ 		.may_unmap = 1,
+ 		.may_swap = !!(reclaim_options & MEMCG_RECLAIM_MAY_SWAP),
+ 		.proactive = !!(reclaim_options & MEMCG_RECLAIM_PROACTIVE),
++		.no_cache_trim_mode = !!(reclaim_options & MEMCG_RECLAIM_NO_CACHE_TRIM),
+ 	};
+ 	/*
+ 	 * Traverse the ZONELIST_FALLBACK zonelist of the current node to put
+-- 
+2.34.1
+
