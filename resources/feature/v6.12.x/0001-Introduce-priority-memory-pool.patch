@@ -1,4 +1,4 @@
-From afce0c0dd9e932d3e2e3d0a1cbac30bef51ecb2e Mon Sep 17 00:00:00 2001
+From e8b207f237ce93693fc87ff47553ff7075455e26 Mon Sep 17 00:00:00 2001
 From: Vernon Yang <vernon2gm@gmail.com>
 Date: Sun, 26 Jan 2025 10:58:42 +0800
 Subject: [PATCH] Introduce priority memory pool
@@ -8,17 +8,69 @@ mostly used for hight priority thread to allocate memory.
 
 Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
 ---
- include/linux/priority_mempool.h |  74 ++++++++++
- include/linux/vm_event_item.h    |   9 ++
+ include/linux/memcontrol.h       |  11 ++
+ include/linux/mmzone.h           |   1 +
+ include/linux/priority_mempool.h |  74 +++++++++
+ include/linux/vm_event_item.h    |  10 ++
  mm/Kconfig                       |   5 +
  mm/Makefile                      |   1 +
+ mm/memcontrol.c                  |  62 +++++++-
  mm/page_alloc.c                  |   5 +
- mm/priority_mempool.c            | 237 +++++++++++++++++++++++++++++++
- mm/vmstat.c                      |   8 ++
- 7 files changed, 339 insertions(+)
+ mm/priority_mempool.c            | 252 +++++++++++++++++++++++++++++++
+ mm/vmscan.c                      |   6 +
+ mm/vmstat.c                      |  10 ++
+ 11 files changed, 434 insertions(+), 3 deletions(-)
  create mode 100644 include/linux/priority_mempool.h
  create mode 100644 mm/priority_mempool.c
 
+diff --git a/include/linux/memcontrol.h b/include/linux/memcontrol.h
+index 6e74b8254d9b..c0b37dcd6cc6 100644
+--- a/include/linux/memcontrol.h
++++ b/include/linux/memcontrol.h
+@@ -220,6 +220,11 @@ struct mem_cgroup {
+ 	 */
+ 	bool oom_group;
+ 
++	/*
++	 * priority memory buffer pool support.
++	 */
++	bool pmempool_enable;
++
+ 	int swappiness;
+ 
+ 	/* memory.events and memory.events.local */
+@@ -349,6 +354,7 @@ enum objext_flags {
+ #ifdef CONFIG_MEMCG
+ 
+ static inline bool folio_memcg_kmem(struct folio *folio);
++bool current_is_direct_kworker(void);
+ 
+ /*
+  * After the initialization objcg->memcg is always pointing at
+@@ -1063,6 +1069,11 @@ static inline u64 cgroup_id_from_mm(struct mm_struct *mm)
+ 
+ #define MEM_CGROUP_ID_SHIFT	0
+ 
++static inline bool current_is_direct_kworker(void)
++{
++	return false;
++}
++
+ static inline struct mem_cgroup *folio_memcg(struct folio *folio)
+ {
+ 	return NULL;
+diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
+index 9540b41894da..36ff5668bdae 100644
+--- a/include/linux/mmzone.h
++++ b/include/linux/mmzone.h
+@@ -219,6 +219,7 @@ enum node_stat_item {
+ 	/* PGDEMOTE_*: pages demoted */
+ 	PGDEMOTE_KSWAPD,
+ 	PGDEMOTE_DIRECT,
++	PGDEMOTE_DIRECT_KWORKER,
+ 	PGDEMOTE_KHUGEPAGED,
+ #ifdef CONFIG_HUGETLB_PAGE
+ 	NR_HUGETLB,
 diff --git a/include/linux/priority_mempool.h b/include/linux/priority_mempool.h
 new file mode 100644
 index 000000000000..58965f0dd9fc
@@ -100,10 +152,21 @@ index 000000000000..58965f0dd9fc
 +
 +#endif /* _LINUX_PMEMPOOL_H */
 diff --git a/include/linux/vm_event_item.h b/include/linux/vm_event_item.h
-index f70d0958095c..79eb7add6abe 100644
+index f70d0958095c..4de80d8f4e55 100644
 --- a/include/linux/vm_event_item.h
 +++ b/include/linux/vm_event_item.h
-@@ -49,6 +49,15 @@ enum vm_event_item { PGPGIN, PGPGOUT, PSWPIN, PSWPOUT,
+@@ -40,15 +40,25 @@ enum vm_event_item { PGPGIN, PGPGOUT, PSWPIN, PSWPOUT,
+ 		PGREUSE,
+ 		PGSTEAL_KSWAPD,
+ 		PGSTEAL_DIRECT,
++		PGSTEAL_DIRECT_KWORKER,
+ 		PGSTEAL_KHUGEPAGED,
+ 		PGSCAN_KSWAPD,
+ 		PGSCAN_DIRECT,
++		PGSCAN_DIRECT_KWORKER,
+ 		PGSCAN_KHUGEPAGED,
+ 		PGSCAN_DIRECT_THROTTLE,
+ 		PGSCAN_ANON,
  		PGSCAN_FILE,
  		PGSTEAL_ANON,
  		PGSTEAL_FILE,
@@ -111,7 +174,6 @@ index f70d0958095c..79eb7add6abe 100644
 +#ifdef CONFIG_PMEMPOOL
 +		PGPOOL_SUCCESS,
 +		PGPOOL_FAILED,
-+		PGPOOL_REFILL,
 +		PGPOOL_REFILL_FAILED,
 +		PGPOOL_REFILL_WAKEUP,
 +#endif
@@ -144,6 +206,149 @@ index 850386a67b3e..4e4e5ff18008 100644
  obj-$(CONFIG_TMPFS_QUOTA) += shmem_quota.o
  obj-$(CONFIG_PT_RECLAIM) += pt_reclaim.o
 +obj-$(CONFIG_PMEMPOOL) += priority_mempool.o
+diff --git a/mm/memcontrol.c b/mm/memcontrol.c
+index 46f8b372d212..325e346e1794 100644
+--- a/mm/memcontrol.c
++++ b/mm/memcontrol.c
+@@ -314,6 +314,7 @@ static const unsigned int memcg_node_stat_items[] = {
+ #endif
+ 	PGDEMOTE_KSWAPD,
+ 	PGDEMOTE_DIRECT,
++	PGDEMOTE_DIRECT_KWORKER,
+ 	PGDEMOTE_KHUGEPAGED,
+ #ifdef CONFIG_HUGETLB_PAGE
+ 	NR_HUGETLB,
+@@ -430,9 +431,11 @@ static const unsigned int memcg_vm_event_stat[] = {
+ 	PSWPOUT,
+ 	PGSCAN_KSWAPD,
+ 	PGSCAN_DIRECT,
++	PGSCAN_DIRECT_KWORKER,
+ 	PGSCAN_KHUGEPAGED,
+ 	PGSTEAL_KSWAPD,
+ 	PGSTEAL_DIRECT,
++	PGSTEAL_DIRECT_KWORKER,
+ 	PGSTEAL_KHUGEPAGED,
+ 	PGFAULT,
+ 	PGMAJFAULT,
+@@ -461,6 +464,11 @@ static const unsigned int memcg_vm_event_stat[] = {
+ 	NUMA_PTE_UPDATES,
+ 	NUMA_HINT_FAULTS,
+ #endif
++#ifdef CONFIG_PMEMPOOL
++	PGPOOL_SUCCESS,
++	PGPOOL_FAILED,
++	PGPOOL_REFILL_WAKEUP,
++#endif
+ };
+ 
+ #define NR_MEMCG_EVENTS ARRAY_SIZE(memcg_vm_event_stat)
+@@ -1389,6 +1397,7 @@ static const struct memory_stat memory_stats[] = {
+ 
+ 	{ "pgdemote_kswapd",		PGDEMOTE_KSWAPD		},
+ 	{ "pgdemote_direct",		PGDEMOTE_DIRECT		},
++	{ "pgdemote_direct_kworker",	PGDEMOTE_DIRECT_KWORKER	},
+ 	{ "pgdemote_khugepaged",	PGDEMOTE_KHUGEPAGED	},
+ #ifdef CONFIG_NUMA_BALANCING
+ 	{ "pgpromote_success",		PGPROMOTE_SUCCESS	},
+@@ -1431,6 +1440,7 @@ static int memcg_page_state_output_unit(int item)
+ 	case WORKINGSET_NODERECLAIM:
+ 	case PGDEMOTE_KSWAPD:
+ 	case PGDEMOTE_DIRECT:
++	case PGDEMOTE_DIRECT_KWORKER:
+ 	case PGDEMOTE_KHUGEPAGED:
+ #ifdef CONFIG_NUMA_BALANCING
+ 	case PGPROMOTE_SUCCESS:
+@@ -1503,10 +1513,12 @@ static void memcg_stat_format(struct mem_cgroup *memcg, struct seq_buf *s)
+ 	seq_buf_printf(s, "pgscan %lu\n",
+ 		       memcg_events(memcg, PGSCAN_KSWAPD) +
+ 		       memcg_events(memcg, PGSCAN_DIRECT) +
++		       memcg_events(memcg, PGSCAN_DIRECT_KWORKER) +
+ 		       memcg_events(memcg, PGSCAN_KHUGEPAGED));
+ 	seq_buf_printf(s, "pgsteal %lu\n",
+ 		       memcg_events(memcg, PGSTEAL_KSWAPD) +
+ 		       memcg_events(memcg, PGSTEAL_DIRECT) +
++		       memcg_events(memcg, PGSTEAL_DIRECT_KWORKER) +
+ 		       memcg_events(memcg, PGSTEAL_KHUGEPAGED));
+ 
+ 	for (i = 0; i < ARRAY_SIZE(memcg_vm_event_stat); i++) {
+@@ -1963,6 +1975,11 @@ static void high_work_func(struct work_struct *work)
+ 	reclaim_high(memcg, MEMCG_CHARGE_BATCH, GFP_KERNEL);
+ }
+ 
++bool current_is_direct_kworker(void)
++{
++	return kthread_func(current) == high_work_func;
++}
++
+ /*
+  * Clamp the maximum sleep time per allocation batch to 2 seconds. This is
+  * enough to still cause a significant slowdown in most cases, while still
+@@ -2382,9 +2399,13 @@ int try_charge_memcg(struct mem_cgroup *memcg, gfp_t gfp_mask,
+ 	 * when it rechecks the overage and simply bail out.
+ 	 */
+ 	if (current->memcg_nr_pages_over_high > MEMCG_CHARGE_BATCH &&
+-	    !(current->flags & PF_MEMALLOC) &&
+-	    gfpflags_allow_blocking(gfp_mask))
+-		mem_cgroup_handle_over_high(gfp_mask);
++	    !(current->flags & PF_MEMALLOC)) {
++		if (gfpflags_allow_blocking(gfp_mask))
++			mem_cgroup_handle_over_high(gfp_mask);
++		else
++			schedule_work(&memcg->high_work);
++	}
++
+ 	return 0;
+ }
+ 
+@@ -4288,6 +4309,35 @@ static ssize_t memory_oom_group_write(struct kernfs_open_file *of,
+ 	return nbytes;
+ }
+ 
++static int memory_pmempool_enable_show(struct seq_file *m, void *v)
++{
++	struct mem_cgroup *memcg = mem_cgroup_from_seq(m);
++
++	seq_printf(m, "%d\n", READ_ONCE(memcg->pmempool_enable));
++
++	return 0;
++}
++
++static ssize_t memory_pmempool_enable_write(struct kernfs_open_file *of,
++				     char *buf, size_t nbytes, loff_t off)
++{
++	struct mem_cgroup *memcg = mem_cgroup_from_css(of_css(of));
++	bool pmempool_enable;
++	int ret;
++
++	buf = strstrip(buf);
++	if (!buf)
++		return -EINVAL;
++
++	ret = kstrtobool(buf, &pmempool_enable);
++	if (ret)
++		return ret;
++
++	WRITE_ONCE(memcg->pmempool_enable, pmempool_enable);
++
++	return nbytes;
++}
++
+ enum {
+ 	MEMORY_RECLAIM_SWAPPINESS = 0,
+ 	MEMORY_RECLAIM_NULL,
+@@ -4430,6 +4480,12 @@ static struct cftype memory_files[] = {
+ 		.seq_show = memory_oom_group_show,
+ 		.write = memory_oom_group_write,
+ 	},
++	{
++		.name = "pmempool.enable",
++		.flags = CFTYPE_NOT_ON_ROOT | CFTYPE_NS_DELEGATABLE,
++		.seq_show = memory_pmempool_enable_show,
++		.write = memory_pmempool_enable_write,
++	},
+ 	{
+ 		.name = "reclaim",
+ 		.flags = CFTYPE_NS_DELEGATABLE,
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
 index 579789600a3c..9db703d774e8 100644
 --- a/mm/page_alloc.c
@@ -169,10 +374,10 @@ index 579789600a3c..9db703d774e8 100644
  							&did_some_progress);
 diff --git a/mm/priority_mempool.c b/mm/priority_mempool.c
 new file mode 100644
-index 000000000000..1d23fee11f0d
+index 000000000000..83bd12a2de0c
 --- /dev/null
 +++ b/mm/priority_mempool.c
-@@ -0,0 +1,237 @@
+@@ -0,0 +1,252 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + *  linux/mm/priority_mempool.c
@@ -235,13 +440,27 @@ index 000000000000..1d23fee11f0d
 +	return pmempool[mtype][order];
 +}
 +
++static inline bool priority_mempool_enable(struct task_struct *p)
++{
++	struct mem_cgroup *memcg = mem_cgroup_from_task(p);
++
++	if (unlikely(enabled))
++		return true;
++
++	if (!mem_cgroup_disabled())
++		return READ_ONCE(memcg->pmempool_enable);
++
++	return false;
++}
++
 +struct page *__priority_mempool_alloc(gfp_t gfp_mask, unsigned int order,
 +							bool prealloc)
 +{
++	struct mem_cgroup *memcg = mem_cgroup_from_task(current);
 +	mempool_t *pool;
 +	struct page *page;
 +
-+	if (unlikely(!enabled))
++	if (!priority_mempool_enable(current))
 +		return NULL;
 +
 +	/* skip kpmempoold thread */
@@ -266,9 +485,11 @@ index 000000000000..1d23fee11f0d
 +		refill = 1;
 +		wake_up_interruptible(&wq);
 +		count_vm_event(PGPOOL_REFILL_WAKEUP);
++		__count_memcg_events(memcg, PGPOOL_REFILL_WAKEUP, 1);
 +	}
 +
 +	count_vm_event(page ? PGPOOL_SUCCESS : PGPOOL_FAILED);
++	__count_memcg_events(memcg, page ? PGPOOL_SUCCESS : PGPOOL_FAILED, 1);
 +
 +	return page;
 +}
@@ -278,7 +499,7 @@ index 000000000000..1d23fee11f0d
 +{
 +	mempool_t *pool;
 +
-+	if (unlikely(!enabled))
++	if (!priority_mempool_enable(current))
 +		return;
 +
 +	pool = look_for_mempool(get_pageblock_migratetype(page), order);
@@ -312,7 +533,6 @@ index 000000000000..1d23fee11f0d
 +				}
 +
 +				mempool_free(element, pool);
-+				count_vm_event(PGPOOL_REFILL);
 +			}
 +		}
 +
@@ -410,18 +630,65 @@ index 000000000000..1d23fee11f0d
 +MODULE_AUTHOR("Vernon Yang <vernon2gm@gmail.com>");
 +MODULE_DESCRIPTION("PRIORITY MEMPOOL MODULE");
 +MODULE_LICENSE("GPL");
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index c767d71c43d7..95234bf9f883 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -445,10 +445,14 @@ static int reclaimer_offset(void)
+ {
+ 	BUILD_BUG_ON(PGSTEAL_DIRECT - PGSTEAL_KSWAPD !=
+ 			PGDEMOTE_DIRECT - PGDEMOTE_KSWAPD);
++	BUILD_BUG_ON(PGSTEAL_DIRECT_KWORKER - PGSTEAL_KSWAPD !=
++			PGDEMOTE_DIRECT_KWORKER - PGDEMOTE_KSWAPD);
+ 	BUILD_BUG_ON(PGSTEAL_KHUGEPAGED - PGSTEAL_KSWAPD !=
+ 			PGDEMOTE_KHUGEPAGED - PGDEMOTE_KSWAPD);
+ 	BUILD_BUG_ON(PGSTEAL_DIRECT - PGSTEAL_KSWAPD !=
+ 			PGSCAN_DIRECT - PGSCAN_KSWAPD);
++	BUILD_BUG_ON(PGSTEAL_DIRECT_KWORKER - PGSTEAL_KSWAPD !=
++			PGSCAN_DIRECT_KWORKER - PGSCAN_KSWAPD);
+ 	BUILD_BUG_ON(PGSTEAL_KHUGEPAGED - PGSTEAL_KSWAPD !=
+ 			PGSCAN_KHUGEPAGED - PGSCAN_KSWAPD);
+ 
+@@ -456,6 +460,8 @@ static int reclaimer_offset(void)
+ 		return 0;
+ 	if (current_is_khugepaged())
+ 		return PGSTEAL_KHUGEPAGED - PGSTEAL_KSWAPD;
++	if (current_is_direct_kworker())
++		return PGSTEAL_DIRECT_KWORKER - PGSTEAL_KSWAPD;
+ 	return PGSTEAL_DIRECT - PGSTEAL_KSWAPD;
+ }
+ 
 diff --git a/mm/vmstat.c b/mm/vmstat.c
-index 16bfe1c694dd..e8a4a48bacfa 100644
+index 16bfe1c694dd..1899922a30db 100644
 --- a/mm/vmstat.c
 +++ b/mm/vmstat.c
-@@ -1316,6 +1316,14 @@ const char * const vmstat_text[] = {
+@@ -1272,6 +1272,7 @@ const char * const vmstat_text[] = {
+ #endif
+ 	"pgdemote_kswapd",
+ 	"pgdemote_direct",
++	"pgdemote_direct_kworker",
+ 	"pgdemote_khugepaged",
+ #ifdef CONFIG_HUGETLB_PAGE
+ 	"nr_hugetlb",
+@@ -1306,9 +1307,11 @@ const char * const vmstat_text[] = {
+ 	"pgreuse",
+ 	"pgsteal_kswapd",
+ 	"pgsteal_direct",
++	"pgsteal_direct_kworker",
+ 	"pgsteal_khugepaged",
+ 	"pgscan_kswapd",
+ 	"pgscan_direct",
++	"pgscan_direct_kworker",
+ 	"pgscan_khugepaged",
+ 	"pgscan_direct_throttle",
+ 	"pgscan_anon",
+@@ -1316,6 +1319,13 @@ const char * const vmstat_text[] = {
  	"pgsteal_anon",
  	"pgsteal_file",
  
 +#ifdef CONFIG_PMEMPOOL
 +	"pgpool_success",
 +	"pgpool_failed",
-+	"pgpool_refill",
 +	"pgpool_refill_failed",
 +	"pgpool_refill_wakeup",
 +#endif
