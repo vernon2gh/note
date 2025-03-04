@@ -1,4 +1,4 @@
-From e8b207f237ce93693fc87ff47553ff7075455e26 Mon Sep 17 00:00:00 2001
+From f7ec593ae66956367f8e9914b17831eb54800d92 Mon Sep 17 00:00:00 2001
 From: Vernon Yang <vernon2gm@gmail.com>
 Date: Sun, 26 Jan 2025 10:58:42 +0800
 Subject: [PATCH] Introduce priority memory pool
@@ -374,7 +374,7 @@ index 579789600a3c..9db703d774e8 100644
  							&did_some_progress);
 diff --git a/mm/priority_mempool.c b/mm/priority_mempool.c
 new file mode 100644
-index 000000000000..83bd12a2de0c
+index 000000000000..84af49a4f12f
 --- /dev/null
 +++ b/mm/priority_mempool.c
 @@ -0,0 +1,252 @@
@@ -485,11 +485,11 @@ index 000000000000..83bd12a2de0c
 +		refill = 1;
 +		wake_up_interruptible(&wq);
 +		count_vm_event(PGPOOL_REFILL_WAKEUP);
-+		__count_memcg_events(memcg, PGPOOL_REFILL_WAKEUP, 1);
++		count_memcg_events(memcg, PGPOOL_REFILL_WAKEUP, 1);
 +	}
 +
 +	count_vm_event(page ? PGPOOL_SUCCESS : PGPOOL_FAILED);
-+	__count_memcg_events(memcg, page ? PGPOOL_SUCCESS : PGPOOL_FAILED, 1);
++	count_memcg_events(memcg, page ? PGPOOL_SUCCESS : PGPOOL_FAILED, 1);
 +
 +	return page;
 +}
