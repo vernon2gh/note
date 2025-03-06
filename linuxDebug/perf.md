@@ -21,37 +21,36 @@ $ make prefix=/usr/local install
 # 参数解析
 
 ```bash
-$ sudo perf stat [command]   ## Run a command and gather performance counter statistics
-                 -a          ## system-wide collection from all CPUs
-                 -p <pid>    ## stat events on existing process id
-                 -t <tid>    ## stat events on existing thread id
+$ perf stat [command]        ## Run a command and gather performance counter statistics
+                   -a        ## system-wide collection from all CPUs
+                   -p <pid>  ## stat events on existing process id
+                   -t <tid>  ## stat events on existing thread id
 
-$ sudo perf top              ## System profiling tool.
-                -a           ## system-wide collection from all CPUs
-                -p <pid>     ## profile events on existing process id
-                -t <tid>     ## profile events on existing thread id
-                -U           ## hide user symbols
+$ perf top                   ## System profiling tool.
+                   -a        ## system-wide collection from all CPUs
+                   -p <pid>  ## profile events on existing process id
+                   -t <tid>  ## profile events on existing thread id
+                   -U        ## hide user symbols
 
-$ sudo perf record [command] ## Run a command and record its profile into perf.data
+$ perf record [command]      ## Run a command and record its profile into perf.data
                    -a        ## system-wide collection from all CPUs
                    -p <pid>  ## record events on existing process id
                    -t <tid>  ## record events on existing thread id
                    -o <file> ## output file name
                    -g        ## enables call-graph recording
-$ sudo perf report           ## Read perf.data and display the profile
+$ perf report                ## Read perf.data and display the profile
                    -i <file> ## input file name
                    -k <file> ## vmlinux pathname
-                   -g        ## display call graph
-
-$ perf script
-              -i <file>      ## input file name
+$ perf script                ## unfold perf.data
+                   -i <file> ## input file name
+                   -k <file> ## vmlinux pathname
 ```
 
 # 例子
 
 ```bash
-$ sudo perf top -U -a              ## 显示内核空间的热点函数
+$ perf top -U -a              ## 显示内核空间的热点函数
 
-$ sudo perf record -g -a           ## 生成采样数据 perf.data
-$ sudo perf report -g -i perf.data ## 解析 perf.data
+$ perf record -g -a           ## 生成采样数据 perf.data
+$ perf report                 ## 解析 perf.data
 ```
