@@ -1,0 +1,64 @@
+From def1f8f9d42732ce2b07ebffc799e563ce03596c Mon Sep 17 00:00:00 2001
+From: Vernon Yang <vernon2gm@gmail.com>
+Date: Tue, 11 Mar 2025 19:11:53 +0800
+Subject: [PATCH] mm: vmscan: add folio_is_protected
+
+In the system, many shared library files are often mapped to multiple
+threads at the same time, and it is a very time-consuming operation to
+check these pages for cold/hot pages through rmap during memory
+reclamation, so we can simply skip these pages.
+
+Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
+---
+ mm/vmscan.c | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 28ba2b06fc7d..5ca8287453c9 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -855,12 +855,28 @@ enum folio_references {
+ 	FOLIOREF_ACTIVATE,
+ };
+ 
++#define MAX_MAPCOUNT_PROTECT	20
++
++static inline bool folio_is_protected(struct folio *folio)
++{
++	if (folio_mapcount(folio) < MAX_MAPCOUNT_PROTECT)
++		return false;
++
++	if (si_mem_available() < (totalram_pages() / 10))
++		return false;
++
++	return true;
++}
++
+ static enum folio_references folio_check_references(struct folio *folio,
+ 						  struct scan_control *sc)
+ {
+ 	int referenced_ptes, referenced_folio;
+ 	unsigned long vm_flags;
+ 
++	if (folio_is_protected(folio))
++		return FOLIOREF_ACTIVATE;
++
+ 	referenced_ptes = folio_referenced(folio, 1, sc->target_mem_cgroup,
+ 					   &vm_flags);
+ 	referenced_folio = folio_test_clear_referenced(folio);
+@@ -2082,6 +2098,12 @@ static void shrink_active_list(unsigned long nr_to_scan,
+ 			}
+ 		}
+ 
++		if (folio_is_protected(folio)) {
++			nr_rotated += folio_nr_pages(folio);
++			list_add(&folio->lru, &l_active);
++			continue;
++		}
++
+ 		/* Referenced or rmap lock contention: rotate */
+ 		if (folio_referenced(folio, 0, sc->target_mem_cgroup,
+ 				     &vm_flags) != 0) {
+-- 
+2.34.1
+
