@@ -1,0 +1,192 @@
+From 00294a282abf2f230992e02513e1b61e7c92797c Mon Sep 17 00:00:00 2001
+From: Vernon Yang <vernon2gm@gmail.com>
+Date: Wed, 12 Mar 2025 19:37:08 +0800
+Subject: [PATCH] mm: vmscan: add kslabd kthreader
+
+kswapd executes shrink_lruvec() and shrink_slab() serially, so
+creates kslabd to execute shrink_slab() in parallel to improve
+the memory reclaim efficiency.
+
+Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
+---
+ include/linux/mmzone.h | 19 +++++++++++
+ mm/mm_init.c           |  1 +
+ mm/vmscan.c            | 76 ++++++++++++++++++++++++++++++++++++++++--
+ 3 files changed, 93 insertions(+), 3 deletions(-)
+
+diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
+index 80bc5640bb60..66bcf049eb6b 100644
+--- a/include/linux/mmzone.h
++++ b/include/linux/mmzone.h
+@@ -1287,6 +1287,20 @@ struct memory_failure_stats {
+ };
+ #endif
+ 
++struct kslabd_param {
++	/* This context's GFP mask */
++	gfp_t gfp_mask;
++
++	/* Scan (total_size >> priority) pages at once */
++	s8 priority;
++
++	/* shrink memcg slab data*/
++	struct mem_cgroup *memcg;
++
++	/* kslabd parameter status */
++	bool ready;
++};
++
+ /*
+  * On NUMA machines, each NUMA node would have a pg_data_t to describe
+  * it's memory layout. On UMA machines there is a single pglist_data which
+@@ -1338,6 +1352,7 @@ typedef struct pglist_data {
+ 					     range, including holes */
+ 	int node_id;
+ 	wait_queue_head_t kswapd_wait;
++	wait_queue_head_t kslabd_wait;
+ 	wait_queue_head_t pfmemalloc_wait;
+ 
+ 	/* workqueues for throttling reclaim for different reasons. */
+@@ -1350,8 +1365,10 @@ typedef struct pglist_data {
+ 	struct mutex kswapd_lock;
+ #endif
+ 	struct task_struct *kswapd;	/* Protected by kswapd_lock */
++	struct task_struct *kslabd;	/* Protected by kswapd_lock */
+ 	int kswapd_order;
+ 	enum zone_type kswapd_highest_zoneidx;
++	struct kslabd_param kslabd_param;
+ 
+ 	int kswapd_failures;		/* Number of 'reclaimed == 0' runs */
+ 
+@@ -1453,6 +1470,8 @@ static inline unsigned long pgdat_end_pfn(pg_data_t *pgdat)
+ void build_all_zonelists(pg_data_t *pgdat);
+ void wakeup_kswapd(struct zone *zone, gfp_t gfp_mask, int order,
+ 		   enum zone_type highest_zoneidx);
++void wakeup_kslabd(pg_data_t *pgdat, gfp_t gfp_mask, s8 priority,
++					struct mem_cgroup *memcg);
+ bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
+ 			 int highest_zoneidx, unsigned int alloc_flags,
+ 			 long free_pages);
+diff --git a/mm/mm_init.c b/mm/mm_init.c
+index 4ba5607aaf19..5d690758a7cf 100644
+--- a/mm/mm_init.c
++++ b/mm/mm_init.c
+@@ -1371,6 +1371,7 @@ static void __meminit pgdat_init_internals(struct pglist_data *pgdat)
+ 	pgdat_init_kcompactd(pgdat);
+ 
+ 	init_waitqueue_head(&pgdat->kswapd_wait);
++	init_waitqueue_head(&pgdat->kslabd_wait);
+ 	init_waitqueue_head(&pgdat->pfmemalloc_wait);
+ 
+ 	for (i = 0; i < NR_VMSCAN_THROTTLE; i++)
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 28ba2b06fc7d..5d002a566922 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -4821,7 +4821,10 @@ static int shrink_one(struct lruvec *lruvec, struct scan_control *sc)
+ 
+ 	success = try_to_shrink_lruvec(lruvec, sc);
+ 
+-	shrink_slab(sc->gfp_mask, pgdat->node_id, memcg, sc->priority);
++	if (current_is_kswapd())
++		wakeup_kslabd(pgdat, sc->gfp_mask, sc->priority, memcg);
++	else
++		shrink_slab(sc->gfp_mask, pgdat->node_id, memcg, sc->priority);
+ 
+ 	if (!sc->proactive)
+ 		vmpressure(sc->gfp_mask, memcg, false, sc->nr_scanned - scanned,
+@@ -5916,8 +5919,11 @@ static void shrink_node_memcgs(pg_data_t *pgdat, struct scan_control *sc)
+ 
+ 		shrink_lruvec(lruvec, sc);
+ 
+-		shrink_slab(sc->gfp_mask, pgdat->node_id, memcg,
+-			    sc->priority);
++		if (current_is_kswapd())
++			wakeup_kslabd(pgdat, sc->gfp_mask, sc->priority, memcg);
++		else
++			shrink_slab(sc->gfp_mask, pgdat->node_id, memcg,
++				    sc->priority);
+ 
+ 		/* Record the group's reclaim efficiency */
+ 		if (!sc->proactive)
+@@ -7292,6 +7298,60 @@ void wakeup_kswapd(struct zone *zone, gfp_t gfp_flags, int order,
+ 	wake_up_interruptible(&pgdat->kswapd_wait);
+ }
+ 
++void wakeup_kslabd(pg_data_t *pgdat, gfp_t gfp_mask, s8 priority,
++					struct mem_cgroup *memcg)
++{
++	struct kslabd_param *param = &pgdat->kslabd_param;
++
++	if (!waitqueue_active(&pgdat->kslabd_wait))
++		return;
++
++	if (param->ready)
++		return;
++
++	param->gfp_mask = gfp_mask;
++	param->priority = priority;
++	param->memcg = memcg;
++	css_get(&memcg->css);
++	param->ready = true;
++
++	wake_up_interruptible(&pgdat->kslabd_wait);
++}
++
++static int kslabd(void *p)
++{
++	pg_data_t *pgdat = (pg_data_t *)p;
++	struct kslabd_param *param = &pgdat->kslabd_param;
++	struct task_struct *tsk = current;
++	struct reclaim_state rs = {
++		.reclaimed = 0,
++	};
++
++	/*
++	 * same as kswapd()
++	 */
++	tsk->flags |= PF_MEMALLOC | PF_KSWAPD;
++	set_freezable();
++
++	while (!kthread_should_stop()) {
++		if (wait_event_freezable(pgdat->kslabd_wait, param->ready))
++			continue;
++
++		set_task_reclaim_state(tsk, &rs);
++
++		shrink_slab(param->gfp_mask, pgdat->node_id, param->memcg,
++			    param->priority);
++
++		css_put(&param->memcg->css);
++		set_task_reclaim_state(tsk, NULL);
++		param->ready = false;
++	}
++
++	tsk->flags &= ~(PF_MEMALLOC | PF_KSWAPD);
++
++	return 0;
++}
++
+ #ifdef CONFIG_HIBERNATION
+ /*
+  * Try to free `nr_to_reclaim' of memory, system-wide, and return the number of
+@@ -7349,6 +7409,16 @@ void __meminit kswapd_run(int nid)
+ 			pgdat->kswapd = NULL;
+ 		}
+ 	}
++	if (!pgdat->kslabd) {
++		pgdat->kslabd = kthread_run(kslabd, pgdat, "kslabd%d", nid);
++		if (IS_ERR(pgdat->kslabd)) {
++			/* failure at boot is fatal */
++			pr_err("Failed to start kslabd on node %d，ret=%ld\n",
++				   nid, PTR_ERR(pgdat->kslabd));
++			BUG_ON(system_state < SYSTEM_RUNNING);
++			pgdat->kslabd = NULL;
++		}
++	}
+ 	pgdat_kswapd_unlock(pgdat);
+ }
+ 
+-- 
+2.34.1
+
