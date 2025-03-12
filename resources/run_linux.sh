@@ -16,8 +16,9 @@ if [ ! $DIR ]; then
 	fi
 fi
 
+./make_rootfs/make_rootfs.sh -a $1
+
 if [ $1 = "x86_64" ]; then
-	./make_rootfs/make_rootfs.sh -a x86_64
 	qemu-system-x86_64 -hda make_rootfs/out/rootfs.ext4	\
 		-kernel $DIR/arch/x86/boot/bzImage		\
 		-append "root=/dev/sda rw console=ttyS0"	\
@@ -25,8 +26,6 @@ if [ $1 = "x86_64" ]; then
 fi
 
 if [ $1 = "arm64" ]; then
-	./make_rootfs/make_rootfs.sh -a arm64
-
 	if [ -f x.dtb ]; then
 		DTB="-dtb x.dtb"
 	fi
@@ -39,7 +38,6 @@ if [ $1 = "arm64" ]; then
 fi
 
 if [ $1 = "riscv64" ]; then
-	./make_rootfs/make_rootfs.sh -a riscv64
 	qemu-system-riscv64 -M virt						\
 		-drive file=make_rootfs/out/rootfs.ext4,format=raw,id=hd0 -device virtio-blk-device,drive=hd0	\
 		-kernel $DIR/arch/riscv/boot/Image				\
