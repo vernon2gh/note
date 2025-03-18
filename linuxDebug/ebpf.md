@@ -46,7 +46,7 @@ $ cat /sys/kernel/tracing/trace_pipe
 * samples/bpf/README.rst
 * samples/bpf
 
-## [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap)
+# [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap)
 
 ## 最小 demo
 
@@ -72,3 +72,5 @@ $ cat /sys/kernel/tracing/trace_pipe
 
 * [Documentation](https://github.com/libbpf/libbpf-bootstrap/blob/master/README.md)
 * [examples](https://github.com/libbpf/libbpf-bootstrap/tree/master/examples)
+
+# [bpftrace](./bpftrace.md)

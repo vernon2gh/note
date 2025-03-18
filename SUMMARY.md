@@ -80,6 +80,7 @@
     * [dynamic_debug](linuxDebug/dynamic_debug.md)
     * [research_linuxKernel_by_patch](linuxDebug/research_linuxKernel_by_patch.md)
     * [tracefs](linuxDebug/tracefs.md)
+    * [ebpf](linuxDebug/ebpf.md)
     * [bpftrace](linuxDebug/bpftrace.md)
     * [perf](linuxDebug/perf.md)
     * [flame_graph](linuxDebug/flame_graph.md)
