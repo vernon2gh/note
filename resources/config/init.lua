@@ -3,28 +3,17 @@ vim.o.number = true
 vim.o.mouse = ""
 vim.wo.colorcolumn = "80"
 vim.cmd [[ autocmd BufWritePre * %s/\s\+$//e ]]
-vim.keymap.set('n', 'i', '<up>', opts)
-vim.keymap.set('n', 'k', '<down>', opts)
-vim.keymap.set('n', 'j', '<left>', opts)
-vim.keymap.set('n', 'l', '<right>', opts)
-vim.keymap.set('n', 'h', '<insert>', opts)
-vim.keymap.set('n', ';i', '30<up>', opts)
-vim.keymap.set('n', ';k', '30<down>', opts)
-vim.keymap.set('n', '<C-i>', '<pageup>', opts)
-vim.keymap.set('n', '<C-k>', '<pagedown>', opts)
-vim.keymap.set('n', '<C-j>', 'b', opts)
-vim.keymap.set('n', '<C-l>', 'w', opts)
-vim.keymap.set('v', 'i', '<up>', opts)
-vim.keymap.set('v', 'k', '<down>', opts)
-vim.keymap.set('v', 'j', '<left>', opts)
-vim.keymap.set('v', 'l', '<right>', opts)
-vim.keymap.set('v', 'h', '<insert>', opts)
-vim.keymap.set('v', ';i', '30<up>', opts)
-vim.keymap.set('v', ';k', '30<down>', opts)
-vim.keymap.set('v', '<C-i>', '<pageup>', opts)
-vim.keymap.set('v', '<C-k>', '<pagedown>', opts)
-vim.keymap.set('v', '<C-j>', 'b', opts)
-vim.keymap.set('v', '<C-l>', 'w', opts)
+vim.keymap.set({'n', 'v'}, 'i', '<up>', opts)
+vim.keymap.set({'n', 'v'}, 'k', '<down>', opts)
+vim.keymap.set({'n', 'v'}, 'j', '<left>', opts)
+vim.keymap.set({'n', 'v'}, 'l', '<right>', opts)
+vim.keymap.set({'n', 'v'}, 'h', '<insert>', opts)
+vim.keymap.set({'n', 'v'}, ';i', '30<up>', opts)
+vim.keymap.set({'n', 'v'}, ';k', '30<down>', opts)
+vim.keymap.set({'n', 'v'}, '<C-i>', '<pageup>', opts)
+vim.keymap.set({'n', 'v'}, '<C-k>', '<pagedown>', opts)
+vim.keymap.set({'n', 'v'}, '<C-j>', 'b', opts)
+vim.keymap.set({'n', 'v'}, '<C-l>', 'w', opts)
 
 -- plugins setting
 require('nvim-treesitter.configs').setup {
@@ -72,6 +61,20 @@ require('render-markdown').setup {
 	},
 }
 
+require("codecompanion").setup {
+	strategies = {
+		chat = {
+			adapter = "ollama",
+		},
+		inline = {
+			adapter = "ollama",
+		},
+	},
+}
+vim.keymap.set({'n', 'v'}, ';w', ':CodeCompanionChat Toggle<CR>', { silent = true })
+vim.keymap.set({'n', 'v'}, ';e', ':CodeCompanion /explain<CR>', {silent = true})
+vim.keymap.set({'n', 'v'}, ';a', ':CodeCompanion ', opts)
+
 vim.cmd [[ set background=dark ]]
 vim.cmd [[ colorscheme sonokai ]]
 
@@ -90,5 +93,12 @@ return require('packer').startup(function(use)
 	use 'lewis6991/gitsigns.nvim'
 	use 'sindrets/diffview.nvim'
 	use 'MeanderingProgrammer/render-markdown.nvim'
+	use {
+		"olimorris/codecompanion.nvim",
+		requires = {
+			"nvim-lua/plenary.nvim",
+			"nvim-treesitter/nvim-treesitter",
+		}
+	}
 	use 'sainnhe/sonokai'
 end)
