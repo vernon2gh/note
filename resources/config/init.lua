@@ -62,13 +62,20 @@ require('render-markdown').setup {
 }
 
 require("codecompanion").setup {
+	adapters = {
+		deepseek = function()
+			return require("codecompanion.adapters").extend("deepseek", {
+				env = { api_key = "xxx" },
+			})
+		end,
+	},
 	strategies = {
-		chat = {
-			adapter = "ollama",
-		},
-		inline = {
-			adapter = "ollama",
-		},
+		-- chat = { adapter = "ollama" },
+		-- inline = { adapter = "ollama" },
+		-- agent = { adapter = "ollama" },
+		chat = { adapter = "deepseek" },
+		inline = { adapter = "deepseek" },
+		agent = { adapter = "deepseek" },
 	},
 }
 vim.keymap.set({'n', 'v'}, ';w', ':CodeCompanionChat Toggle<CR>', { silent = true })
