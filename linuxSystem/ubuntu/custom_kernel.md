@@ -1,12 +1,3 @@
-# 依赖
-
-```bash
-$ sudo dnf install fedpkg
-$ fedpkg clone -a kernel
-$ cd kernel
-$ sudo dnf builddep kernel.spec
-```
-
 # 源码
 
 使用 `git clone` 下载 Linux Kernel 源码，使用 `git am` 打上相关的 patch。
@@ -29,9 +20,12 @@ $ make modules
 # 安装
 
 ```bash
-## install by make
+## (opts) install by make
 $ sudo make modules_install
 $ sudo make install
+## (opts) install by deb
+$ make bindeb-pkg
+$ sudo dpkg -i *.deb
 
 $ sudo reboot
 ```
@@ -43,12 +37,7 @@ $ sudo su - root
 
 $ rm -f /boot/config-*test* /boot/initramfs-*test* /boot/vmlinuz-*test* /boot/System.map-*test*
 $ rm -rf /lib/modules/*test*
-$ rm -f /boot/loader/entries/*test*
-$ grub2-mkconfig -o /boot/grub2/grub.cfg
+$ update-grub
 
 $ reboot
 ```
-
-# 参考
-
-https://docs.fedoraproject.org/en-US/quick-docs/kernel-build-custom
