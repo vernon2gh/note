@@ -1,4 +1,4 @@
-From d108857070383783902bddc961a3308ac209d35a Mon Sep 17 00:00:00 2001
+From d4613f0377820bfb480c0a027639b7c4982b13e1 Mon Sep 17 00:00:00 2001
 From: Vernon Yang <vernon2gm@gmail.com>
 Date: Wed, 5 Mar 2025 20:45:31 +0800
 Subject: [PATCH] mm: memcg: add memory.highatomic
@@ -10,13 +10,14 @@ times the execution of direct memory reclaim.
 
 Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
 ---
- include/linux/memcontrol.h |  3 +++
- mm/memcontrol.c            | 35 +++++++++++++++++++++++++++++++++++
- mm/page_alloc.c            |  7 +++++++
- 3 files changed, 45 insertions(+)
+ include/linux/memcontrol.h |  3 ++
+ mm/memcontrol.c            | 35 ++++++++++++++++++++
+ mm/mm_init.c               | 14 +++++++-
+ mm/page_alloc.c            | 65 +++++++++++++++++++++++++++++++++++---
+ 4 files changed, 112 insertions(+), 5 deletions(-)
 
 diff --git a/include/linux/memcontrol.h b/include/linux/memcontrol.h
-index 6e74b8254d9b..f231b0b33acc 100644
+index e1b41554a5fb..14f552f12d42 100644
 --- a/include/linux/memcontrol.h
 +++ b/include/linux/memcontrol.h
 @@ -220,6 +220,9 @@ struct mem_cgroup {
@@ -30,10 +31,10 @@ index 6e74b8254d9b..f231b0b33acc 100644
  
  	/* memory.events and memory.events.local */
 diff --git a/mm/memcontrol.c b/mm/memcontrol.c
-index 46f8b372d212..59d8a2a8b50a 100644
+index 53db98d2c4a1..fe7146056789 100644
 --- a/mm/memcontrol.c
 +++ b/mm/memcontrol.c
-@@ -4288,6 +4288,35 @@ static ssize_t memory_oom_group_write(struct kernfs_open_file *of,
+@@ -4270,6 +4270,35 @@ static ssize_t memory_oom_group_write(struct kernfs_open_file *of,
  	return nbytes;
  }
  
@@ -69,7 +70,7 @@ index 46f8b372d212..59d8a2a8b50a 100644
  enum {
  	MEMORY_RECLAIM_SWAPPINESS = 0,
  	MEMORY_RECLAIM_NULL,
-@@ -4430,6 +4459,12 @@ static struct cftype memory_files[] = {
+@@ -4412,6 +4441,12 @@ static struct cftype memory_files[] = {
  		.seq_show = memory_oom_group_show,
  		.write = memory_oom_group_write,
  	},
@@ -82,19 +83,151 @@ index 46f8b372d212..59d8a2a8b50a 100644
  	{
  		.name = "reclaim",
  		.flags = CFTYPE_NS_DELEGATABLE,
+diff --git a/mm/mm_init.c b/mm/mm_init.c
+index 4ba5607aaf19..62faf36fd47a 100644
+--- a/mm/mm_init.c
++++ b/mm/mm_init.c
+@@ -921,6 +921,7 @@ static void __init memmap_init_zone_range(struct zone *zone,
+ 	unsigned long zone_start_pfn = zone->zone_start_pfn;
+ 	unsigned long zone_end_pfn = zone_start_pfn + zone->spanned_pages;
+ 	int nid = zone_to_nid(zone), zone_id = zone_idx(zone);
++	int reserve_highatomic_nr;
+ 
+ 	start_pfn = clamp(start_pfn, zone_start_pfn, zone_end_pfn);
+ 	end_pfn = clamp(end_pfn, zone_start_pfn, zone_end_pfn);
+@@ -928,7 +929,18 @@ static void __init memmap_init_zone_range(struct zone *zone,
+ 	if (start_pfn >= end_pfn)
+ 		return;
+ 
+-	memmap_init_range(end_pfn - start_pfn, nid, zone_id, start_pfn,
++	reserve_highatomic_nr = zone_managed_pages(zone) / 1000;
++#ifdef CONFIG_ZONE_DMA
++	if (zone_id == ZONE_DMA)
++		reserve_highatomic_nr = 0;
++#endif
++	if (reserve_highatomic_nr)
++		reserve_highatomic_nr = ALIGN(reserve_highatomic_nr, pageblock_nr_pages);
++
++	memmap_init_range(reserve_highatomic_nr, nid, zone_id, start_pfn,
++			  zone_end_pfn, MEMINIT_EARLY, NULL, MIGRATE_HIGHATOMIC);
++	memmap_init_range(end_pfn - start_pfn - reserve_highatomic_nr, nid, zone_id,
++			  start_pfn + reserve_highatomic_nr,
+ 			  zone_end_pfn, MEMINIT_EARLY, NULL, MIGRATE_MOVABLE);
+ 
+ 	if (*hole_pfn < start_pfn)
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 579789600a3c..99e0fa3df5de 100644
+index b6958333054d..26e37ed2122d 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
-@@ -4035,6 +4035,13 @@ gfp_to_alloc_flags(gfp_t gfp_mask, unsigned int order)
+@@ -2130,6 +2130,10 @@ static bool unreserve_highatomic_pageblock(const struct alloc_context *ac,
+ 				 */
+ 				size = max(pageblock_nr_pages, 1UL << order);
+ 				size = min(size, zone->nr_reserved_highatomic);
++
++				if ((zone->nr_free_highatomic - size) < pageblock_nr_pages)
++					break;
++
+ 				zone->nr_reserved_highatomic -= size;
+ 			}
+ 
+@@ -2638,6 +2642,41 @@ static void free_unref_page_commit(struct zone *zone, struct per_cpu_pages *pcp,
+ 	}
+ }
+ 
++static inline bool refill_foreground_highatomic(struct zone *zone, bool alloc)
++{
++	struct mem_cgroup *memcg;
++	int reserve_highatomic_nr;
++
++	if (alloc) {
++		if (mem_cgroup_disabled())
++			return true;
++
++		rcu_read_lock();
++		memcg = mem_cgroup_from_task(current);
++		if (!memcg || !READ_ONCE(memcg->highatomic)) {
++			rcu_read_unlock();
++			return true;
++		}
++		rcu_read_unlock();
++	} else {
++		// direct memory reclaim
++		if (((current->flags & PF_MEMALLOC) && !current_is_kswapd()))
++			return false;
++	}
++
++#ifdef CONFIG_ZONE_DMA
++	if (zone_idx(zone) == ZONE_DMA)
++		return false;
++#endif
++
++	reserve_highatomic_nr = ALIGN(zone_managed_pages(zone) / 1000,
++						pageblock_nr_pages);
++	if (READ_ONCE(zone->nr_free_highatomic) >= reserve_highatomic_nr)
++		return false;
++
++	return true;
++}
++
+ /*
+  * Free a pcp page
+  */
+@@ -2645,7 +2684,7 @@ void free_unref_page(struct page *page, unsigned int order)
+ {
+ 	unsigned long __maybe_unused UP_flags;
+ 	struct per_cpu_pages *pcp;
+-	struct zone *zone;
++	struct zone *zone = page_zone(page);
+ 	unsigned long pfn = page_to_pfn(page);
+ 	int migratetype;
+ 
+@@ -2665,15 +2704,22 @@ void free_unref_page(struct page *page, unsigned int order)
+ 	 * excessively into the page allocator
+ 	 */
+ 	migratetype = get_pfnblock_migratetype(page, pfn);
++
++	if (migratetype <= MIGRATE_HIGHATOMIC &&
++	    refill_foreground_highatomic(zone, false)) {
++		free_one_page(zone, page, pfn, order, FPI_NONE);
++		reserve_highatomic_pageblock(page, order, zone);
++		return;
++	}
++
+ 	if (unlikely(migratetype >= MIGRATE_PCPTYPES)) {
+ 		if (unlikely(is_migrate_isolate(migratetype))) {
+-			free_one_page(page_zone(page), page, pfn, order, FPI_NONE);
++			free_one_page(zone, page, pfn, order, FPI_NONE);
+ 			return;
+ 		}
+ 		migratetype = MIGRATE_MOVABLE;
+ 	}
+ 
+-	zone = page_zone(page);
+ 	pcp_trylock_prepare(UP_flags);
+ 	pcp = pcp_spin_trylock(zone->per_cpu_pageset);
+ 	if (pcp) {
+@@ -3477,7 +3523,8 @@ get_page_from_freelist(gfp_t gfp_mask, unsigned int order, int alloc_flags,
+ 			 * If this is a high-order atomic allocation then check
+ 			 * if the pageblock should be reserved for the future
+ 			 */
+-			if (unlikely(alloc_flags & ALLOC_HIGHATOMIC))
++			if (unlikely((alloc_flags & ALLOC_HIGHATOMIC) &&
++				      refill_foreground_highatomic(zone, true)))
+ 				reserve_highatomic_pageblock(page, order, zone);
+ 
+ 			return page;
+@@ -4033,6 +4080,16 @@ gfp_to_alloc_flags(gfp_t gfp_mask, unsigned int order)
  	} else if (unlikely(rt_or_dl_task(current)) && in_task())
  		alloc_flags |= ALLOC_MIN_RESERVE;
  
 +	if (!mem_cgroup_disabled()) {
-+		struct mem_cgroup *memcg = mem_cgroup_from_task(current);
++		struct mem_cgroup *memcg;
 +
++		rcu_read_lock();
++		memcg = mem_cgroup_from_task(current);
 +		if (memcg && READ_ONCE(memcg->highatomic))
 +			alloc_flags |= ALLOC_HIGHATOMIC;
++		rcu_read_unlock();
 +	}
 +
  	alloc_flags = gfp_to_alloc_flags_cma(gfp_mask, alloc_flags);
