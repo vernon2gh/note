@@ -135,12 +135,12 @@ $ git clone https://github.com/kdlucas/byte-unixbench.git
 $ ./Run [ -q | -b | -v ] [-i <n> ] [-c <n> [-c <n> ...]] [test ...]
 ```
 
-* -q            运行在 quiet 模式，不要输出日志到终端
-* -b            运行在 brief 模式，不要显示 cpu 信息详细信息
-* -v            运行在 verbose 模式
-* -i <count>    指定一个测试用例运行的次数
-* -c <n>        指定多少个 CPU 同时运行一个测试用例
-* test          指定只运行某个测试用例，通过 USAGE-Tests 小节获得有哪些测试用例。
+* `-q`            运行在 quiet 模式，不要输出日志到终端
+* `-b`            运行在 brief 模式，不要显示 cpu 信息详细信息
+* `-v`            运行在 verbose 模式
+* `-i <count>`    指定一个测试用例运行的次数
+* `-c <n>`        指定多少个 CPU 同时运行一个测试用例
+* `test`          指定只运行某个测试用例，通过 [USAGE-Tests](https://github.com/kdlucas/byte-unixbench/blob/master/UnixBench/USAGE) 小节获得有哪些测试用例。
 
 ## 例子
 
