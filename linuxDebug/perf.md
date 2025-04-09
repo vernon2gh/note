@@ -44,6 +44,9 @@ $ perf report                ## Read perf.data and display the profile
 $ perf script                ## unfold perf.data
                    -i <file> ## input file name
                    -k <file> ## vmlinux pathname
+
+$ perf diff <options> [baseline] [file1]    ## baseline vs file1, display the differential profile. default perf.data.old vs perf.data
+            -c <delta, delta-abs>           ## Entries differential computation selection. default delta-abs
 ```
 
 # 例子
