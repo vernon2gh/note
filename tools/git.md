@@ -407,3 +407,10 @@ $ git blame -L 1169,1169 mm/vmscan.c
 $ git blame -L 1674,1674 mm/vmscan.c d92013d1e5e47^
 11 years ago    Minchan Kim     02c6de8d757cb│1674│                         references = page_check_references(page, sc);
 ```
+
+查看文件 `mm/vmscan.c` 第 `1169~1190` 行，在 `v6.6~v6.12` 的提交历史，如下：
+
+```bash
+$ git log v6.6..v6.12 -L1169,1190:mm/vmscan.c
+```
+
