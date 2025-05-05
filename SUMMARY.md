@@ -112,6 +112,7 @@
         * [cockpit](linuxSystem/ubuntu/cockpit.md)
         * [nfs](linuxSystem/ubuntu/nfs.md)
         * [tftp](linuxSystem/ubuntu/tftp.md)
+        * [misc](linuxSystem/ubuntu/misc.md)
     * fedora
         * [system_upgrade](linuxSystem/fedora/system_upgrade.md)
         * [custom_kernel](linuxSystem/fedora/custom_kernel.md)
@@ -209,8 +210,6 @@
     * [minicom](tools/minicom.md)
     * [clash](tools/clash.md)
 * other
-    * [ubuntu_corresponding_linuxkernel](other/ubuntu_corresponding_linuxkernel.md)
-    * [ubuntu1004_sources_list](other/ubuntu1004_sources_list.md)
     * [interview](other/interview.md)
     * [interview_c_base](other/interview_c_base.md)
     * [know_dontknow](other/know_dontknow.md)

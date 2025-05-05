@@ -1,3 +1,5 @@
+## ubuntu vs linux kernel
+
 | 版本      | 开发代号          | 发布日期   | 内核版本 |
 | --------- | ----------------- | ---------- | -------- |
 | 4.10      | Warty Warthog     | 2004-10-20 | 2.6.8    |
@@ -32,3 +34,31 @@
 | 19.04     | Disco Dingo       | 2019-04-18 |          |
 | 19.10     | Eoan Ermine       | 2019-10-17 |          |
 | 20.04 LTS | Focal Fossa       | 2020-04-23 |          |
+
+## sources list
+
+ubuntu10.04 LTS官方已经不再维护，导致部分软件、库文件等下载有问题，可换以下源地址解决问题
+
+```bash
+$ cat sources.list
+deb http://old-releases.ubuntu.com/ubuntu lucid main restricted universe multiverse
+deb http://old-releases.ubuntu.com/ubuntu lucid-security main restricted universe multiverse
+deb http://old-releases.ubuntu.com/ubuntu lucid-updates main restricted universe multiverse
+deb http://old-releases.ubuntu.com/ubuntu lucid-proposed main restricted universe multiverse
+deb http://old-releases.ubuntu.com/ubuntu lucid-backports main restricted universe multiverse
+deb-src http://old-releases.ubuntu.com/ubuntu lucid main restricted universe multiverse
+deb-src http://old-releases.ubuntu.com/ubuntu lucid-security main restricted universe multiverse
+deb-src http://old-releases.ubuntu.com/ubuntu lucid-updates main restricted universe multiverse
+deb-src http://old-releases.ubuntu.com/ubuntu lucid-proposed main restricted universe multiverse
+deb-src http://old-releases.ubuntu.com/ubuntu lucid-backports main restricted universe multiverse
+```
+
+## ubuntu desktop
+
+x86_64 在所有 ubuntu desktop 版本都能够存在 iso，但是 arm64 只有
+从 ubuntu 24.10 desktop 后才提供 iso 下载。
+
+arm64 想要使用 desktop, 通过以下两种方式：
+
+* 直接使用 24.10/25.04/lastest 版本，[1](https://ubuntu.com/download/desktop) [2](https://cdimage.ubuntu.com/releases/25.04/release/)
+* 使用 server 版本，再通过 `sudo apt install ubuntu-desktop` 安装桌面环境。
