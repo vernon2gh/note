@@ -22,7 +22,7 @@ if [ $1 = "x86_64" ]; then
 	qemu-system-x86_64 -hda make_rootfs/out/rootfs.ext4	\
 		-kernel $DIR/arch/x86/boot/bzImage		\
 		-append "root=/dev/sda rw console=ttyS0"	\
-		-nographic $EXTRA
+		-enable-kvm -nographic $EXTRA
 fi
 
 if [ $1 = "arm64" ]; then
