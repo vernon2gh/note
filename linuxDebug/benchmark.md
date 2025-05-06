@@ -213,8 +213,7 @@ $ memtester [-p PHYSADDR [-d DEVICE]] <MEMORY> [ITERATIONS]
 
 # stress-ng
 
-    stress-ng --class memory --seq 4 -t 60
-    stress-ng --class cpu --seq 4 -t 60
+
 
 # kselftest
 
@@ -264,3 +263,8 @@ Documentation/dev-tools/kunit/
 
 https://linux-test-project.readthedocs.io/en/latest/
 https://github.com/linux-test-project/ltp/blob/master/testcases/kernel/sched/cfs-scheduler/hackbench.c
+
+# LKP-tests
+
+
+
