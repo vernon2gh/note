@@ -1,5 +1,0 @@
-[Desktop Entry]
-Type=Application
-Exec=/home/xxx/autotest/autotest.sh
-Name=Autotest Script
-Comment=Run after desktop
