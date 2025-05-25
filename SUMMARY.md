@@ -91,6 +91,7 @@
     * [vmtouch](linuxDebug/vmtouch.md)
     * [fio](linuxDebug/fio.md)
     * [benchmark](linuxDebug/benchmark.md)
+    * [gcov](linuxDebug/gcov.md)
 * linuxSystem
     * common
         * [system_version](linuxSystem/common/system_version.md)
