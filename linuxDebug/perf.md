@@ -45,7 +45,18 @@ $ perf script                ## unfold perf.data
                    -i <file> ## input file name
                    -k <file> ## vmlinux pathname
 
-$ perf diff <options> [baseline] [file1]    ## baseline vs file1, display the differential profile. default perf.data.old vs perf.data
+$ perf sched record [command]               ## record the scheduling events of an arbitrary workload
+$ perf sched latency                        ## report the per task scheduling latencies
+                   -i <file>                ## input file name
+                   -p                       ## latency stats per pid instead of per command name
+                   -s <key>                 ## sort by keys, default "avg,max,switch,runtime"
+
+$ perf kwork record [command]               ## record the kernel work of an arbitrary workload
+$ perf kwork report                         ## report the per kwork runtime
+$ perf kwork latency                        ## report the per kwork latencies
+
+$ perf diff <options> [baseline] [file1]    ## baseline vs file1, display the differential profile.
+                                            ## default perf.data.old vs perf.data
             -c <delta, delta-abs>           ## Entries differential computation selection. default delta-abs
 ```
 
