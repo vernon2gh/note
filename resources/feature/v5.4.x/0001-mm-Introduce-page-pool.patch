@@ -1,0 +1,586 @@
+From 2d53a9e66f12ef27b8e6a2e09e12dd196f31bb1d Mon Sep 17 00:00:00 2001
+From: Vernon Yang <vernon2gm@gmail.com>
+Date: Fri, 30 May 2025 13:10:11 +0800
+Subject: [PATCH] mm: Introduce page pool
+
+page pool for direct memory reclaim optimization
+
+Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
+---
+ include/linux/pagepool.h |  11 +
+ mm/Kconfig               |   6 +
+ mm/Makefile              |   2 +
+ mm/page_alloc.c          |  15 +-
+ mm/pagepool.c            | 458 +++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 491 insertions(+), 1 deletion(-)
+ create mode 100644 include/linux/pagepool.h
+ create mode 100644 mm/pagepool.c
+
+diff --git a/include/linux/pagepool.h b/include/linux/pagepool.h
+new file mode 100644
+index 000000000000..389e296f8836
+--- /dev/null
++++ b/include/linux/pagepool.h
+@@ -0,0 +1,11 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#ifndef _PAGEPOOL_H
++#define _PAGEPOOL_H
++
++#include <linux/mm_types.h>
++#include <linux/types.h>
++
++struct page *pagepool_alloc(gfp_t gfp_mask, int order, int migratetype);
++bool pagepool_refill(struct page *page, int order, int migratetype);
++
++#endif /* _PAGEPOOL_H */
+diff --git a/mm/Kconfig b/mm/Kconfig
+index a5dae9a7eb51..9eab100d9949 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -736,4 +736,10 @@ config ARCH_HAS_PTE_SPECIAL
+ config ARCH_HAS_HUGEPD
+ 	bool
+ 
++config PAGEPOOL
++	tristate "page pool"
++	default y
++	help
++	  page pool for direct memory reclaim optimization.
++
+ endmenu
+diff --git a/mm/Makefile b/mm/Makefile
+index d996846697ef..9554dc0ac485 100644
+--- a/mm/Makefile
++++ b/mm/Makefile
+@@ -107,3 +107,5 @@ obj-$(CONFIG_PERCPU_STATS) += percpu-stats.o
+ obj-$(CONFIG_ZONE_DEVICE) += memremap.o
+ obj-$(CONFIG_HMM_MIRROR) += hmm.o
+ obj-$(CONFIG_MEMFD_CREATE) += memfd.o
++obj-$(CONFIG_PAGEPOOL) += pagepool.o
++
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index f391c0c4ed1d..75059fbdf9c2 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -68,6 +68,7 @@
+ #include <linux/lockdep.h>
+ #include <linux/nmi.h>
+ #include <linux/psi.h>
++#include <linux/pagepool.h>
+ 
+ #include <asm/sections.h>
+ #include <asm/tlbflush.h>
+@@ -1428,6 +1429,9 @@ static void __free_pages_ok(struct page *page, unsigned int order)
+ 		return;
+ 
+ 	migratetype = get_pfnblock_migratetype(page, pfn);
++	if (pagepool_refill(page, order, migratetype))
++		return;
++
+ 	local_irq_save(flags);
+ 	__count_vm_events(PGFREE, 1 << order);
+ 	free_one_page(page_zone(page), page, pfn, order, migratetype);
+@@ -2148,7 +2152,7 @@ static bool check_new_pages(struct page *page, unsigned int order)
+ 	return false;
+ }
+ 
+-inline void post_alloc_hook(struct page *page, unsigned int order,
++void post_alloc_hook(struct page *page, unsigned int order,
+ 				gfp_t gfp_flags)
+ {
+ 	set_page_private(page, 0);
+@@ -3066,11 +3070,16 @@ static void free_unref_page_commit(struct page *page, unsigned long pfn)
+ void free_unref_page(struct page *page)
+ {
+ 	unsigned long flags;
++	int migratetype;
+ 	unsigned long pfn = page_to_pfn(page);
+ 
+ 	if (!free_unref_page_prepare(page, pfn))
+ 		return;
+ 
++	migratetype = get_pcppage_migratetype(page);
++	if (pagepool_refill(page, 0, migratetype))
++		return;
++
+ 	local_irq_save(flags);
+ 	free_unref_page_commit(page, pfn);
+ 	local_irq_restore(flags);
+@@ -4558,6 +4567,10 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
+ 	if (current->flags & PF_MEMALLOC)
+ 		goto nopage;
+ 
++	page = pagepool_alloc(gfp_mask, order, ac->migratetype);
++	if (page)
++		goto got_pg;
++
+ 	/* Try direct reclaim and then allocating */
+ 	page = __alloc_pages_direct_reclaim(gfp_mask, order, alloc_flags, ac,
+ 							&did_some_progress);
+diff --git a/mm/pagepool.c b/mm/pagepool.c
+new file mode 100644
+index 000000000000..0cf8fe797b7f
+--- /dev/null
++++ b/mm/pagepool.c
+@@ -0,0 +1,458 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * mm/pagepool.c - page pool for direct memory reclaim optimization
++ *
++ * Copyright (C) 2025, Vernon Yang
++ */
++
++#include <linux/module.h>
++#include <linux/gfp.h>
++#include <linux/slab.h>
++#include <linux/kernel.h>
++#include <linux/spinlock.h>
++#include <linux/mm_types.h>
++#include <linux/mmzone.h>
++#include <linux/mm.h>
++#include <linux/kthread.h>
++#include <linux/proc_fs.h>
++#include <linux/seq_file.h>
++#include <linux/delay.h>
++#include <linux/string.h>
++
++struct page_pool {
++	unsigned int order;	// order of the pages in the pool
++	gfp_t gfp_mask;		// gfp_mask for alloc_pages
++	spinlock_t lock;	// protect the list and count
++	struct list_head list;	// list of pages in the pool
++	int count;		// count of pages in the pool
++	int low;		// wakeup kthread on count < low
++	int high;		// max page number
++};
++
++#define SIZE_TO_PAGES(size, order) ((size) >> PAGE_SHIFT) >> (order)
++
++static const unsigned int orders[] = { 0 };
++static const unsigned int pages[] = { SIZE_TO_PAGES(SZ_32M, 0) };
++
++#define ORDERS_NR	ARRAY_SIZE(orders)
++#define MIGRATETYPE_NR	(MIGRATE_MOVABLE + 1)
++static struct page_pool *pools[ORDERS_NR][MIGRATETYPE_NR];
++
++#define for_each_order_mtype(order, mtype)			\
++	for (order = 0; order < ORDERS_NR; order++)		\
++		for (mtype = 0; mtype < MIGRATETYPE_NR; mtype++)
++
++static struct task_struct *kpagepoold_tsk;
++static wait_queue_head_t kpagepoold_waitq;
++static bool kpagepoold_wait_flag;
++
++static struct proc_dir_entry *pagepool_proc_dir;
++static bool pagepool_enabled;
++static pid_t pagepool_pid;
++
++static struct alloc_stat {
++	atomic_long_t success;
++	atomic_long_t fail;
++} pagepool_alloc_stat;
++
++void kpagepoold_wakeup(void);
++void post_alloc_hook(struct page *page, unsigned int order, gfp_t gfp_flags);
++
++#define DEFINE_PROC_SHOW_ATTRIBUTE(__name)				\
++static int __name ## _open(struct inode *inode, struct file *file)	\
++{									\
++	return single_open(file, __name ## _show, NULL);		\
++}									\
++									\
++static const struct file_operations __name ## _fops = {			\
++	.open		= __name ## _open,				\
++	.read		= seq_read,					\
++	.llseek		= seq_lseek,					\
++	.release	= single_release,				\
++}
++
++#define DEFINE_PROC_SHOW_STORE_ATTRIBUTE(__name)			\
++static int __name ## _open(struct inode *inode, struct file *file)	\
++{									\
++	return single_open(file, __name ## _show, NULL);		\
++}									\
++									\
++static const struct file_operations __name ## _fops = {			\
++	.open		= __name ## _open,				\
++	.read		= seq_read,					\
++	.write		= __name ## _write,				\
++	.llseek		= seq_lseek,					\
++	.release	= single_release,				\
++}
++
++static inline int order_to_index(unsigned int order)
++{
++	int i;
++
++	for (i = 0; i < ORDERS_NR; i++) {
++		if (order == orders[i])
++			return i;
++	}
++
++	return -EINVAL;
++}
++
++static inline struct page_pool *look_for_pool(int order, int migratetype)
++{
++	int order_idx = order_to_index(order);
++
++	if (order_idx == -EINVAL || migratetype > MIGRATE_MOVABLE)
++		return NULL;
++
++	return pools[order_idx][migratetype];
++}
++
++static void pagepool_add_page(struct page_pool *pool, struct page *page)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&pool->lock, flags);
++	list_add_tail(&page->lru, &pool->list);
++	pool->count++;
++	spin_unlock_irqrestore(&pool->lock, flags);
++}
++
++static struct page *pagepool_remove_page(struct page_pool *pool)
++{
++	struct page *page;
++	unsigned long flags;
++
++	spin_lock_irqsave(&pool->lock, flags);
++	page = list_first_entry_or_null(&pool->list, struct page, lru);
++	if (page) {
++		pool->count--;
++		list_del(&page->lru);
++	}
++	spin_unlock_irqrestore(&pool->lock, flags);
++
++	/* wakeup kthread when count < low */
++	if (pool->count < pool->low)
++		kpagepoold_wakeup();
++
++	return page;
++}
++
++static inline bool current_is_key_task(void)
++{
++	struct task_struct *tsk = current;
++
++	if (tsk->pid == pagepool_pid)
++		return true;
++
++	if (rt_task(tsk))
++		return true;
++
++	return false;
++}
++
++/**
++ * pagepool_alloc - allocate a page from the page pool
++ * @gfp_mask: gfp flags for allocation
++ * @order: order of the page to be allocated
++ * @migratetype: migratetype of the page to be allocated
++ *
++ * This function allocates a page from the page pool if available.
++ * It returns NULL if the pool is empty or if the current task is not a key task.
++ */
++struct page *pagepool_alloc(gfp_t gfp_mask, int order, int migratetype)
++{
++	struct page_pool *pool;
++	struct page *page;
++
++	if (unlikely(!pagepool_enabled))
++		return NULL;
++
++	if (!current_is_key_task() || gfp_mask & __GFP_DMA32)
++		return NULL;
++
++	pool = look_for_pool(order, migratetype);
++	if (pool == NULL)
++		return NULL;
++
++	page = pagepool_remove_page(pool);
++	if (!page) {
++		atomic_long_inc(&pagepool_alloc_stat.fail);
++		return NULL;
++	}
++
++	/* page is refilled from __free_pages() */
++	if (!page_count(page))
++		post_alloc_hook(page, order, gfp_mask);
++
++	atomic_long_inc(&pagepool_alloc_stat.success);
++
++	return page;
++}
++
++/**
++ * pagepool_refill - refill the page pool with a page
++ * @page: the page to be added to the pool
++ * @order: order of the page
++ * @migratetype: migratetype of the page
++ *
++ * This function checks if the page can be added to the pool and if so,
++ * it adds it to the appropriate pool.
++ *
++ * Returns true if the page was successfully added, false otherwise.
++ */
++bool pagepool_refill(struct page *page, int order, int migratetype)
++{
++	struct zone *zone = page_zone(page);
++	unsigned long mark = low_wmark_pages(zone);
++	long free_pages = zone_page_state(zone, NR_FREE_PAGES);
++	struct page_pool *pool;
++
++	if (unlikely(!pagepool_enabled))
++		return false;
++
++	free_pages -= zone->nr_reserved_highatomic;
++	if (zone_idx(zone) != ZONE_NORMAL || free_pages <= mark)
++		return false;
++
++	pool = look_for_pool(order, migratetype);
++	if (pool == NULL)
++		return false;
++
++	if (pool->count >= pool->high)
++		return false;
++
++	/* __free_pages() to put_page_testzero(page) */
++	pagepool_add_page(pool, page);
++
++	return true;
++}
++
++static struct page_pool *page_pool_create(gfp_t gfp_mask, unsigned int order,
++					  unsigned int nr_pages)
++{
++	struct page_pool *pool;
++
++	pool = kmalloc(sizeof(struct page_pool), GFP_KERNEL);
++	if (!pool)
++		return ERR_PTR(-ENOMEM);
++
++	pool->order = order;
++	pool->gfp_mask = gfp_mask;
++	pool->count = 0;
++	pool->high = nr_pages;
++	pool->low  = nr_pages / 2;
++	INIT_LIST_HEAD(&pool->list);
++	spin_lock_init(&pool->lock);
++
++	return pool;
++}
++
++/*
++ * kpagepoold_func - the kernel thread function for page pool refill
++ *
++ * This function runs in a kernel thread and waits for the refill condition.
++ * It checks each page pool and allocates pages to refill them until the count
++ * reaches the high watermark.
++ * It will sleep for a short duration if no pages are available to avoid busy
++ * waiting.
++ */
++static int kpagepoold_func(void *arg)
++{
++	struct page_pool *pool;
++	struct page *page;
++	int order, mtype;
++	int ret;
++
++	if (unlikely(!pagepool_enabled))
++		return -1;
++
++	while (!kthread_should_stop()) {
++		ret = wait_event_interruptible(kpagepoold_waitq,
++					       kpagepoold_wait_flag);
++		if (ret < 0)
++			continue;
++
++		kpagepoold_wait_flag = false;
++
++		for_each_order_mtype(order, mtype) {
++			pool = pools[order][mtype];
++			while (pool->count < pool->high) {
++				page = alloc_pages(pool->gfp_mask, pool->order);
++				if (page)
++					pagepool_add_page(pool, page);
++				else
++					msleep(20);
++			}
++		}
++	}
++
++	return 0;
++}
++
++void kpagepoold_wakeup(void)
++{
++	kpagepoold_wait_flag = true;
++	wake_up_interruptible(&kpagepoold_waitq);
++}
++
++static int enabled_show(struct seq_file *s, void *data)
++{
++	seq_printf(s, "%d\n", pagepool_enabled);
++
++        return 0;
++}
++
++static ssize_t enabled_write(struct file *f, const char __user *ubuf, size_t len,
++			  loff_t *offset)
++{
++	int ret;
++
++	ret = kstrtobool_from_user(ubuf, len, &pagepool_enabled);
++	if (ret)
++		pr_err("strtoint failed. ret = %d\n", ret);
++
++        return len;
++}
++DEFINE_PROC_SHOW_STORE_ATTRIBUTE(enabled);
++
++static int pool_stat_show(struct seq_file *s, void *data)
++{
++	struct page_pool *pool;
++	int order, mtype;
++
++	for_each_order_mtype(order, mtype) {
++		pool = pools[order][mtype];
++		seq_printf(s, "order %d, migratetype %d, low %d, high %d, count %d\n",
++			   pool->order, mtype, pool->low, pool->high, pool->count);
++	}
++
++        return 0;
++}
++DEFINE_PROC_SHOW_ATTRIBUTE(pool_stat);
++
++static int alloc_stat_show(struct seq_file *s, void *data)
++{
++	seq_printf(s, "success %ld\n", atomic_long_read(&pagepool_alloc_stat.success));
++	seq_printf(s, "fail    %ld\n", atomic_long_read(&pagepool_alloc_stat.fail));
++
++        return 0;
++}
++DEFINE_PROC_SHOW_ATTRIBUTE(alloc_stat);
++
++static int high_show(struct seq_file *s, void *data)
++{
++	struct page_pool *pool;
++	int order, mtype;
++
++	for_each_order_mtype(order, mtype) {
++		pool = pools[order][mtype];
++		seq_printf(s, "%d ", pool->high);
++	}
++
++	seq_printf(s, "\n");
++
++        return 0;
++}
++
++static ssize_t high_write(struct file *f, const char __user *ubuf, size_t len,
++			  loff_t *offset)
++{
++	char kbuf[64], *p;
++	struct page_pool *pool;
++	int order, mtype;
++	char *token;
++        int high;
++	int ret;
++
++	ret = copy_from_user(kbuf, ubuf, len);
++	if (unlikely(ret)) {
++		pr_err("copy_from_user failed.\n");
++		return -EINVAL;
++	}
++	kbuf[len] = '\0';
++	p = kbuf;
++
++	for_each_order_mtype(order, mtype) {
++		pool = pools[order][mtype];
++
++		token = strsep(&p, " ");
++		ret = kstrtoint(token, 10, &high);
++		if (unlikely(ret)) {
++			pr_err("Invalid input: '%s'\n", token);
++			return -EINVAL;
++		}
++
++		pool->high = high;
++		pool->low  = high / 2;
++	}
++
++	return len;
++}
++DEFINE_PROC_SHOW_STORE_ATTRIBUTE(high);
++
++static int pid_show(struct seq_file *s, void *data)
++{
++	seq_printf(s, "%d\n", pagepool_pid);
++
++        return 0;
++}
++
++static ssize_t pid_write(struct file *f, const char __user *ubuf, size_t len,
++			  loff_t *offset)
++{
++	int ret;
++
++	ret = kstrtoint_from_user(ubuf, len, 0, &pagepool_pid);
++	if (ret)
++		pr_err("strtoint failed. ret = %d\n", ret);
++
++        return len;
++}
++DEFINE_PROC_SHOW_STORE_ATTRIBUTE(pid);
++
++static int __init pagepool_init(void)
++{
++	int order, mtype;
++
++	for_each_order_mtype(order, mtype) {
++		pools[order][mtype] = page_pool_create((GFP_HIGHUSER | __GFP_ZERO |
++				__GFP_NOWARN | __GFP_NORETRY) & ~__GFP_RECLAIM,
++				orders[order], pages[order]);
++		if (IS_ERR_OR_NULL(pools[order][mtype])) {
++			pr_err("%s: create order %d migratetype %d pool failed!\n",
++				__func__, orders[order], mtype);
++			return -EINVAL;
++		}
++	}
++
++	init_waitqueue_head(&kpagepoold_waitq);
++	kpagepoold_tsk = kthread_run(kpagepoold_func, NULL, "kpagepoold");
++	if (IS_ERR_OR_NULL(kpagepoold_tsk)) {
++		pr_err("%s: create kpagepoold failed!\n", __func__);
++		return -EINVAL;
++	}
++
++	pagepool_proc_dir = proc_mkdir("pagepool", NULL);
++	proc_create( "enabled", 0644, pagepool_proc_dir, &enabled_fops);
++	proc_create( "pool_stat", 0444, pagepool_proc_dir, &pool_stat_fops);
++	proc_create( "alloc_stat", 0444, pagepool_proc_dir, &alloc_stat_fops);
++	proc_create( "high", 0644, pagepool_proc_dir, &high_fops);
++	proc_create( "pid", 0644, pagepool_proc_dir, &pid_fops);
++
++	pagepool_enabled = true;
++	kpagepoold_wakeup();
++
++	return 0;
++}
++
++static void __exit pagepool_exit(void)
++{
++	proc_remove(pagepool_proc_dir);
++}
++
++module_init(pagepool_init);
++module_exit(pagepool_exit);
++
++MODULE_AUTHOR("Vernon Yang <vernon2gm@gmail.com>");
++MODULE_DESCRIPTION("page pool for direct memory reclaim optimization");
++MODULE_LICENSE("GPL v2");
+-- 
+2.34.1
+
