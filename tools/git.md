@@ -357,7 +357,7 @@ $ tig <merge commit>
 显示 `commit A` 是在哪一个版本被引入？
 
 ```bash
-$ git tag --contains <commit A>
+$ git tag --sort taggerdate --contains <commit A>
 ```
 
 将一个已经 commit 的 patch 拆分成多个 patch，如下：
