@@ -1,4 +1,4 @@
-From 2d53a9e66f12ef27b8e6a2e09e12dd196f31bb1d Mon Sep 17 00:00:00 2001
+From be252490094098de59763b11df9933b80a5c8174 Mon Sep 17 00:00:00 2001
 From: Vernon Yang <vernon2gm@gmail.com>
 Date: Fri, 30 May 2025 13:10:11 +0800
 Subject: [PATCH] mm: Introduce page pool
@@ -11,8 +11,8 @@ Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
  mm/Kconfig               |   6 +
  mm/Makefile              |   2 +
  mm/page_alloc.c          |  15 +-
- mm/pagepool.c            | 458 +++++++++++++++++++++++++++++++++++++++
- 5 files changed, 491 insertions(+), 1 deletion(-)
+ mm/pagepool.c            | 455 +++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 488 insertions(+), 1 deletion(-)
  create mode 100644 include/linux/pagepool.h
  create mode 100644 mm/pagepool.c
 
@@ -119,10 +119,10 @@ index f391c0c4ed1d..75059fbdf9c2 100644
  							&did_some_progress);
 diff --git a/mm/pagepool.c b/mm/pagepool.c
 new file mode 100644
-index 000000000000..0cf8fe797b7f
+index 000000000000..0a7006495c94
 --- /dev/null
 +++ b/mm/pagepool.c
-@@ -0,0 +1,458 @@
+@@ -0,0 +1,455 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * mm/pagepool.c - page pool for direct memory reclaim optimization
@@ -388,9 +388,6 @@ index 000000000000..0cf8fe797b7f
 +	int order, mtype;
 +	int ret;
 +
-+	if (unlikely(!pagepool_enabled))
-+		return -1;
-+
 +	while (!kthread_should_stop()) {
 +		ret = wait_event_interruptible(kpagepoold_waitq,
 +					       kpagepoold_wait_flag);
@@ -556,6 +553,7 @@ index 000000000000..0cf8fe797b7f
 +		pr_err("%s: create kpagepoold failed!\n", __func__);
 +		return -EINVAL;
 +	}
++	kpagepoold_wakeup();
 +
 +	pagepool_proc_dir = proc_mkdir("pagepool", NULL);
 +	proc_create( "enabled", 0644, pagepool_proc_dir, &enabled_fops);
@@ -565,7 +563,6 @@ index 000000000000..0cf8fe797b7f
 +	proc_create( "pid", 0644, pagepool_proc_dir, &pid_fops);
 +
 +	pagepool_enabled = true;
-+	kpagepoold_wakeup();
 +
 +	return 0;
 +}
