@@ -68,6 +68,7 @@
     * [workingset](linuxKernel/workingset.md)
     * [ioremap](linuxKernel/ioremap.md)
     * [sched_period](linuxKernel/sched_period.md)
+    * [cma](linuxKernel/cma.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
