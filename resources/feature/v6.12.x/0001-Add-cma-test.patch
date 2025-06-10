@@ -1,15 +1,15 @@
-From eda0f38c162d834a76797d5941c41e04d7ff931e Mon Sep 17 00:00:00 2001
+From 7a02051804524b0451d4e37357c457bbcca52342 Mon Sep 17 00:00:00 2001
 From: Vernon Yang <vernon2gm@gmail.com>
 Date: Tue, 10 Jun 2025 22:38:18 +0800
 Subject: [PATCH] Add cma test
 
 Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
 ---
- arch/x86/kernel/setup.c |  3 +++
+ arch/x86/kernel/setup.c |  3 ++
  include/linux/cma.h     |  2 ++
  mm/Makefile             |  1 +
- mm/cma_test.c           | 40 ++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 46 insertions(+)
+ mm/cma_test.c           | 77 +++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 83 insertions(+)
  create mode 100644 mm/cma_test.c
 
 diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
@@ -55,10 +55,10 @@ index 1a7a11d4933d..6bbca24262fd 100644
 +obj-y += cma_test.o
 diff --git a/mm/cma_test.c b/mm/cma_test.c
 new file mode 100644
-index 000000000000..f15556f3c951
+index 000000000000..b92fd89b4291
 --- /dev/null
 +++ b/mm/cma_test.c
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,77 @@
 +#include <linux/module.h>
 +#include <linux/mm.h>
 +#include <linux/mm_types.h>
@@ -68,28 +68,65 @@ index 000000000000..f15556f3c951
 +#include <linux/miscdevice.h>
 +#include <linux/fs.h>
 +
++#define CMA_NAME	"cma_test"
++#define CMA_SIZE	SZ_2G
++#define CMA_TEST_SIZE	SZ_1G
++
 +struct cma *cma;
 +struct folio *folio;
 +
 +void cma_test_reserve(void)
 +{
-+	cma_declare_contiguous_nid(0, SZ_2G, 0, PAGE_SIZE, 0, false, "cma_test",
++	cma_declare_contiguous_nid(0, CMA_SIZE, 0, PAGE_SIZE, 0, false, CMA_NAME,
 +				   &cma, NUMA_NO_NODE);
 +}
 +
++static int cam_test_open(struct inode *inode, struct file *file)
++{
++	return 0;
++}
++
++static int cam_test_map(struct file *filp, struct vm_area_struct *vma)
++{
++	unsigned long start = vma->vm_start;
++	unsigned long end = vma->vm_end;
++	unsigned long size = end - start;
++
++	if (size > CMA_TEST_SIZE)
++		size = CMA_TEST_SIZE;
++
++	return remap_pfn_range(vma, start, folio_pfn(folio), size, vma->vm_page_prot);
++}
++
++static struct file_operations dev_fops = {
++	.owner  = THIS_MODULE,
++	.open   = cam_test_open,
++	.mmap   = cam_test_map,
++};
++
++static struct miscdevice cma_test_misc = {
++	.minor = MISC_DYNAMIC_MINOR,
++	.name = CMA_NAME,
++	.fops = &dev_fops,
++};
++
 +static int __init cma_test_init(void)
 +{
-+	folio = cma_alloc_folio(cma, get_order(SZ_1G), GFP_KERNEL | __GFP_COMP);
++	folio = cma_alloc_folio(cma, get_order(CMA_TEST_SIZE),
++				GFP_KERNEL | __GFP_COMP);
 +	if (folio == NULL) {
 +		pr_err("alloc memory from CMA is failed.\n");
 +		return -ENOMEM;
 +	}
++
++	misc_register(&cma_test_misc);
 +
 +        return 0;
 +}
 +
 +static void __exit cma_test_exit(void)
 +{
++	misc_deregister(&cma_test_misc);
 +	cma_free_folio(cma, folio);
 +}
 +
