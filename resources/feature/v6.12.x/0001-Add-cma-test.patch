@@ -1,15 +1,15 @@
-From 7a02051804524b0451d4e37357c457bbcca52342 Mon Sep 17 00:00:00 2001
+From d866d9c0095a5af799512c7c38344a6d52245459 Mon Sep 17 00:00:00 2001
 From: Vernon Yang <vernon2gm@gmail.com>
 Date: Tue, 10 Jun 2025 22:38:18 +0800
 Subject: [PATCH] Add cma test
 
 Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
 ---
- arch/x86/kernel/setup.c |  3 ++
- include/linux/cma.h     |  2 ++
- mm/Makefile             |  1 +
- mm/cma_test.c           | 77 +++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 83 insertions(+)
+ arch/x86/kernel/setup.c |   3 +
+ include/linux/cma.h     |   2 +
+ mm/Makefile             |   1 +
+ mm/cma_test.c           | 149 ++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 155 insertions(+)
  create mode 100644 mm/cma_test.c
 
 diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
@@ -55,10 +55,10 @@ index 1a7a11d4933d..6bbca24262fd 100644
 +obj-y += cma_test.o
 diff --git a/mm/cma_test.c b/mm/cma_test.c
 new file mode 100644
-index 000000000000..b92fd89b4291
+index 000000000000..d20cf992fc42
 --- /dev/null
 +++ b/mm/cma_test.c
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,149 @@
 +#include <linux/module.h>
 +#include <linux/mm.h>
 +#include <linux/mm_types.h>
@@ -70,10 +70,15 @@ index 000000000000..b92fd89b4291
 +
 +#define CMA_NAME	"cma_test"
 +#define CMA_SIZE	SZ_2G
-+#define CMA_TEST_SIZE	SZ_1G
 +
-+struct cma *cma;
-+struct folio *folio;
++enum {
++	CMA_ALLOC = _IOW('T', 0, unsigned long),
++	CMA_FREE  = _IOW('T', 1, unsigned long),
++	CMA_PFN   = _IOWR('T', 0, unsigned long),
++};
++
++static struct cma *cma;
++static struct folio *folio;
 +
 +void cma_test_reserve(void)
 +{
@@ -81,27 +86,102 @@ index 000000000000..b92fd89b4291
 +				   &cma, NUMA_NO_NODE);
 +}
 +
-+static int cam_test_open(struct inode *inode, struct file *file)
++static int cma_test_open(struct inode *inode, struct file *file)
 +{
 +	return 0;
 +}
 +
-+static int cam_test_map(struct file *filp, struct vm_area_struct *vma)
++static int cma_test_map(struct file *filp, struct vm_area_struct *vma)
 +{
 +	unsigned long start = vma->vm_start;
 +	unsigned long end = vma->vm_end;
 +	unsigned long size = end - start;
 +
-+	if (size > CMA_TEST_SIZE)
-+		size = CMA_TEST_SIZE;
-+
 +	return remap_pfn_range(vma, start, folio_pfn(folio), size, vma->vm_page_prot);
 +}
 +
++static unsigned long get_pfn_from_user_vaddr(unsigned long vaddr)
++{
++	struct mm_struct *mm = current->mm;
++	unsigned long pfn;
++	spinlock_t *ptl;
++	pgd_t *pgd;
++	p4d_t *p4d;
++	pud_t *pud;
++	pmd_t *pmd;
++	pte_t *pte;
++
++	down_read(&mm->mmap_lock);
++
++	pgd = pgd_offset(mm, vaddr);
++	if (pgd_none(*pgd) || pgd_bad(*pgd))
++		goto err;
++
++	p4d = p4d_offset(pgd, vaddr);
++	if (p4d_none(*p4d) || p4d_bad(*p4d))
++		goto err;
++
++	pud = pud_offset(p4d, vaddr);
++	if (pud_none(*pud) || pud_bad(*pud))
++		goto err;
++
++	pmd = pmd_offset(pud, vaddr);
++	if (pmd_none(*pmd) || pmd_bad(*pmd))
++		goto err;
++
++	pte = pte_offset_map_lock(mm, pmd, vaddr, &ptl);
++	if (pte == NULL)
++		goto err;
++	pfn = pte_pfn(*pte);
++	pte_unmap_unlock(pte, ptl);
++
++	up_read(&mm->mmap_lock);
++	return pfn;
++
++err:
++	up_read(&mm->mmap_lock);
++	return -ENXIO;
++}
++
++static long cma_test_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
++{
++	unsigned long vaddr, pfn;
++	int err = 0;
++
++	switch (cmd) {
++	case CMA_ALLOC:
++		folio = cma_alloc_folio(cma, get_order(arg), GFP_KERNEL | __GFP_COMP);
++		if (folio == NULL) {
++			pr_err("alloc memory from CMA is failed.\n");
++			return -ENOMEM;
++		}
++		break;
++	case CMA_FREE:
++		cma_free_folio(cma, folio);
++		break;
++	case CMA_PFN:
++		if (copy_from_user(&vaddr, (void __user *)arg, sizeof(unsigned long)))
++			return -EFAULT;
++
++		pfn = get_pfn_from_user_vaddr(vaddr);
++
++		if (copy_to_user((void __user *)arg, &pfn, sizeof(unsigned long)))
++			return -EFAULT;
++
++		break;
++	default:
++		err = -EINVAL;
++		break;
++	}
++
++	return err;
++}
++
 +static struct file_operations dev_fops = {
-+	.owner  = THIS_MODULE,
-+	.open   = cam_test_open,
-+	.mmap   = cam_test_map,
++	.owner          = THIS_MODULE,
++	.open           = cma_test_open,
++	.mmap           = cma_test_map,
++	.unlocked_ioctl = cma_test_ioctl,
 +};
 +
 +static struct miscdevice cma_test_misc = {
@@ -112,13 +192,6 @@ index 000000000000..b92fd89b4291
 +
 +static int __init cma_test_init(void)
 +{
-+	folio = cma_alloc_folio(cma, get_order(CMA_TEST_SIZE),
-+				GFP_KERNEL | __GFP_COMP);
-+	if (folio == NULL) {
-+		pr_err("alloc memory from CMA is failed.\n");
-+		return -ENOMEM;
-+	}
-+
 +	misc_register(&cma_test_misc);
 +
 +        return 0;
@@ -127,7 +200,6 @@ index 000000000000..b92fd89b4291
 +static void __exit cma_test_exit(void)
 +{
 +	misc_deregister(&cma_test_misc);
-+	cma_free_folio(cma, folio);
 +}
 +
 +module_init(cma_test_init);
