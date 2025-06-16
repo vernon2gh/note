@@ -24,6 +24,14 @@ require("lazy").setup({
 		build = ":TSUpdate"
 	},
 	{
+		"nvim-telescope/telescope.nvim",
+		tag = '0.1.8',
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+			"BurntSushi/ripgrep"
+		}
+	},
+	{
 		"MeanderingProgrammer/render-markdown.nvim",
 		ft = {
 			"markdown",
@@ -71,6 +79,10 @@ require('nvim-treesitter.configs').setup {
 		additional_vim_regex_highlighting = false,
 	},
 }
+
+local builtin = require('telescope.builtin')
+vim.keymap.set('n', ';ff', builtin.find_files, { desc = 'Telescope find files' })
+vim.keymap.set('n', ';fg', builtin.live_grep, { desc = 'Telescope live grep' })
 
 require('lspconfig').clangd.setup { }
 vim.diagnostic.enable(false)
