@@ -1,3 +1,48 @@
+-- Bootstrap lazy.nvim
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
+	local lazyrepo = "https://github.com/folke/lazy.nvim.git"
+	local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
+	if vim.v.shell_error ~= 0 then
+		vim.api.nvim_echo({
+			{ "Failed to clone lazy.nvim:\n", "ErrorMsg" },
+			{ out, "WarningMsg" },
+			{ "\nPress any key to exit..." },
+		}, true, {})
+		vim.fn.getchar()
+		os.exit(1)
+	end
+end
+vim.opt.rtp:prepend(lazypath)
+
+-- Setup lazy.nvim
+require("lazy").setup({
+	{
+		"nvim-treesitter/nvim-treesitter",
+		branch = 'master',
+		lazy = false,
+		build = ":TSUpdate"
+	},
+	{
+		"MeanderingProgrammer/render-markdown.nvim",
+		ft = {
+			"markdown",
+			"codecompanion"
+		}
+	},
+	{
+		"olimorris/codecompanion.nvim",
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+			"nvim-treesitter/nvim-treesitter"
+		}
+	},
+	"neovim/nvim-lspconfig",
+	"lewis6991/gitsigns.nvim",
+	"sindrets/diffview.nvim",
+	"sainnhe/sonokai",
+})
+
 -- base setting
 vim.o.number = true
 vim.o.mouse = ""
@@ -17,6 +62,9 @@ vim.keymap.set({'n', 'v'}, '<C-l>', 'w', opts)
 
 -- plugins setting
 require('nvim-treesitter.configs').setup {
+	ensure_installed = { "c", "lua", "vim", "vimdoc", "query", "markdown", "markdown_inline" },
+	sync_install = false,
+	auto_install = true,
 	highlight = {
 		enable = true,
 		disable = { "c" },
@@ -25,7 +73,7 @@ require('nvim-treesitter.configs').setup {
 }
 
 require('lspconfig').clangd.setup { }
-vim.diagnostic.disable()
+vim.diagnostic.enable(false)
 vim.keymap.set('n', ';d', vim.lsp.buf.definition, opts)
 vim.keymap.set('n', ';r', vim.lsp.buf.references, opts)
 vim.keymap.set('n', ';c', vim.lsp.buf.incoming_calls, opts)
@@ -77,6 +125,9 @@ require("codecompanion").setup {
 		inline = { adapter = "deepseek" },
 		agent = { adapter = "deepseek" },
 	},
+	opts = {
+		language = "Chinese",
+	},
 }
 vim.keymap.set({'n', 'v'}, ';w', ':CodeCompanionChat Toggle<CR>', { silent = true })
 vim.keymap.set({'n', 'v'}, ';e', ':CodeCompanion /explain<CR>', {silent = true})
@@ -84,28 +135,3 @@ vim.keymap.set({'n', 'v'}, ';a', ':CodeCompanion ', opts)
 
 vim.cmd [[ set background=dark ]]
 vim.cmd [[ colorscheme sonokai ]]
-
--- plugins install
-vim.cmd [[packadd packer.nvim]]
-return require('packer').startup(function(use)
-	use 'wbthomason/packer.nvim'
-	use {
-		'nvim-treesitter/nvim-treesitter',
-		run = function()
-			local ts_update = require('nvim-treesitter.install').update({ with_sync = true })
-			ts_update()
-		end,
-	}
-	use 'neovim/nvim-lspconfig'
-	use 'lewis6991/gitsigns.nvim'
-	use 'sindrets/diffview.nvim'
-	use 'MeanderingProgrammer/render-markdown.nvim'
-	use {
-		"olimorris/codecompanion.nvim",
-		requires = {
-			"nvim-lua/plenary.nvim",
-			"nvim-treesitter/nvim-treesitter",
-		}
-	}
-	use 'sainnhe/sonokai'
-end)
