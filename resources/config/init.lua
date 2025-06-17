@@ -53,6 +53,7 @@ require("lazy").setup({
 
 -- base setting
 vim.o.number = true
+vim.o.relativenumber = true
 vim.o.mouse = ""
 vim.wo.colorcolumn = "80"
 vim.cmd [[ autocmd BufWritePre * %s/\s\+$//e ]]
