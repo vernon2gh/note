@@ -52,7 +52,7 @@ require("lazy").setup({
 	"neovim/nvim-lspconfig",
 	"lewis6991/gitsigns.nvim",
 	"sindrets/diffview.nvim",
-	"sainnhe/sonokai",
+	"cpea2506/one_monokai.nvim",
 })
 
 -- base setting
@@ -150,5 +150,4 @@ vim.keymap.set({'n', 'v'}, ';w', ':CodeCompanionChat Toggle<CR>', { silent = tru
 vim.keymap.set({'n', 'v'}, ';e', ':CodeCompanion /explain<CR>', {silent = true})
 vim.keymap.set({'n', 'v'}, ';a', ':CodeCompanion ', opts)
 
-vim.cmd [[ set background=dark ]]
-vim.cmd [[ colorscheme sonokai ]]
+require("one_monokai").setup { }
