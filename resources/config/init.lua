@@ -151,3 +151,4 @@ vim.keymap.set({'n', 'v'}, ';e', ':CodeCompanion /explain<CR>', {silent = true})
 vim.keymap.set({'n', 'v'}, ';a', ':CodeCompanion ', opts)
 
 require("one_monokai").setup { }
+vim.api.nvim_set_hl(0, "Identifier", { link = "Normal" })
