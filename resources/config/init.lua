@@ -50,6 +50,7 @@ require("lazy").setup({
 		}
 	},
 	"neovim/nvim-lspconfig",
+	"jmacadie/telescope-hierarchy.nvim",
 	"lewis6991/gitsigns.nvim",
 	"sindrets/diffview.nvim",
 	"cpea2506/one_monokai.nvim",
@@ -94,7 +95,8 @@ vim.diagnostic.enable(false)
 vim.keymap.set('n', ';d', vim.lsp.buf.definition, opts)
 vim.keymap.set('n', ';r', vim.lsp.buf.references, opts)
 vim.keymap.set('n', ';c', vim.lsp.buf.incoming_calls, opts)
-vim.keymap.set('n', ';gg', ':!git grep -w <C-R>=expand("<cword>")<CR><CR>', opts)
+
+vim.keymap.set('n', ';cc', ':Telescope hierarchy incoming_calls<CR>', opts)
 
 require('gitsigns').setup {
 	current_line_blame = true,
