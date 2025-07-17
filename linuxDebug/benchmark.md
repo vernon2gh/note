@@ -261,8 +261,49 @@ Documentation/dev-tools/kunit/
 
 # ltp
 
-https://linux-test-project.readthedocs.io/en/latest/
-https://github.com/linux-test-project/ltp/blob/master/testcases/kernel/sched/cfs-scheduler/hackbench.c
+ltp 全称 Linux Test Project，该项目旨在为开源社区提供测试套件，用于验证 Linux 内核的可靠性、健壮性和稳定性。
+
+* testcases 目录包含测试用例
+* runtest 目录包含测试集，由多个测试用例组成
+* scenario_groups 目录包含测试场景集合，由多个测试集组成
+
+## Download
+
+```bash
+$ git clone --recurse-submodules https://github.com/linux-test-project/ltp.git
+```
+
+## Compiling and installing all testcases
+
+```bash
+$ make autotools
+$ ./configure
+$ make
+$ make install # install LTP inside /opt/ltp by default
+```
+
+## Running tests
+
+```bash
+$ cd /opt/ltp
+$ ./kirk -f ltp -r syscalls # run syscalls testing suite
+or
+$ ./runltp -f syscalss
+```
+
+通过 `kirk`/`runltp` 执行测试集 `syscalls`, 包含多个测试用例
+
+测试集 `syscalls` 存储在 `runtest` 目录中
+
+## build and run single tests
+
+```bash
+$ cd testcases/kernel/syscalls/foo
+$ make
+$ PATH=$PATH:$PWD ./foo01
+```
+
+编译 syscalls 目录下的所有测试用例，同时只执行 foo01 测试用例
 
 # LKP-tests
 
