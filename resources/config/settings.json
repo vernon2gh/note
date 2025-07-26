@@ -1,0 +1,32 @@
+{
+    "workbench.colorTheme": "One Monokai",
+    "files.trimTrailingWhitespace": true,
+    "editor.inlineSuggest.enabled": true,
+    "editor.minimap.enabled": false,
+    "editor.rulers": [
+        80
+    ],
+    "editor.insertSpaces": false,
+    "editor.tabSize": 8,
+    "editor.accessibilitySupport": "off",
+    "editor.inlayHints.enabled": "off",
+    "editor.tokenColorCustomizations": {
+        "comments": "#636d83",
+        "functions": "#3fc56b",
+        "keywords": "#10b1fe",
+        "numbers": "#ff78f8",
+        "strings": "#f9c859",
+        "types": "#ff6480",
+        "variables": "#ffffff"
+    },
+    "workbench.colorCustomizations": {
+        "editor.selectionHighlightBackground": "#2E8B57",
+        "tree.indentGuidesStroke": "#008070"
+    },
+    "explorer.excludeGitIgnore": true,
+    "gitlens.codeLens.authors.enabled": false,
+    "gitlens.codeLens.recentChange.enabled": false,
+    "gitlens.views.commitDetails.files.layout": "list",
+    "workbench.tree.indent": 16,
+    "python.venvPath": "~/.venv",
+}
