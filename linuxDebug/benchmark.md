@@ -254,7 +254,91 @@ Documentation/dev-tools/kunit/
 
 # vm-scalability
 
-    usemem
+为了测试 Linux 内核 `mm/` 目录中的功能
+
+`hw_vars`：提供系统配置环境信息（如总内存、CPU 数量、大页数量等），可提取所有 `/proc/meminfo` 输出。
+`run_cases`：执行全部测试用例
+`run`：执行指定测试用例，下面对每一个测试进行简单介绍。
+
+**基础内存测试**
+
+`case-000-anon`：通过匿名内存区域连续写入填充 1/3 总内存，测试页错误处理及内存分配
+`case-000-shm`：通过 mmap 访问 tmpfs 文件进行连续写入填充 1/3 内存
+
+**匿名页测试**
+
+`case-anon-w-seq/rand`：多进程分配系统内存 1/2 进行顺序/随机写入
+`case-anon-w-seq/rand-mt`：多线程分配系统内存 1/2 进行顺序/随机写入, `-mt` 都为多线程版本
+`case-anon-r-seq/rand(-mt)`：mmap 匿名区域后顺序/随机读取，触发页错误，测试零页快速路径
+`case-anon-cow-seq/rand(-mt)`：父进程分配匿名内存后 fork 子进程，进行顺序/随机写入，测试写时复制(COW)
+`case-anon-rx-seq-mt`：预分配后顺序读取，对比非预分配场景性能
+`case-anon-wx-seq/rand-mt`：预分配后写入
+
+**文件页测试**
+
+`case-lru-file-mmap-read/rand`：多进程 mmap 文件顺序/随机读取测试 LRU
+`case-lru-file-mmap-write`：同上，改为写入操作
+`case-lru-file-readonce`：dd 读取文件（单次）
+`case-lru-file-readtwice`：文件读取两次
+`case-lru-memcg`：内存限制为 1/3 总内存时执行 LRU 测试
+`case-lru-shm`：多进程在 tmpfs 创建稀疏文件并读取填充半数内存
+`case-lru-shm-rand`：随机读取版
+
+**高级内存管理**
+
+`case-mbind`：多进程分配内存后，通过 numa_move_pages/mbind 跨节点迁移页
+`case-migrate-across-nodes`：多节点进程分配内存后迁移页，测试 migrate_pages
+`case-mincore`：多线程随机读取后，mincore 统计驻留页
+`case-mlock`：多进程 mlock 锁定内存区域
+`case-mmap-pread-seq/rand`：mmap 稀疏文件后多进程顺序/随机读取（LRU 压力）
+`case-msync`：多进程写入稀疏文件后 msync 同步
+`case-shm-pread-seq/rand`：多进程读取 tmpfs 文件（占 1/2 内存）
+
+**特殊功能测试**
+
+`case-direct-write`：O_DIRECT 模式持续写入稀疏文件
+`case-fork`：启动 20000 个空进程测试 fork 性能
+`case-fork-sleep`：进程退出前睡眠 10 秒测试高并发进程场景
+`case-hugetlb`：通过 `/proc/sys/vm/nr_hugepages` 分配/释放 1/3 内存的大页
+`case-ksm`：每节点启动进程，分配 MemTotal/1000 私有匿名区，触发 KSM 合并零页
+`case-ksm-hugepages`：透明大页场景下的 KSM 测试
+
+## Download
+
+```bash
+$ git clone https://git.kernel.org/pub/scm/linux/kernel/git/wfg/vm-scalability.git
+```
+
+## Compiling
+
+```bash
+$ cd vm-scalability
+$ make
+```
+
+如果想要收集 `/proc/lock_stat`, `/debug/gcov` 和 `perf stats` 数据，需要使能
+Linux 内核以下特性，并且系统安装 `perf`。
+
+```
+CONFIG_LOCK_STAT=y
+CONFIG_GCOV_KERNEL=y
+CONFIG_GCOV_PROFILE_ALL=y
+CONFIG_PERF_EVENTS=y
+CONFIG_FTRACE_SYSCALLS=y
+CONFIG_TRANSPARENT_HUGEPAGE=y
+```
+
+## Running tests
+
+```bash
+$ cd vm-scalability
+$ ./run case-anon-w-seq
+```
+
+运行 N 个任务，每个任务通过 mmap 映射匿名内存区域，其大小为整个系统内存的1/(2N)，
+并顺序地向该区域写入，触发 pagefault 进行内存分配。
+
+即 N 个进程分配系统内存 1/2 进行顺序写入测试。
 
 # kdevops
 
