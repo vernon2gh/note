@@ -2,30 +2,28 @@
 
 SHARE=$(pwd)/make_rootfs/share
 NET="-netdev user,id=eth0,smb=$SHARE -device virtio-net,netdev=eth0"
+EXTRA="-m 8G -smp 8 $NET"
 
-EXTRA="-m 8G -smp 6 $NET -hdb make_rootfs/out/extdisk"
-
+ARCH=$1
 DIR=$2
 if [ ! $DIR ]; then
-	if [ $1 = "x86_64" ]; then
+	if [ $ARCH = "x86_64" ]; then
 		DIR=linux/build/x86_64
-	elif [ $1 = "arm64" ]; then
+	elif [ $ARCH = "arm64" ]; then
 		DIR=linux/build/arm64
-	elif [ $1 = "riscv64" ]; then
+	elif [ $ARCH = "riscv64" ]; then
 		DIR=linux/build/riscv64
 	fi
 fi
 
-./make_rootfs/make_rootfs.sh -a $1
-
-if [ $1 = "x86_64" ]; then
-	qemu-system-x86_64 -hda make_rootfs/out/rootfs.ext4	\
+if [ $ARCH = "x86_64" ]; then
+	qemu-system-x86_64 -hda make_rootfs/out/ubuntu.qcow2	\
 		-kernel $DIR/arch/x86/boot/bzImage		\
-		-append "root=/dev/sda rw console=ttyS0"	\
+		-append "root=/dev/sda1 rw console=ttyS0"	\
 		-enable-kvm -nographic $EXTRA
 fi
 
-if [ $1 = "arm64" ]; then
+if [ $ARCH = "arm64" ]; then
 	if [ -f x.dtb ]; then
 		DTB="-dtb x.dtb"
 	fi
@@ -37,7 +35,7 @@ if [ $1 = "arm64" ]; then
 		-nographic $EXTRA
 fi
 
-if [ $1 = "riscv64" ]; then
+if [ $ARCH = "riscv64" ]; then
 	qemu-system-riscv64 -M virt						\
 		-drive file=make_rootfs/out/rootfs.ext4,format=raw,id=hd0 -device virtio-blk-device,drive=hd0	\
 		-kernel $DIR/arch/riscv/boot/Image				\
