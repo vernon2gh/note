@@ -20,6 +20,9 @@ mutt 收取/发送/阅读邮件
 [Email clients info for Linux¶ ](https://www.kernel.org/doc/html/latest/process/email-clients.html)
 Mutt (TUI) 小节，配置 `~/.muttrc`，然后将用户名/密码替换一下，运行 `$ mutt` 就可以正常使用。
 
+也可以通过执行 `$ sudo apt install neomutt` 来安装 neomutt，配置 `~/.neomuttrc`，
+然后将用户名/密码替换一下，运行 `$ neomutt` 就可以正常使用。
+
 > 目前在国内使用 gmail，Mutt 读取邮箱的速度太慢了，这是 gmail 被墙的问题，所以需要
 将 gmail 邮件下载到本地，这样就不用每次都访问 gmail 读取邮箱，从而使用下面的软件搭配。
 
@@ -82,16 +85,6 @@ set sort_aux = reverse-last-date-received
 
 这时候运行 `$ mutt` 就可以阅读本地邮件了，以后 gmail 有新邮件时，需要手动执行
 `$ offlineimap` 将新邮件下载到本地。
-
-### 未来
-
-ubuntu 默认安装 Python2 版本的 offlineimap，官方已经停止维持，最新是 Python3版本
-（offlinemap3）
-
-neomutt 是 mutt 的下游产品，添加更多功能
-
-因为刚刚开始，所以准备先用 offlineimap + mutt，后面慢慢优化，
-更新到 offlineimap3 + neomutt
 
 ## wget + mutt
 
