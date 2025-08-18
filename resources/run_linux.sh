@@ -6,6 +6,11 @@ EXTRA="-m 8G -smp 8 $NET"
 
 ARCH=$1
 DIR=$2
+
+if [ ! $ARCH ]; then
+	ARCH=x86_64
+fi
+
 if [ ! $DIR ]; then
 	if [ $ARCH = "x86_64" ]; then
 		DIR=linux/build/x86_64
