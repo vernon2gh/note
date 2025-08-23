@@ -4,6 +4,7 @@
 
 ```bash
 $ gunzip clash-linux-amd64-v3-v1.18.0.gz
+$ chmod +x clash
 $ mv clash ~/.local/bin/
 ```
 

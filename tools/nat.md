@@ -13,10 +13,10 @@
 从 https://natapp.cn/#download 获得下载链接，使用 wget 进行下载，同时修改执行权限
 
 ```bash
-$ wget https://cdn.natapp.cn/assets/downloads/clients/2_4_0/natapp_linux_amd64/natapp
+$ wget https://download.natapp.cn/assets/downloads/clients/2_4_0/natapp_linux_amd64/natapp
 $ chmod a+x natapp
 
-$ mv natapp /usr/local/natapp/natapp
+$ mv natapp /usr/local/bin/natapp
 ```
 
 ## 购买 natapp 隧道
@@ -36,9 +36,21 @@ $ mv natapp /usr/local/natapp/natapp
 保存到 `/usr/lib/systemd/system/natapp.service`，记得将 authtoken 修改成
 `我的隧道 -> authtoken`
 
+由于 SELinux 安全上下文问题，记得检查一下。
+
 ```bash
-$ systemctl enable natapp
-$ systemctl start natapp
+$ sestatus                                                  # 检查 SELinux 状态
+
+$ ls -Z /usr/lib/systemd/system/natapp.service              # 检查文件的 SELinux 上下文
+unconfined_u:object_r:systemd_unit_file_t:s0
+$ sudo restorecon -v /usr/lib/systemd/system/natapp.service # 如果不是 systemd_unit_file_t，恢复正确的 SELinux 上下文
+
+$ ls -Z /usr/local/bin/natapp                               # 检查文件的 SELinux 上下文
+unconfined_u:object_r:bin_t:s0
+$ sudo restorecon -v /usr/local/bin/natapp                  # 如果不是 bin_t，恢复正确的 SELinux 上下文
+
+$ systemctl enable natapp # 默认开机启动
+$ systemctl start natapp  # 当前启动
 ```
 
 ## ssh 远程访问内网服务器
