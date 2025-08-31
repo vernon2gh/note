@@ -26,6 +26,12 @@ if [ $ARCH = "x86_64" ]; then
 		-kernel $DIR/arch/x86/boot/bzImage		\
 		-append "root=/dev/sda1 rw console=ttyS0"	\
 		-enable-kvm -nographic $EXTRA
+
+	#qemu-system-x86_64 -hda make_rootfs/out/fedora.qcow2			\
+	#	-kernel $DIR/arch/x86/boot/bzImage				\
+	#	-initrd make_rootfs/out/fedora-initramfs.img			\
+	#	-append "root=/dev/mapper/systemVG-LVRoot rw console=ttyS0"	\
+	#	-enable-kvm -nographic $EXTRA
 fi
 
 if [ $ARCH = "arm64" ]; then
