@@ -393,3 +393,118 @@ $ PATH=$PATH:$PWD ./foo01
 
 
 
+# redis-benchmark
+
+## 简介
+
+redis-benchmark 是 redis 自带的性能测试工具，主要用于评估 redis 服务器的性能表现。
+
+主要用途：
+
+* 评估性能，测试 redis 在不同配置、负载或硬件下的吞吐量（QPS）和延迟。
+* 发现瓶颈，协助发现系统可能的性能瓶颈。
+* 对比验证，比较不同版本 redis、不同参数配置或不同环境下的性能差异。
+
+下面对 redis-benchmark 输出结果进行详细解释
+
+## 详细解释
+
+```bash
+====== MSET (10 keys) ======
+  100000 requests completed in 0.88 seconds
+  50 parallel clients
+  3 bytes payload     :
+  keep alive: 1
+  host configuration "save": 3600 1 300 100 60 10000 # RDB 持久化配置
+  host configuration "appendonly": no                # 未开启 AOF 持久化
+  multi-thread: no                                   # 单线程模式
+```
+
+* 标题：Redis 执行 MSET ( 10 个 keys ) 操作的压力测试结果
+* 总完成了 10 万次请求（即 10 万 * 10 = 100 万个 key 的设置），总耗时 0.88 秒
+* 使用了 50 个并发客户端来模拟压力
+* 每个键值对的大小是 3 个字节（如 "abc"）
+* 使用了 TCP 长连接，避免了频繁建立连接的开销
+
+```bash
+Latency by percentile distribution:
+0.000% <= 0.095 milliseconds (cumulative count 1)
+50.000% <= 0.223 milliseconds (cumulative count 86306)
+87.500% <= 0.231 milliseconds (cumulative count 94049)
+96.875% <= 0.303 milliseconds (cumulative count 98583)
+99.219% <= 0.367 milliseconds (cumulative count 99250)
+99.609% <= 0.375 milliseconds (cumulative count 99691)
+99.805% <= 0.383 milliseconds (cumulative count 99805)
+99.902% <= 0.447 milliseconds (cumulative count 99912)
+99.951% <= 12.623 milliseconds (cumulative count 99952)
+99.976% <= 12.911 milliseconds (cumulative count 99976)
+99.988% <= 13.103 milliseconds (cumulative count 99988)
+99.994% <= 13.175 milliseconds (cumulative count 99994)
+99.997% <= 13.215 milliseconds (cumulative count 99997)
+99.998% <= 13.247 milliseconds (cumulative count 99999)
+99.999% <= 13.255 milliseconds (cumulative count 100000)
+100.000% <= 13.255 milliseconds (cumulative count 100000)
+```
+
+延迟百分位分布：
+
+* 一句话解释：百分之X的请求，延迟都低于Y毫秒
+* 如何阅读：先关注左侧的百分比，再看右边对应的延迟值。
+
+如：99.902% 的请求，延迟都低于 0.447 ms
+
+```bash
+Cumulative distribution of latencies:
+0.002% <= 0.103 milliseconds (cumulative count 2)
+0.391% <= 0.207 milliseconds (cumulative count 391)
+98.583% <= 0.303 milliseconds (cumulative count 98583)
+99.895% <= 0.407 milliseconds (cumulative count 99895)
+99.945% <= 0.503 milliseconds (cumulative count 99945)
+99.950% <= 0.607 milliseconds (cumulative count 99950)
+99.988% <= 13.103 milliseconds (cumulative count 99988)
+100.000% <= 14.103 milliseconds (cumulative count 100000)
+```
+
+延迟累积分布：
+
+* 一句话解释：延迟低于Y毫秒的请求，占了百分之X
+* 如何阅读：先关注右侧的延迟阈值，再看左边对应的百分比
+
+如：延迟低于 0.607 ms 的的请求，占了 99.950%
+
+```bash
+Summary:
+  throughput summary: 113507.38 requests per second
+  latency summary (msec):
+          avg       min       p50       p95       p99       max
+        0.229     0.088     0.223     0.263     0.335    13.255
+```
+
+吞吐量 (Throughput) 表示平均每秒处理 113,507 次 MSET 操作，由于每次 MSET 包含
+10 个 KEY，所以相当于每秒处理了 1,135,070 次 key-val 设置。
+
+延迟 (Latency) 表示从发送请求到收到响应所需的时间，如下：
+
+* 平均延迟为 0.229 ms
+* 最快请求为 0.088 ms
+* 中位数延迟为 0.223 ms，即有一半的请求响应时间 小于等于 0.223 ms
+* 95% 延迟 <= 0.263 ms
+* 99% 延迟 <= 0.335 ms
+* 最慢请求为 13.255 ms
+
+## 什么是尾部延迟（Tail Latency）？
+
+尾部延迟是指响应时间分布中 "尾部" 部分请求的延迟，即最慢的那一小部分请求的延迟表现。
+
+* 头部：最快的请求（p0-p50）
+* 身体：主要请求群（p50-p90）
+* 尾部：最慢的请求（p90-p100）
+
+尾部延迟通常指：
+
+* p95: 0.303ms    # 尾部延迟开始
+* p99: 0.367ms    # 典型尾部延迟
+* max: 13.255ms   # 最极端尾部延迟
+
+尾部延迟不是某一个具体百分位，而是高百分位（p95、p99、max）延迟的整体现象。
+
