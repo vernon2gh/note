@@ -22,6 +22,11 @@ if [ ! $DIR ]; then
 fi
 
 if [ $ARCH = "x86_64" ]; then
+	#qemu-system-x86_64 -hda make_rootfs/out/rootfs.ext4	\
+	#	-kernel $DIR/arch/x86/boot/bzImage		\
+	#	-append "root=/dev/sda rw console=ttyS0"	\
+	#	-enable-kvm -nographic $EXTRA
+
 	qemu-system-x86_64 -hda make_rootfs/out/ubuntu.qcow2	\
 		-kernel $DIR/arch/x86/boot/bzImage		\
 		-append "root=/dev/sda1 rw console=ttyS0"	\
