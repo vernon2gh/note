@@ -511,7 +511,7 @@ Summary:
 ## 什么是 BGSAVE ?
 
 BGSAVE 是 redis 的一个核心命令，用于在后台（Background）异步地将当前 redis
-实例的数据集保存到一个名为 dump.rdb 的磁盘文件中。这个过程也称为创建 RDB 快照。
+实例的数据集保存到一个名为 `dump.rdb` 的磁盘文件中。这个过程也称为创建 RDB 快照。
 
 BGSAVE 是 redis 实现数据持久化的一个非阻塞、后台异步命令，通过 fork
 子进程来完成真正的持久化工作，而主进程继续处理客户端的请求，不会阻塞。
@@ -527,3 +527,12 @@ BGSAVE 是 redis 实现数据持久化的一个非阻塞、后台异步命令，
 | 执行方式 | 异步，fork 子进程处理            | 同步，主进程处理                 |
 | 是否阻塞 | 不阻塞主进程，客户端请求正常处理 | 阻塞主进程，客户端命令都无法处理 |
 | 使用场景 | 生产环境                         | 调试，极端情况                   |
+
+Q: 如何判断 redis 使用 BGSAVE 机制？
+
+```bash
+$ redis-cli INFO persistence | grep bgsave_status
+rdb_last_bgsave_status:ok
+```
+
+显示 `ok` 代表上一次保存 `dump.rdb` 是通过 BGSAVE 机制来完成的。
