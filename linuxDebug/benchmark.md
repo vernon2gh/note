@@ -199,17 +199,48 @@ $ memtester [-p PHYSADDR [-d DEVICE]] <MEMORY> [ITERATIONS]
 
 # mmtests
 
-    https://github.com/gormanm/mmtests
+## 简介
 
-    ## fedora
-    sudo dnf install perl-File-Slurp R
+mmtests 是一个用于自动化和标准化 Linux 内核性能测试的框架。它支持多种测试场景
+（如内存、调度、IO 等），通过统一的配置和脚本，简化测试流程，便于对不同内核版本或参数进行对比分析。
 
-    ## ubuntu
-    sudo cpanm File::Which
-    sudo apt install r-base
+mmtests 具有高度可扩展性，适合批量运行和结果收集，广泛用于内核开发和性能调优。
 
-    configs/config-pagereclaim-stutterp
-    configs/config-workload-kernbench-max
+mmtests 是一个测试框架，支持测试 kbuild、vm-scalability、redis、unixbenc、stress-ng 等。
+
+## 下载
+
+```bash
+$ git clone https://github.com/gormanm/mmtests.git
+```
+
+## 安装依赖
+
+```bash
+## fedora
+$ dnf install perl perl-File-Slurp R
+$ perl -MCPAN -e "install List::BinarySearch"
+$ perl -MCPAN -e "install Math::Gradient"
+
+## ubuntu
+$ apt install perl r-base
+$ cpanm File::Which
+```
+
+## 使用
+
+```bash
+$ ./run-mmtests.sh --no-monitor --config configs/config-workload-kernbench-max baseline
+$ ./run-mmtests.sh --no-monitor --config configs/config-workload-kernbench-max withxxx
+$ cd work/log
+$ ../../compare-kernels.sh --baseline baseline --compare withxxx
+```
+
+使用 config-workload-kernbench-max 测试 kbuild，最终调用 compare-kernels.sh 输出结果。
+下面对每一个配置文件进行解释。
+
+* config-workload-kernbench-max      : 使用 make 编译 linux 内核，统计消耗时间
+* config-memdb-redis-benchmark-small : 使用 redis-benchmark 测试，统计 p50/p95/p99
 
 # stress-ng
 
