@@ -241,6 +241,39 @@ $ ../../compare-kernels.sh --baseline baseline --compare withxxx
 
 * config-workload-kernbench-max      : 使用 make 编译 linux 内核，统计消耗时间
 * config-memdb-redis-benchmark-small : 使用 redis-benchmark 测试，统计 p50/p95/p99
+* config-workload-usemem             : 使用 vm-scalability usemem 进行压力测试
+
+## 减少性能波动
+
+由于系统本身存在噪音，即使在同一个环境中（物理机/操作系统/内核/benchmark配置等），
+运行多次后，存在一定范围的性能波动。
+
+为了减少性能波动，我们需要尽量排除一些影响较大的波动，其中影响最大的是 CPU 频率、
+idle 深度睡眠、高温降频、大小核等。下面分别对这些影响项进行调整。
+
+* CPU governors
+
+```bash
+$ cpupower frequency-set -g performance                          ## 设置 cpu governor 为 performance 模式
+$ cpupower -c all frequency-info | grep "performance preference" ## 查询
+```
+
+* cpu idle status
+
+```bash
+$ cpupower idle-set -D 1 ## 设置 CPU 空闲状态，禁用深度睡眠状态
+$ cpupower idle-info     ## 查询
+```
+
+* big-small core
+
+```bash
+$ cpupower -c all frequency-info | grep "hardware limits" ## 查询
+$ taskset -pc 0-15 <pid>                                  ## 将进程 pid 绑定在大核 0~15
+```
+
+如果测试机器存在大小核，尽量将测试项绑核在大核进行测试，避免自动选择大小核导致
+性能波动大。
 
 # stress-ng
 
