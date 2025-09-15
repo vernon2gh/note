@@ -1,0 +1,213 @@
+From 8f641fda2d87a387f32be4e43d655c6a3a5db93a Mon Sep 17 00:00:00 2001
+From: Vernon Yang <vernon2gm@gmail.com>
+Date: Mon, 15 Sep 2025 17:54:32 +0800
+Subject: [PATCH] mmtests: adapt i9-13900HX cpu
+
+Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
+---
+ bin/run-single-test.sh                        |  5 ++-
+ configs/config-memdb-redis-benchmark-small    | 14 +++---
+ configs/config-workload-kernbench-max         |  2 +-
+ configs/config-workload-usemem                | 10 ++---
+ shellpack_src/src/kernbench/kernbench-bench   |  7 ++-
+ shellpack_src/src/redis/redis-bench           |  2 +-
+ shellpack_src/src/usemem/usemem-bench         | 45 +++++++------------
+ .../src/usemembuild/usemembuild-install       |  8 ++--
+ 8 files changed, 45 insertions(+), 48 deletions(-)
+
+diff --git a/bin/run-single-test.sh b/bin/run-single-test.sh
+index 3d803a2e..2635b91a 100755
+--- a/bin/run-single-test.sh
++++ b/bin/run-single-test.sh
+@@ -77,8 +77,11 @@ setup_dirs
+ 
+ # Always start from first available node
+ if [ "`which taskset`" != "" -a "`which numactl`" != "" ]; then
++	cpupower frequency-set -g performance >> /dev/null
++	cpupower idle-set -D 1 >> /dev/null
++
+ 	taskset -pc `numactl --hardware | grep cpus: | awk -F : '{print $2}' | head -1 | sed -e 's/^\s*//' -e 's/ /,/g'` $$
+-	taskset -pc 0-4096 $$
++	taskset -pc 0-15 $$
+ fi
+ 
+ save_rc run_bench 2>&1 | tee /tmp/mmtests-$$.log
+diff --git a/configs/config-memdb-redis-benchmark-small b/configs/config-memdb-redis-benchmark-small
+index 8406c7af..3447096e 100644
+--- a/configs/config-memdb-redis-benchmark-small
++++ b/configs/config-memdb-redis-benchmark-small
+@@ -22,14 +22,14 @@ export MONITORS_WITH_LATENCY="vmstat iostat"
+ export MONITOR_UPDATE_FREQUENCY=10
+ 
+ # Redis
+-export REDIS_ITERATIONS=5
++export REDIS_ITERATIONS=20
+ export REDIS_PERSISTENCE="default-persist"
+-export REDIS_KEYSPACE=50000
+-export REDIS_REQUESTS=$((REDIS_KEYSPACE*2))
+-export REDIS_MEMTIER_THREADS=4
+-export REDIS_PIPELINE=256
+-export REDIS_MIN_CLIENTS=1
+-export REDIS_MAX_CLIENTS=$((NUMCPUS-REDIS_MEMTIER_SERVER_THREADS))
++export REDIS_KEYSPACE=2500000
++export REDIS_REQUESTS=$((REDIS_KEYSPACE))
++## export REDIS_MEMTIER_THREADS=4
++export REDIS_PIPELINE=32
++export REDIS_MIN_CLIENTS=12
++export REDIS_MAX_CLIENTS=12
+ 
+ # Disable THP as recommended by redis documentation
+ disable_transhuge
+diff --git a/configs/config-workload-kernbench-max b/configs/config-workload-kernbench-max
+index 9db4b730..fbb9d6db 100644
+--- a/configs/config-workload-kernbench-max
++++ b/configs/config-workload-kernbench-max
+@@ -34,4 +34,4 @@ export MMTESTS_THREAD_CUTOFF=
+ # Note that, depending on your userspace/gcc/etc, a specific kernel version
+ # may not be buildable. MMTests will try to sort things out automatically, but
+ # if you have problems, point it to a specific version from here.
+-export KERNBENCH_VERSION=5.14
++export KERNBENCH_VERSION=6.16
+diff --git a/configs/config-workload-usemem b/configs/config-workload-usemem
+index 266776a0..52527cfe 100644
+--- a/configs/config-workload-usemem
++++ b/configs/config-workload-usemem
+@@ -23,9 +23,9 @@ export MONITORS_WITH_LATENCY="vmstat iostat"
+ export MONITOR_UPDATE_FREQUENCY=10
+ 
+ # Memory consumer
+-export USEMEM_WORKLOAD_SIZE=$((MEMTOTAL_BYTES/20))
+-export USEMEM_PERCENTAGE_ANON=80
++export USEMEM_WORKLOAD_SIZE=$((MEMTOTAL_BYTES/2))
++export USEMEM_PERCENTAGE_ANON=100
+ export USEMEM_LOOPS=30
+-export USEMEM_ITERATIONS=7
+-export USEMEM_MIN_THREADS=1
+-export USEMEM_MAX_THREADS=$NUMCPUS
++export USEMEM_ITERATIONS=10
++export USEMEM_MIN_THREADS=$((NUMCPUS/2))
++export USEMEM_MAX_THREADS=$((NUMCPUS/2))
+diff --git a/shellpack_src/src/kernbench/kernbench-bench b/shellpack_src/src/kernbench/kernbench-bench
+index 38c03455..a0b4f858 100755
+--- a/shellpack_src/src/kernbench/kernbench-bench
++++ b/shellpack_src/src/kernbench/kernbench-bench
+@@ -46,7 +46,12 @@ KERNBENCH_TARGETS=`echo $KERNBENCH_TARGETS | sed -e 's/,/ /g'`
+ ###SHELLPACK init_only_start
+ 	cd $SHELLPACK_DATA > /dev/null
+ 	rm -f ./linux-$VERSION.tar.xz
+-	sources_fetch $WEB_LOCATION $MIRROR_LOCATION ./linux-$VERSION.tar.xz
++
++	if [ ! -e $SHELLPACK_SOURCES/linux-$VERSION.tar.xz ]; then
++		sources_fetch $WEB_LOCATION $MIRROR_LOCATION $SHELLPACK_SOURCES/linux-$VERSION.tar.xz
++	fi
++	cp $SHELLPACK_SOURCES/linux-$VERSION.tar.xz ./linux-$VERSION.tar.xz
++
+ 	tar xf linux-$VERSION.tar.xz || die "Failed to extract"
+ 	cd linux-$VERSION || die "Unexpected layout"
+ 
+diff --git a/shellpack_src/src/redis/redis-bench b/shellpack_src/src/redis/redis-bench
+index b63afb48..f1313284 100755
+--- a/shellpack_src/src/redis/redis-bench
++++ b/shellpack_src/src/redis/redis-bench
+@@ -101,7 +101,7 @@ server_start
+ 	if [ $NR_THREADS -eq 1 ]; then
+ 		CLIENT_THREADS=1
+ 	fi
+-	BENCH_CMD="redis-benchmark --csv -c $NR_THREADS --threads $CLIENT_THREADS -r $REDIS_KEYSPACE -n $REDIS_REQUESTS -P $REDIS_PIPELINE"
++	BENCH_CMD="redis-benchmark --csv -c $NR_THREADS -r $REDIS_KEYSPACE -n $REDIS_REQUESTS -P $REDIS_PIPELINE -d 1024 -t set"
+ 	log_cmd $BENCH_CMD
+ 	monitor_pre_hook $LOGDIR_RESULTS $NR_THREADS
+ 	###SHELLPACK iteration_begin $REDIS_ITERATIONS
+diff --git a/shellpack_src/src/usemem/usemem-bench b/shellpack_src/src/usemem/usemem-bench
+index 2ae345aa..41fbec5a 100644
+--- a/shellpack_src/src/usemem/usemem-bench
++++ b/shellpack_src/src/usemem/usemem-bench
+@@ -29,6 +29,18 @@ if [ "$USEMEM_FAKE_SWAP_MB" != "" ]; then
+ 	echo always > /sys/kernel/mm/transparent_hugepage/defrag
+ fi
+ 
++log_runtime() {
++	if [ ! -e $SHELLPACK_LOG/runtime.opts ]; then
++		echo "Runtime options" > $SHELLPACK_LOG/runtime.opts
++	fi
++	echo "$@" >> $SHELLPACK_LOG/runtime.opts
++}
++
++log_cmd() {
++	log_runtime "Run: $@"
++	echo "$@" >> $LOGDIR_RESULTS/commands.log
++}
++
+ MEMTOTAL_ANON=$((0+USEMEM_WORKLOAD_SIZE*USEMEM_PERCENTAGE_ANON/100))
+ MEMTOTAL_FILE=$((0+USEMEM_WORKLOAD_SIZE*(100-USEMEM_PERCENTAGE_ANON)/100))
+ if [ $MEMTOTAL_FILE -gt 0 ]; then
+@@ -43,37 +55,14 @@ echo File portion: $((MEMTOTAL_FILE/1048576))M
+ 	###SHELLPACK iteration_begin $USEMEM_ITERATIONS
+ 		echo Starting usemem with $NR_THREADS threads iteration $ITERATION/$USEMEM_ITERATIONS
+ 
+-		echo "#!/bin/bash
+-		echo -n > $SHELLPACK_TEMP/usemem.pids
+-
+ 		# Anon
+-		if [ $MEMTOTAL_ANON -gt 0 ]; then
+-			$SHELLPACK_SOURCES/usemembuild-$VERSION-installed/usemem	\
+-				-t $NR_THREADS						\
+-				-j 4096							\
+-				-r $USEMEM_LOOPS					\
+-				$((MEMTOTAL_ANON/NR_THREADS)) 2> /dev/null &
+-			echo \$! >> $SHELLPACK_TEMP/usemem.pids
+-		fi
+-
++		BENCH_CMD="usemem -t $NR_THREADS --prealloc --prefault $((MEMTOTAL_ANON/NR_THREADS/1048576))M"
+ 		# File
+-		if [ $MEMTOTAL_FILE -gt 0 ]; then
+-			$SHELLPACK_SOURCES/usemembuild-$VERSION-installed/usemem	\
+-				-t $NR_THREADS						\
+-				-f $SHELLPACK_TEMP/source_file				\
+-				-j 4096							\
+-				-r $USEMEM_LOOPS					\
+-				--readonly						\
+-				$((MEMTOTAL_FILE/NR_THREADS)) 2> /dev/null &
+-			echo \$! >> $SHELLPACK_TEMP/usemem.pids
+-		fi
++		# BENCH_CMD="usemem -t $NR_THREADS -f $SHELLPACK_TEMP/source_file -j 4096 -r $USEMEM_LOOPS --readonly $((MEMTOTAL_FILE/NR_THREADS/1048576))M"
++		log_cmd $BENCH_CMD
++
++		$TIME_CMD -o $LOGDIR_RESULTS/usemem-$NR_THREADS-$ITERATION $SHELLPACK_SOURCES/usemembuild-$VERSION-installed/$BENCH_CMD 2> /dev/null
+ 
+-		for USEMEM_PID in \`cat $SHELLPACK_TEMP/usemem.pids\`; do
+-			echo Waiting on pid \$USEMEM_PID
+-			wait \$USEMEM_PID
+-		done" > $SHELLPACK_TEMP/usemem.sh
+-		chmod a+x $SHELLPACK_TEMP/usemem.sh
+-		$TIME_CMD -o $LOGDIR_RESULTS/usemem-$NR_THREADS-$ITERATION $SHELLPACK_TEMP/usemem.sh
+ 		echo
+ 	###SHELLPACK iteration_end $USEMEM_ITERATIONS
+ 	monitor_post_hook $LOGDIR_RESULTS $NR_THREADS
+diff --git a/shellpack_src/src/usemembuild/usemembuild-install b/shellpack_src/src/usemembuild/usemembuild-install
+index f283a39d..87346c99 100644
+--- a/shellpack_src/src/usemembuild/usemembuild-install
++++ b/shellpack_src/src/usemembuild/usemembuild-install
+@@ -1,15 +1,15 @@
+ #!/bin/bash
+ ###SHELLPACK preamble usemembuild-install 0
+-WEB_LOCATION=http://www.spinics.net/lists/linux-mm/attachments/
++GIT_LOCATION=https://git.kernel.org/pub/scm/linux/kernel/git/wfg/vm-scalability.git
+ MIRROR_LOCATION="$WEBROOT/usemem"
+ 
+ ###SHELLPACK parseargBegin
+ ###SHELLPACK parseargEnd
+ install-depends lsscsi
+ 
+-###SHELLPACK sources_fetch gtarazbJaHPaAT.gtar usemembuild-${VERSION}-installed
++###SHELLPACK git_fetch usemem-${VERSION}.tar.gz usemembuild-${VERSION}-installed
++
+ ###SHELLPACK build_start usemembuild-${VERSION}-installed
++###SHELLPACK make
+ 
+-mkdir bin/
+-gcc -lpthread $DEFAULT_OPTIMISATION_LEVEL usemem.c -o usemem || die Failed to build usemem
+ exit $SHELLPACK_SUCCESS
+-- 
+2.51.0
+
