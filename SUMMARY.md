@@ -209,7 +209,7 @@
     * [tig](tools/tig.md)
     * [tmux](tools/tmux.md)
     * [mail_client](tools/mail_client.md)
-    * [download_patchset_from_LKML](tools/download_patchset_from_lkml.md)
+    * [LKML](tools/lkml.md)
     * [minicom](tools/minicom.md)
     * [clash](tools/clash.md)
 * other
