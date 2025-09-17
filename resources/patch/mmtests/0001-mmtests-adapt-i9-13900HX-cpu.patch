@@ -1,4 +1,4 @@
-From 8f641fda2d87a387f32be4e43d655c6a3a5db93a Mon Sep 17 00:00:00 2001
+From b42a7653442f965011b07c38d12fbecd88cd5f17 Mon Sep 17 00:00:00 2001
 From: Vernon Yang <vernon2gm@gmail.com>
 Date: Mon, 15 Sep 2025 17:54:32 +0800
 Subject: [PATCH] mmtests: adapt i9-13900HX cpu
@@ -69,7 +69,7 @@ index 9db4b730..fbb9d6db 100644
 -export KERNBENCH_VERSION=5.14
 +export KERNBENCH_VERSION=6.16
 diff --git a/configs/config-workload-usemem b/configs/config-workload-usemem
-index 266776a0..52527cfe 100644
+index 266776a0..90d7755a 100644
 --- a/configs/config-workload-usemem
 +++ b/configs/config-workload-usemem
 @@ -23,9 +23,9 @@ export MONITORS_WITH_LATENCY="vmstat iostat"
@@ -78,13 +78,13 @@ index 266776a0..52527cfe 100644
  # Memory consumer
 -export USEMEM_WORKLOAD_SIZE=$((MEMTOTAL_BYTES/20))
 -export USEMEM_PERCENTAGE_ANON=80
-+export USEMEM_WORKLOAD_SIZE=$((MEMTOTAL_BYTES/2))
++export USEMEM_WORKLOAD_SIZE=$((MEMTOTAL_BYTES*4))
 +export USEMEM_PERCENTAGE_ANON=100
  export USEMEM_LOOPS=30
 -export USEMEM_ITERATIONS=7
 -export USEMEM_MIN_THREADS=1
 -export USEMEM_MAX_THREADS=$NUMCPUS
-+export USEMEM_ITERATIONS=10
++export USEMEM_ITERATIONS=30
 +export USEMEM_MIN_THREADS=$((NUMCPUS/2))
 +export USEMEM_MAX_THREADS=$((NUMCPUS/2))
 diff --git a/shellpack_src/src/kernbench/kernbench-bench b/shellpack_src/src/kernbench/kernbench-bench
