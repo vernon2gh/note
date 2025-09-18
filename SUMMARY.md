@@ -212,6 +212,7 @@
     * [LKML](tools/lkml.md)
     * [minicom](tools/minicom.md)
     * [clash](tools/clash.md)
+    * [claude code](tools/claude_code.md)
 * other
     * [interview](other/interview.md)
     * [interview_c_base](other/interview_c_base.md)
