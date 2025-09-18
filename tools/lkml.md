@@ -47,6 +47,25 @@ $ sudo dnf install public-inbox
 ## 初始化 LKML
 
 ```bash
+$ git clone --mirror https://lore.kernel.org/lkml/0 lkml/git/0.git # oldest
+$ git clone --mirror https://lore.kernel.org/lkml/1 lkml/git/1.git
+$ git clone --mirror https://lore.kernel.org/lkml/2 lkml/git/2.git
+$ git clone --mirror https://lore.kernel.org/lkml/3 lkml/git/3.git
+$ git clone --mirror https://lore.kernel.org/lkml/4 lkml/git/4.git
+$ git clone --mirror https://lore.kernel.org/lkml/5 lkml/git/5.git
+$ git clone --mirror https://lore.kernel.org/lkml/6 lkml/git/6.git
+$ git clone --mirror https://lore.kernel.org/lkml/7 lkml/git/7.git
+$ git clone --mirror https://lore.kernel.org/lkml/8 lkml/git/8.git
+$ git clone --mirror https://lore.kernel.org/lkml/9 lkml/git/9.git
+$ git clone --mirror https://lore.kernel.org/lkml/10 lkml/git/10.git
+$ git clone --mirror https://lore.kernel.org/lkml/11 lkml/git/11.git
+$ git clone --mirror https://lore.kernel.org/lkml/12 lkml/git/12.git
+$ git clone --mirror https://lore.kernel.org/lkml/13 lkml/git/13.git
+$ git clone --mirror https://lore.kernel.org/lkml/14 lkml/git/14.git
+$ git clone --mirror https://lore.kernel.org/lkml/15 lkml/git/15.git
+$ git clone --mirror https://lore.kernel.org/lkml/16 lkml/git/16.git
+$ git clone --mirror https://lore.kernel.org/lkml/17 lkml/git/17.git # newest
+
 $ public-inbox-init -V2 lkml ./lkml https://lore.kernel.org/lkml linux-kernel@vger.kernel.org
 ```
 
