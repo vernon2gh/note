@@ -1,37 +1,19 @@
-From b42a7653442f965011b07c38d12fbecd88cd5f17 Mon Sep 17 00:00:00 2001
+From 409fea4d42c2871f67bdc56a791feee8c65fc5ac Mon Sep 17 00:00:00 2001
 From: Vernon Yang <vernon2gm@gmail.com>
 Date: Mon, 15 Sep 2025 17:54:32 +0800
 Subject: [PATCH] mmtests: adapt i9-13900HX cpu
 
 Signed-off-by: Vernon Yang <vernon2gm@gmail.com>
 ---
- bin/run-single-test.sh                        |  5 ++-
  configs/config-memdb-redis-benchmark-small    | 14 +++---
  configs/config-workload-kernbench-max         |  2 +-
- configs/config-workload-usemem                | 10 ++---
+ configs/config-workload-usemem                |  8 ++--
  shellpack_src/src/kernbench/kernbench-bench   |  7 ++-
  shellpack_src/src/redis/redis-bench           |  2 +-
  shellpack_src/src/usemem/usemem-bench         | 45 +++++++------------
  .../src/usemembuild/usemembuild-install       |  8 ++--
- 8 files changed, 45 insertions(+), 48 deletions(-)
+ 7 files changed, 40 insertions(+), 46 deletions(-)
 
-diff --git a/bin/run-single-test.sh b/bin/run-single-test.sh
-index 3d803a2e..2635b91a 100755
---- a/bin/run-single-test.sh
-+++ b/bin/run-single-test.sh
-@@ -77,8 +77,11 @@ setup_dirs
- 
- # Always start from first available node
- if [ "`which taskset`" != "" -a "`which numactl`" != "" ]; then
-+	cpupower frequency-set -g performance >> /dev/null
-+	cpupower idle-set -D 1 >> /dev/null
-+
- 	taskset -pc `numactl --hardware | grep cpus: | awk -F : '{print $2}' | head -1 | sed -e 's/^\s*//' -e 's/ /,/g'` $$
--	taskset -pc 0-4096 $$
-+	taskset -pc 0-15 $$
- fi
- 
- save_rc run_bench 2>&1 | tee /tmp/mmtests-$$.log
 diff --git a/configs/config-memdb-redis-benchmark-small b/configs/config-memdb-redis-benchmark-small
 index 8406c7af..3447096e 100644
 --- a/configs/config-memdb-redis-benchmark-small
@@ -69,7 +51,7 @@ index 9db4b730..fbb9d6db 100644
 -export KERNBENCH_VERSION=5.14
 +export KERNBENCH_VERSION=6.16
 diff --git a/configs/config-workload-usemem b/configs/config-workload-usemem
-index 266776a0..90d7755a 100644
+index 266776a0..2125c2cc 100644
 --- a/configs/config-workload-usemem
 +++ b/configs/config-workload-usemem
 @@ -23,9 +23,9 @@ export MONITORS_WITH_LATENCY="vmstat iostat"
@@ -83,10 +65,9 @@ index 266776a0..90d7755a 100644
  export USEMEM_LOOPS=30
 -export USEMEM_ITERATIONS=7
 -export USEMEM_MIN_THREADS=1
--export USEMEM_MAX_THREADS=$NUMCPUS
 +export USEMEM_ITERATIONS=30
-+export USEMEM_MIN_THREADS=$((NUMCPUS/2))
-+export USEMEM_MAX_THREADS=$((NUMCPUS/2))
++export USEMEM_MIN_THREADS=$NUMCPUS
+ export USEMEM_MAX_THREADS=$NUMCPUS
 diff --git a/shellpack_src/src/kernbench/kernbench-bench b/shellpack_src/src/kernbench/kernbench-bench
 index 38c03455..a0b4f858 100755
 --- a/shellpack_src/src/kernbench/kernbench-bench
