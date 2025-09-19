@@ -13,8 +13,8 @@ export MBX_DIR=$(pwd)/mbx/$INDEX
 function mbx_one() {
 	COMMIT_SHA=$1
 	BLOB_SHA=$(git ls-tree $COMMIT_SHA | awk '{print $3}')
-	MBXFILE=$(git log --pretty="format:%ai_%an_%s" -1 $COMMIT_SHA | sed 's/ /_/g; s/\[//g; s/\]//g; s/\//_/g;')
-	MBXFILE=${MBXFILE:0:251}.mbx
+	MBXFILE=$(git log --pretty="format:%ai_%an_%s" -1 $COMMIT_SHA | sed 's/[[:space:]]\{1,\}/_/g; s/\[//g; s/\]//g; s/\//_/g; s/(//g; s/)//g; s/+//g; s/-//g; s/://g; s/,//g')
+	MBXFILE=${MBXFILE:0:200}.mbx
 
 	if [ ! -e $MBX_DIR/$MBXFILE ]; then
 		git cat-file blob $BLOB_SHA > $MBX_DIR/$MBXFILE
