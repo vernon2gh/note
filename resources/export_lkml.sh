@@ -2,7 +2,7 @@
 
 if [ $# -eq 0 ]; then
 	echo "$0 index"
-	echo "   index range is 1~17, reference https://lore.kernel.org/lkml/_/text/mirror"
+	echo "   index range is 0~17, reference https://lore.kernel.org/lkml/_/text/mirror"
 	exit
 fi
 
