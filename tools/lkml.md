@@ -30,21 +30,14 @@ $ git clone git://git.kernel.org/pub/scm/utils/b4/b4.git
 5. 得到一个 `*.mbx` 后缀的文件，此文件就是 patchset
 6. 通过 `git am *.mbx` 将 patchset 打上 linux 源码中
 
-# public-inbox
+# lkml git
 
 ## 简介
 
-public-inbox 是 LKML 本身现在使用的工具，也可以用它来在本地克隆和同步邮件列表。
-
+所有 LKML 邮件都保存在对应 git 仓库中，我们可以直接 clone LKML.git 仓库，
 这样我们相当于得到所有内核邮件，得到内核补丁集（patchset）。
 
-## 安装
-
-```bash
-$ sudo dnf install public-inbox
-```
-
-## 初始化 LKML
+## 下载 LKML.git
 
 ```bash
 $ git clone --mirror https://lore.kernel.org/lkml/0 lkml/git/0.git # oldest
@@ -65,14 +58,13 @@ $ git clone --mirror https://lore.kernel.org/lkml/14 lkml/git/14.git
 $ git clone --mirror https://lore.kernel.org/lkml/15 lkml/git/15.git
 $ git clone --mirror https://lore.kernel.org/lkml/16 lkml/git/16.git
 $ git clone --mirror https://lore.kernel.org/lkml/17 lkml/git/17.git # newest
-
-$ public-inbox-init -V2 lkml ./lkml https://lore.kernel.org/lkml linux-kernel@vger.kernel.org
 ```
 
-## 同步 LKML 到本地
+## 从 LKML.git 导出所有邮件
 
 ```bash
-$ public-inbox-index ./lkml
+$ cd LKML.git
+$ git cat-file blob $(git ls-tree $COMMIT_SHA | awk '{print $3}')
 ```
 
 ## 参考
