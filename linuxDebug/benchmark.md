@@ -600,3 +600,53 @@ rdb_last_bgsave_status:ok
 ```
 
 显示 `ok` 代表上一次保存 `dump.rdb` 是通过 BGSAVE 机制来完成的。
+
+# STREAM
+
+## 简介
+
+STREAM 是内存带宽测试，通过模拟四种典型的内存操作模式，测试内存子系统在
+连续数据流处理中的带宽性能（单位：MB/s）
+
+* COPY  ：纯内存复制 `a[i] = b[i]`，涉及两次访存（读+写）。
+* SCALE ：内存复制+标量乘法 `a[i] = q * b[i]`，涉及两次访存和一次浮点乘法。
+* ADD   ：内存加法 `a[i] = b[i] + c[i]`，涉及三次访存和一次浮点加法。
+* TRIAD ：混合运算 `a[i] = b[i] + q * c[i]`，涉及三次访存和两次浮点运算（加法+乘法）。
+
+操作中访存次数越多，越能掩盖内存延迟，带宽越高。
+浮点计算越多，完成时间越长，带宽越低。
+测试结果反映可持续内存带宽（非理论峰值）。
+
+## 下载编译
+
+```bash
+$ wget https://www.cs.virginia.edu/stream/FTP/Code/stream.c
+$ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=10000000 -DNTIMES=10 stream.c -o stream
+```
+
+STREAM_ARRAY_SIZE ：数组大小，大于最后一级缓存总和的4倍（如：64MB L3 cache，设置值需要大于256MB）
+TIMES             : 运行次数
+-fopenmp          ：启用多线程支持，通过 OMP_NUM_THREADS 设置线程数。
+
+## 测试
+
+```bash
+## 单线程测试
+$ export OMP_NUM_THREADS=1
+$ ./stream
+
+## 多线程测试，默认
+$ export OMP_NUM_THREADS=8  ## 8 个线程
+$ ./stream
+Function    Best Rate MB/s  Avg time     Min time     Max time
+Copy:           49232.5     0.003792     0.003250     0.006448
+Scale:          46795.1     0.003872     0.003419     0.006406
+Add:            50346.8     0.005193     0.004767     0.007915
+Triad:          52888.8     0.004916     0.004538     0.006513
+```
+
+## 影响性能的关键因素
+
+* 硬件配置：内存频率、通道数（双通道 vs 四通道）。
+* 系统架构：CPU缓存效率、NUMA（非统一内存访问）优化。
+* 软件优化：编译器选项、内存对齐（OFFSET参数）。
