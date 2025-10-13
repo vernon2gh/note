@@ -243,6 +243,10 @@ $ ../../compare-kernels.sh --baseline baseline --compare withxxx
 * config-memdb-redis-benchmark-small : 使用 redis-benchmark 测试，统计 p50/p95/p99
 * config-workload-usemem             : 使用 vm-scalability usemem 进行压力测试
 
+## 搭建本地 mirror
+
+[通过 Apache HTTP 服务器来搭建本地 mirror](../tools/http.md)
+
 ## 减少性能波动
 
 由于系统本身存在噪音，即使在同一个环境中（物理机/操作系统/内核/benchmark配置等），
