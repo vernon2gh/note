@@ -58,7 +58,6 @@ require("lazy").setup({
 
 -- base setting
 vim.o.number = true
-vim.o.relativenumber = true
 vim.o.mouse = ""
 vim.wo.colorcolumn = "80"
 vim.cmd [[ autocmd BufWritePre * %s/\s\+$//e ]]
@@ -90,7 +89,8 @@ local builtin = require('telescope.builtin')
 vim.keymap.set('n', ';ff', builtin.find_files, { desc = 'Telescope find files' })
 vim.keymap.set('n', ';fg', builtin.live_grep, { desc = 'Telescope live grep' })
 
-require('lspconfig').clangd.setup { }
+vim.lsp.config('clangd', { })
+vim.lsp.enable('clangd')
 vim.diagnostic.enable(false)
 vim.keymap.set('n', ';d', vim.lsp.buf.definition, opts)
 vim.keymap.set('n', ';r', vim.lsp.buf.references, opts)
@@ -130,11 +130,13 @@ require('render-markdown').setup {
 
 require("codecompanion").setup {
 	adapters = {
+		http = {
 		deepseek = function()
 			return require("codecompanion.adapters").extend("deepseek", {
 				env = { api_key = "xxx" },
 			})
 		end,
+		},
 	},
 	strategies = {
 		-- chat = { adapter = "ollama" },
