@@ -49,6 +49,10 @@ $ grub2-mkconfig -o /boot/grub2/grub.cfg
 $ reboot
 ```
 
+# tips
+
+将 BIOS Secure Boot 功能进行关闭，方便进行内核功能验证
+
 # 参考
 
 https://docs.fedoraproject.org/en-US/quick-docs/kernel-build-custom

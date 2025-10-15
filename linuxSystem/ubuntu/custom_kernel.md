@@ -41,3 +41,7 @@ $ update-grub
 
 $ reboot
 ```
+
+# tips
+
+将 BIOS Secure Boot 功能进行关闭，方便进行内核功能验证
