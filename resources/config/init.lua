@@ -151,6 +151,7 @@ require("codecompanion").setup {
 	},
 }
 vim.keymap.set({'n', 'v'}, ';w', ':CodeCompanionChat Toggle<CR>', { silent = true })
+vim.keymap.set({'n', 'v'}, ';t', ':CodeCompanionChat #{buffer} Translate<CR>', {silent = true})
 vim.keymap.set({'n', 'v'}, ';e', ':CodeCompanion /explain<CR>', {silent = true})
 vim.keymap.set({'n', 'v'}, ';a', ':CodeCompanion ', opts)
 
