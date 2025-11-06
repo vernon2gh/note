@@ -23,12 +23,12 @@ node2 的优先级为20，node3 的优先级为30，node4 的优先级为10, 现
 ```
 +---------------------------------------------------------------------------+
 |                                                                           |
-|     head           node1          node2          node4          node3     |
+|     head         node1(10)      node4(10)      node2(20)      node3(30)   |
 +-> node_list <--> node_list <--> node_list <--> node_list <--> node_list <-+
-               +-> prio_list <--> prio_list      prio_list      prio_list <-+
-               |                          ^                     ^           |
-               |                          |                     |           |
-               |                          +---------------------+           |
+               +-> prio_list      prio_list      prio_list <--> prio_list <-+
+               |           ^                     ^                          |
+               |           |                     |                          |
+               |           +---------------------+                          |
                +------------------------------------------------------------+
 ```
 
