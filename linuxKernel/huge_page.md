@@ -228,3 +228,17 @@ handle_mm_fault()
         handle_pte_fault()
             do_wp_page()
 ```
+
+
+wakeup khugepaged 的场景
+
+- pagefault 直接分配2MB，同时唤醒khugepaged
+- `madvise(MADV_HUGEPAGE)` 直接唤醒khugepaged
+- `mmap()`/`mprotect()`/`mremap()` 导致vma合并时唤醒khugepaged
+
+```
+pagefault handle_mm_fault()     -----+
+madvise   hugepage_madvise()         +--> 唤醒khugepaged的核心函数
+vma       vma_merge_existing_range() +--> khugepaged_enter_vma()
+vma       vma_merge_new_range() -----+
+```
