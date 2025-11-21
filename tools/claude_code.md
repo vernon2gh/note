@@ -49,6 +49,18 @@ export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 注：设置API_TIMEOUT_MS是为了防止输出过长，触发 Claude Code
 客户端超时，这里设置的超时时间为 10 分钟。
 
+## 使用 GLM 模型进行认证
+
+为了满足 claude code 使用 GLM 大模型，通过以下简单的配置，即可将 GLM
+API 接入到 Anthropic API 生态中。
+
+```bash
+export ANTHROPIC_BASE_URL=https://open.bigmodel.cn/api/anthropic
+export ANTHROPIC_AUTH_TOKEN=${GLM_API_KEY}
+export API_TIMEOUT_MS=3000000
+export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+```
+
 ## 如何使用？
 
 ```bash
@@ -61,3 +73,4 @@ $ claude  ## 进入指定目录，执行命令
 
 * https://docs.claude.com/zh-CN/docs/claude-code/quickstart
 * https://api-docs.deepseek.com/zh-cn/guides/anthropic_api
+* https://docs.bigmodel.cn/cn/coding-plan/tool/claude
