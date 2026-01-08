@@ -101,6 +101,26 @@ $ mutt -f raw
 
 此时已经进入到 mutt，能够按照正常操作回复此邮件了
 
+## lei + mutt
+
+有时候我们想要评阅/回复 LKML 的邮件，但是又不想抄送到邮箱，
+我们要如何评阅/回复 LKML 的邮件？
+
+在 LKML 找到对应想要评阅邮件列表，通过 lei 同步邮件到本地，
+导入到 mutt 中，即可查看/回复邮件。
+
+```bash
+$ mkdir Mail/lei
+$ lei q --only=https://lore.kernel.org/linux-mm \
+        --output="${HOME}/Mail/lei/mm"          \
+        'rt:12.months.ago..'
+
+$ lei up --all         ## 同步上述评阅的邮件列表
+$ mutt -f Mail/lei/mm
+```
+
+此时已经进入到 mutt，能够按照正常操作回复此邮件了
+
 ## mutt 颜色配置
 
 * Patch 高亮
@@ -151,5 +171,6 @@ color   quoted4 red             black
 ## 参考
 
 * [offlineimap](http://www.offlineimap.org/about/)
+* [lei](https://blog.gnoack.org/post/lei/)
 * [mutt](http://www.mutt.org/doc/manual/)
 * [Mutt: 阅读邮件列表](https://fancyseeker.github.io/2015/08/19/mutt/)
