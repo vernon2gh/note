@@ -69,6 +69,15 @@ $ claude  ## 进入指定目录，执行命令
 > xxx     ## 进行提问即可
 ```
 
+## TIPS: 使用 LSP 查看函数调用链
+
+```bash
+export ENABLE_LSP_TOOL=1
+
+$ claude
+❯ /plugin ## 安装 clangd-lsp
+```
+
 ## 参考
 
 * https://docs.claude.com/zh-CN/docs/claude-code/quickstart
