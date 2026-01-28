@@ -438,24 +438,26 @@ $ make install # install LTP inside /opt/ltp by default
 
 ```bash
 $ cd /opt/ltp
-$ ./kirk -f ltp -r syscalls # run syscalls testing suite
+
+# run mm testing suite
+$ ./kirk --run-suite mm
 or
-$ ./runltp -f syscalss
+$ ./runltp -f mm
 ```
 
-通过 `kirk`/`runltp` 执行测试集 `syscalls`, 包含多个测试用例
+通过 `kirk`/`runltp` 执行测试集 `mm`, 包含多个测试用例
 
-测试集 `syscalls` 存储在 `runtest` 目录中
+测试集 `mm` 存储在 `runtest` 目录中
 
 ## build and run single tests
 
 ```bash
-$ cd testcases/kernel/syscalls/foo
+$ cd testcases/kernel/mem/foo
 $ make
 $ PATH=$PATH:$PWD ./foo01
 ```
 
-编译 syscalls 目录下的所有测试用例，同时只执行 foo01 测试用例
+编译 mem 目录下的所有测试用例，同时只执行 foo01 测试用例
 
 # LKP-tests
 
