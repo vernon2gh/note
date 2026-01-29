@@ -94,7 +94,8 @@
     * [fio](linuxDebug/fio.md)
     * [benchmark](linuxDebug/benchmark.md)
     * [gcov](linuxDebug/gcov.md)
-    * [static_analysers](tools/static_analysers.md)
+    * [static_analysers](linuxDebug/static_analysers.md)
+    * [pahole](linuxDebug/pahole.md)
 * linuxSystem
     * common
         * [system_version](linuxSystem/common/system_version.md)
