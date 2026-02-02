@@ -20,6 +20,7 @@ set use_from = yes
 # ================  Others  ====================
 set sort = threads
 set sort_aux = reverse-last-date-received
+set signature = "~/.mutt_reply"
 
 # ==============  Patch color  =================
 color   body    red             black    "^-.*"
@@ -58,3 +59,13 @@ color   quoted2 cyan            black
 color   quoted3 yellow          black
 color   quoted4 red             black
 
+# ==============  Key map  =================
+bind index i previous-entry
+bind index k next-entry
+bind index j previous-page
+bind index l next-page
+bind pager i previous-line
+bind pager k next-line
+bind pager j previous-entry
+bind pager l next-entry
+set pager_stop
