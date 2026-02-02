@@ -21,8 +21,11 @@ set use_from = yes
 set sort = threads
 set sort_aux = reverse-last-date-received
 set signature = "~/.mutt_reply"
-unignore  Date: Subject: From: To: Cc: Message-ID:
-hdr_order Date: Subject: From: To: Cc: Message-ID:
+set date_format = "%Y-%m-%d"
+set index_format = "%4C   %d  %-15.15L (%Z) %s"
+ignore *
+unignore  Subject: From: To: Cc: Message-ID:
+hdr_order Subject: From: To: Cc: Message-ID:
 
 # ==============  Patch color  =================
 color   body    red             black    "^-.*"
