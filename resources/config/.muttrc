@@ -24,53 +24,57 @@ set signature = "~/.mutt_reply"
 set date_format = "%Y-%m-%d"
 set index_format = "%4C   %d  %-15.15L (%Z) %s"
 ignore *
-unignore  Subject: From: To: Cc: Message-ID:
-hdr_order Subject: From: To: Cc: Message-ID:
+unignore  Date: From: To: Cc: Message-ID: Subject:
+hdr_order Date: From: To: Cc: Message-ID: Subject:
 
 # ==============  Patch color  =================
-color   body    red             black    "^-.*"
-color   body    green           black    "^[+].*"
-color   body    brightwhite     black    "^diff --git.*"
-color   body    brightwhite     black    "^index [a-f0-9].*"
-color   body    brightwhite     black    "^\-\-\- a.*"
-color   body    brightwhite     black    "^[\+]{3} b.*"
-color   body    brightyellow    black    "^@@.*"
-color   body    brightmagenta   black    "^(Signed-off-by).*"
-color   body    brightmagenta   black    "^(Reported-by).*"
-color   body    brightmagenta   black    "^(Suggested-by).*"
-color   body    brightmagenta   black    "^(Acked-by).*"
-color   body    brightmagenta   black    "^(Reviewed-by).*"
-color   body    brightmagenta   black    "^\-\-\-$"
-color   body    white           black    "^( \#define).*"
-color   body    white           black    "^( \#include).*"
-color   body    white           black    "^( \#if).*"
-color   body    white           black    "^( \#el).*"
-color   body    white           black    "^( \#endif).*"
+color	body	red		black	"^-.*"
+color	body	green		black	"^[+].*"
+color	body	brightwhite	black	"^diff --git.*"
+color	body	brightwhite	black	"^index [a-f0-9].*"
+color	body	brightwhite	black	"^\-\-\- a.*"
+color	body	brightwhite	black	"^[\+]{3} b.*"
+color	body	brightyellow	black	"^@@.*"
+color	body	brightmagenta	black	"^(Signed-off-by).*"
+color	body	brightmagenta	black	"^(Reported-by).*"
+color	body	brightmagenta	black	"^(Suggested-by).*"
+color	body	brightmagenta	black	"^(Acked-by).*"
+color	body	brightmagenta	black	"^(Reviewed-by).*"
+color	body	brightmagenta	black	"^\-\-\-$"
+color	body	white		black	"^( \#define).*"
+color	body	white		black	"^( \#include).*"
+color	body	white		black	"^( \#if).*"
+color	body	white		black	"^( \#el).*"
+color	body	white		black	"^( \#endif).*"
 
-color   body    green           black    "LGTM"
-color   body    brightmagenta   black    "-- Commit Summary --"
-color   body    brightmagenta   black    "-- File Changes --"
-color   body    brightmagenta   black    "-- Patch Links --"
-color   body    green           black    "^Merged #.*"
-color   body    red             black    "^Closed #.*"
-color   body    brightblue      black    "^Reply to this email.*"
+color	body	green		black	"LGTM"
+color	body	brightmagenta	black	"-- Commit Summary --"
+color	body	brightmagenta	black	"-- File Changes --"
+color	body	brightmagenta	black	"-- Patch Links --"
+color	body	green		black	"^Merged #.*"
+color	body	red		black	"^Closed #.*"
+color	body	brightblue	black	"^Reply to this email.*"
 
 # ==============  Quoted Color  =================
 set quote_regexp = "^([ \t]*[>])+"
 
-color   quoted  blue            black
-color   quoted1 magenta         black
-color   quoted2 cyan            black
-color   quoted3 yellow          black
-color   quoted4 red             black
+color	quoted	blue		black
+color	quoted1	magenta		black
+color	quoted2	cyan		black
+color	quoted3	yellow		black
+color	quoted4	red		black
+
+# ==============  Others Color  =================
+color	index	bold		default	default	"~N"
 
 # ==============  Key map  =================
-bind index i previous-entry
-bind index k next-entry
-bind index j previous-page
-bind index l next-page
-bind pager i previous-line
-bind pager k next-line
-bind pager j previous-entry
-bind pager l next-entry
+macro	index	\Cr	"T~U<enter><tag-prefix><clear-flag>N<untag-pattern>.<enter>"	"mark all messages as read"
+bind	index	i	previous-entry
+bind	index	k	next-entry
+bind	index	j	previous-page
+bind	index	l	next-page
+bind	pager	i	previous-line
+bind	pager	k	next-line
+bind	pager	j	previous-entry
+bind	pager	l	next-entry
 set pager_stop
