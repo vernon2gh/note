@@ -13,6 +13,12 @@ mmap_write_lock_killable at include/linux/mmap_lock.h:122
 (inlined by) vm_mmap_pgoff at mm/util.c:578
 ```
 
+* 内核panic时，将整个 dmesg 日志的 `func+offset/size` 都转换成 `file.c:line`
+
+```bash
+$ ./scripts/decode_stacktrace.sh ./vmlinux < dmesg.log
+```
+
 * 在没有任何工具时，根据函数名字查找符号地址，从而查找函数定义位置
 
 ```bash
