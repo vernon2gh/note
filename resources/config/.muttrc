@@ -21,8 +21,7 @@ set use_from = yes
 set sort = threads
 set sort_aux = reverse-last-date-received
 set signature = "~/.mutt_reply"
-set date_format = "%Y-%m-%d"
-set index_format = "%4C   %d  %-15.15L (%Z) %s"
+set index_format = "%4C   %{%Y-%m-%d}  %-15.15L (%Z) %s"
 ignore *
 unignore  Date: From: To: Cc: Message-ID: Subject:
 hdr_order Date: From: To: Cc: Message-ID: Subject:
@@ -71,10 +70,14 @@ color	index	bold		default	default	"~N"
 macro	index	\Cr	"T~U<enter><tag-prefix><clear-flag>N<untag-pattern>.<enter>"	"mark all messages as read"
 bind	index	i	previous-entry
 bind	index	k	next-entry
-bind	index	j	previous-page
-bind	index	l	next-page
+bind	index	j	previous-thread
+bind	index	l	next-thread
+bind	index	\Cj	previous-page
+bind	index	\Cl	next-page
 bind	pager	i	previous-line
 bind	pager	k	next-line
-bind	pager	j	previous-entry
-bind	pager	l	next-entry
+bind	pager	j	previous-page
+bind	pager	l	next-page
+bind	pager	\Cj	previous-entry
+bind	pager	\Cl	next-entry
 set pager_stop
