@@ -96,6 +96,7 @@
     * [gcov](linuxDebug/gcov.md)
     * [static_analysers](linuxDebug/static_analysers.md)
     * [pahole](linuxDebug/pahole.md)
+    * [syzbot](linuxDebug/syzbot.md)
 * linuxSystem
     * common
         * [system_version](linuxSystem/common/system_version.md)
