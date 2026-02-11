@@ -25,8 +25,32 @@ syzbot 是由 Google 运营的、用于 Linux 内核的自动化模糊测试与�
 
 前提条件：
 
-- 可复现 BUG 的 `C` reproducer
 - 内核配置文件 `.config`
+- 可复现 BUG 的复现程序（reproducer）
+    - `C` 源码文件（`repro.c`）
+    - 二进制格式的程序（`repro.syz`），用于在 `syz-execprog` 下运行
 
 直接使用 `.config` 编译最新内核可执行镜像，然后使用 qemu 运行内核，最后使用
-`C` reproducer 复现 BUG。
+reproducer 复现 BUG。
+
+### repro.c
+
+```bash
+$ gcc -o repro repro.c
+$ ./repro
+```
+
+### repro.syz
+
+```bash
+## 编译 syz-execprog
+$ sudo dnf install go libstdc++-static
+$ git clone https://github.com/google/syzkaller.git
+$ cd syzkaller
+$ make
+$ ls bin/linux_amd64/
+syz-execprog syz-executor
+
+## 执行 repro.syz
+$./syz-execprog -enable=all -repeat=0 -procs=6 ./repro.syz
+```
