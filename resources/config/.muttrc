@@ -12,7 +12,7 @@ set editor = "vi"
 set edit_headers = yes  # See the headers when editing
 set charset = UTF-8     # value of $LANG; also fallback for send_charset
 # Sender, email address, and sign-off line must match
-unset use_domain        # because joe@localhost is just embarrassing
+unset use_domain
 set realname = "xxx"
 set from = "xxx@gmail.com"
 set use_from = yes
@@ -22,6 +22,7 @@ set sort = threads
 set sort_aux = reverse-last-date-received
 set signature = "~/.mutt_reply"
 set index_format = "%4C   %{%Y-%m-%d}  %-15.15L (%Z) %s"
+send-hook . 'my_hdr Message-ID: <`uuidgen`@gmail.com>'
 ignore *
 unignore  Date: From: To: Cc: Message-ID: Subject:
 hdr_order Date: From: To: Cc: Message-ID: Subject:
