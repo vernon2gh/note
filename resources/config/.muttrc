@@ -8,7 +8,7 @@ set smtp_pass = "xxx"
 set ssl_force_tls = yes # Require encrypted connection
 
 # ================  Composition  ====================
-set editor = "vi"
+set editor = "vim"
 set edit_headers = yes  # See the headers when editing
 set charset = UTF-8     # value of $LANG; also fallback for send_charset
 # Sender, email address, and sign-off line must match
@@ -69,6 +69,8 @@ color	index	bold		default	default	"~N"
 
 # ==============  Key map  =================
 macro	index	\Cr	"T~U<enter><tag-prefix><clear-flag>N<untag-pattern>.<enter>"	"mark all messages as read"
+macro	index	\Cf	"<limit>(~p|~F)<enter>"	"Limit: myself or flag"
+macro	index	\Ca	"<limit>all<enter>"	"Limit: show all messages"
 bind	index	i	previous-entry
 bind	index	k	next-entry
 bind	index	j	previous-thread
