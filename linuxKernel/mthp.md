@@ -38,7 +38,8 @@ THP 可以看作是 mTHP 的子集，下面我们统一使用 mTHP 的叫法。
 目前 mTHP 仅适用于匿名内存、共享匿名内存 shm_anon、shm_tmpfs
 
 * mTHP anon
-* mTHP shm_anon/shm_tmpfs
+* mTHP shm_anon（internal shmem mount, anonymous shmem）
+* mTHP shm_tmpfs（mount -t tmpfs, tmpfs）
 
 mTHP 通过两种方式将大页映射到进程虚报地址空间中。
 
@@ -48,9 +49,9 @@ mTHP 通过两种方式将大页映射到进程虚报地址空间中。
 如何使用 mTHP?（以 always 为例）
 
 ```bash
-$ echo always > /sys/kernel/mm/transparent_hugepage/hugepages-xxxkB/enabled
-$ echo always > /sys/kernel/mm/transparent_hugepage/hugepages-xxxkB/shmem_enabled
-$ mount -t tmpfs -o size=1G,huge=always tmpfs /foo
+$ echo always > /sys/kernel/mm/transparent_hugepage/hugepages-xxxkB/enabled        ## mTHP anon
+$ echo always > /sys/kernel/mm/transparent_hugepage/hugepages-xxxkB/shmem_enabled  ## mTHP shm_anon
+$ mount -t tmpfs -o size=1G,huge=always tmpfs /foo                                 ## mTHP shm_tmpfs
 ```
 
 ## 二、mTHP anon
