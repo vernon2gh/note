@@ -70,6 +70,7 @@
     * [sched_period](linuxKernel/sched_period.md)
     * [cma](linuxKernel/cma.md)
     * [mTHP](linuxKernel/mthp.md)
+    * [memory_statistica](linuxKernel/memory_statistica.md)
 * linuxDebug
     * [openocd_openjtag](linuxDebug/openocd_openjtag.md)
     * [i2c_tools](linuxDebug/i2c_tools.md)
