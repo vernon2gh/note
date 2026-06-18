@@ -57,11 +57,11 @@ API 接入到 Anthropic API 生态中。
 ```bash
 export ANTHROPIC_BASE_URL=https://open.bigmodel.cn/api/anthropic
 export ANTHROPIC_AUTH_TOKEN=${GLM_API_KEY}
-export ANTHROPIC_MODEL=glm-5.1
-export ANTHROPIC_DEFAULT_OPUS_MODEL=glm-5.1
-export ANTHROPIC_DEFAULT_SONNET_MODEL=glm-5.1
+export ANTHROPIC_MODEL=glm-5.2[1m]
+export ANTHROPIC_DEFAULT_OPUS_MODEL=glm-5.2[1m]
+export ANTHROPIC_DEFAULT_SONNET_MODEL=glm-5.2[1m]
 export ANTHROPIC_DEFAULT_HAIKU_MODEL=glm-5-turbo
-export CLAUDE_CODE_SUBAGENT_MODEL=glm-5.1
+export CLAUDE_CODE_SUBAGENT_MODEL=glm-5.2[1m]
 export CLAUDE_CODE_EFFORT_LEVEL=max
 ```
 
