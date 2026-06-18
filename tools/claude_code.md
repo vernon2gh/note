@@ -82,6 +82,18 @@ $ claude
 ❯ /plugin ## 安装 clangd-lsp
 ```
 
+## TIPS: 使用 mcp-ssh 在远程机器执行命令
+
+```bash
+$ claude mcp add ssh -s user -- npx -y @aiondadotcom/mcp-ssh # 安装 mcp-ssh
+$ claude mcp list                                            # 看是否注册成
+$ claude mcp get ssh                                         # 看详细配置
+
+# 前提：ssh tester 免密可用
+$ claude
+> 在 tester 上跑 ls ~
+```
+
 ## 参考
 
 * https://docs.claude.com/zh-CN/docs/claude-code/quickstart
