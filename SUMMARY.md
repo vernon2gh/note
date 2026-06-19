@@ -217,6 +217,7 @@
     * [LKML](tools/lkml.md)
     * [minicom](tools/minicom.md)
     * [clash](tools/clash.md)
+    * [mihomo](tools/mihomo.md)
     * [claude code](tools/claude_code.md)
     * [http](tools/http.md)
 * other
