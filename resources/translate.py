@@ -62,7 +62,7 @@ def load_env():
 
 
 def is_english(text: str) -> bool:
-    return text.isascii()
+    return not any("一" <= ch <= "鿿" for ch in text)
 
 
 def translate(text: str, api_base: str, api_key: str, model: str) -> str:
