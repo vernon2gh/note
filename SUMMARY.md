@@ -219,6 +219,7 @@
     * [clash](tools/clash.md)
     * [mihomo](tools/mihomo.md)
     * [claude code](tools/claude_code.md)
+    * [codex](tools/codex.md)
     * [http](tools/http.md)
 * other
     * [interview](other/interview.md)
