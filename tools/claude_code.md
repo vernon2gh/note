@@ -46,7 +46,6 @@ export ANTHROPIC_DEFAULT_OPUS_MODEL=deepseek-v4-pro[1m]
 export ANTHROPIC_DEFAULT_SONNET_MODEL=deepseek-v4-pro[1m]
 export ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-v4-flash
 export CLAUDE_CODE_SUBAGENT_MODEL=deepseek-v4-pro[1m]
-export CLAUDE_CODE_EFFORT_LEVEL=max
 ```
 
 ## 使用 GLM 模型进行认证
@@ -62,7 +61,6 @@ export ANTHROPIC_DEFAULT_OPUS_MODEL=glm-5.2[1m]
 export ANTHROPIC_DEFAULT_SONNET_MODEL=glm-5.2[1m]
 export ANTHROPIC_DEFAULT_HAIKU_MODEL=glm-5-turbo
 export CLAUDE_CODE_SUBAGENT_MODEL=glm-5.2[1m]
-export CLAUDE_CODE_EFFORT_LEVEL=max
 ```
 
 ## 如何使用？

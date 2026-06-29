@@ -1,0 +1,18 @@
+{
+  "model": "opus[1m]",
+  "language": "Chinese",
+  "enabledPlugins": {
+    "clangd-lsp@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true
+  },
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "skipAutoPermissionPrompt": true,
+  "enableWorkflows": true,
+  "ultracode": true,
+  "tui": "fullscreen"
+}
