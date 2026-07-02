@@ -13,6 +13,5 @@
   },
   "skipAutoPermissionPrompt": true,
   "enableWorkflows": true,
-  "ultracode": true,
-  "tui": "fullscreen"
+  "ultracode": true
 }
