@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SHARE=$(pwd)/make_rootfs/share
-NET="-netdev user,id=eth0,smb=$SHARE -device virtio-net,netdev=eth0"
+NET="-netdev user,id=eth0,hostfwd=tcp::2222-:22,smb=$SHARE -device virtio-net,netdev=eth0"
 EXTRA="-m 8G -smp 8 $NET"
 
 ARCH=$1
