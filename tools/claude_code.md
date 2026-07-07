@@ -74,10 +74,9 @@ $ claude  ## 进入指定目录，执行命令
 ## TIPS: 使用 LSP 查看函数调用链
 
 ```bash
-export ENABLE_LSP_TOOL=1
-
+$ claude plugin install clangd-lsp@claude-plugins-official   # 安装 clangd-lsp
 $ claude
-❯ /plugin ## 安装 clangd-lsp
+❯ 使用 LSP 分析 xxx
 ```
 
 ## TIPS: 使用 mcp-ssh 在远程机器执行命令
