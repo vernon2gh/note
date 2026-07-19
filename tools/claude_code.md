@@ -63,6 +63,24 @@ export ANTHROPIC_DEFAULT_HAIKU_MODEL=glm-5-turbo
 export CLAUDE_CODE_SUBAGENT_MODEL=glm-5.2[1m]
 ```
 
+## 使用 KIMI 模型进行认证
+
+为了满足 claude code 使用 KIMI 大模型，通过以下简单的配置，即可将 KIMI
+API 接入到 Anthropic API 生态中。
+
+```bash
+export ANTHROPIC_BASE_URL=https://api.kimi.com/coding/
+export ANTHROPIC_API_KEY=${KIMI_API_KEY}
+export ANTHROPIC_MODEL=k3[1m]
+export ANTHROPIC_DEFAULT_FABLE_MODEL=k3[1m]
+export ANTHROPIC_DEFAULT_OPUS_MODEL=k3[1m]
+export ANTHROPIC_DEFAULT_SONNET_MODEL=k3[1m]
+export ANTHROPIC_DEFAULT_HAIKU_MODEL=k3[1m]
+export CLAUDE_CODE_SUBAGENT_MODEL=k3[1m]
+export CLAUDE_CODE_AUTO_COMPACT_WINDOW=1048576
+export CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576
+```
+
 ## 如何使用？
 
 ```bash
@@ -96,3 +114,4 @@ $ claude
 * https://docs.claude.com/zh-CN/docs/claude-code/quickstart
 * https://api-docs.deepseek.com/zh-cn/guides/anthropic_api
 * https://docs.bigmodel.cn/cn/coding-plan/tool/claude
+* https://www.kimi.com/code/docs/third-party-tools/other-coding-agents.html
