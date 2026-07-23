@@ -2,6 +2,12 @@
 
 SHARE=$(pwd)/make_rootfs/share
 NET="-netdev user,id=eth0,hostfwd=tcp::2222-:22,smb=$SHARE -device virtio-net,netdev=eth0"
+NUMA="						\
+-numa node,nodeid=0,cpus=0-3,memdev=ram0	\
+-numa node,nodeid=1,cpus=4-7,memdev=ram1	\
+-object memory-backend-ram,size=4G,id=ram0	\
+-object memory-backend-ram,size=4G,id=ram1	\
+"
 EXTRA="-m 8G -smp 8 $NET"
 
 ARCH=$1
