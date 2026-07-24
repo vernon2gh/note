@@ -221,6 +221,7 @@
     * [claude code](tools/claude_code.md)
     * [codex](tools/codex.md)
     * [http](tools/http.md)
+    * [virtme](tools/virtme.md)
 * other
     * [interview](other/interview.md)
     * [interview_c_base](other/interview_c_base.md)
