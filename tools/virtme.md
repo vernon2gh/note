@@ -10,7 +10,7 @@ QEMU 中启动指定 Linux 内核。
 ## 安装
 
 ```bash
-$ sudo apt install virtme-ng
+$ pip install virtme-ng
 ```
 
 ## 使用
