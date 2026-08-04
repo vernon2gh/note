@@ -220,6 +220,7 @@
     * [mihomo](tools/mihomo.md)
     * [claude code](tools/claude_code.md)
     * [codex](tools/codex.md)
+    * [pi](tools/pi.md)
     * [http](tools/http.md)
     * [virtme](tools/virtme.md)
 * other
