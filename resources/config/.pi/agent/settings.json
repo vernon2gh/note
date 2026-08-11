@@ -1,0 +1,15 @@
+{
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-v4-flash",
+  "defaultThinkingLevel": "max",
+  "hideThinkingBlock": true,
+  "packages": [
+    "npm:@termdraw/pi",
+    "npm:@czottmann/pi-automode",
+    "npm:@quintinshaw/pi-dynamic-workflows",
+    "npm:@ogulcancelik/pi-ssh-tools",
+    "npm:pi-mcp-adapter",
+    "npm:pi-lens",
+    "npm:pi-atelier"
+  ]
+}

@@ -18,11 +18,12 @@ $ npm install -g --ignore-scripts @earendil-works/pi-coding-agent
 $ curl -fsSL https://pi.dev/install.sh | sh
 ```
 
-## 使用 账号/key 进行认证
+## 登陆认证
 
 ```bash
 $ pi
-> /login
+> /login  ## 登陆账号/key
+> /model  ## 选择大模型
 ```
 
 ## 如何使用？
@@ -38,8 +39,8 @@ $ pi      ## 进入指定目录，执行命令
 
 ```bash
 $ pi install npm:@termdraw/pi                       ## 绘图
-$ pi install npm:@quintinshaw/pi-dynamic-workflows  ## workflows
 $ pi install npm:@czottmann/pi-automode             ## 权限自动模式
+$ pi install npm:@quintinshaw/pi-dynamic-workflows  ## workflows
 $ pi install npm:@ogulcancelik/pi-ssh-tools         ## SSH
 $ pi install npm:pi-mcp-adapter                     ## MCP
 $ pi install npm:pi-lens                            ## LSP
