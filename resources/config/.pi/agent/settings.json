@@ -9,7 +9,7 @@
     "npm:@termdraw/pi",
     "npm:@czottmann/pi-automode",
     "npm:@quintinshaw/pi-dynamic-workflows",
-    "npm:@ogulcancelik/pi-ssh-tools",
+    "npm:@99percentpeople/pi-ssh-remote",
     "npm:pi-mcp-adapter",
     "npm:pi-lens",
     "npm:pi-atelier"

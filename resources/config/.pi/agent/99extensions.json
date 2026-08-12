@@ -1,0 +1,9 @@
+{
+  "ssh-remote": {
+    "transport": "auto",
+    "passwordPrompt": true,
+    "persistPasswords": true,
+    "aiControlTools": true,
+    "aiPasswordAuth": true
+  }
+}
