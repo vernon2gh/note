@@ -1,0 +1,8 @@
+{
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Run read-only diagnostics on the remote host is allowed."
+    ]
+  }
+}
