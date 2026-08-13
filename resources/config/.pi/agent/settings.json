@@ -12,6 +12,6 @@
     "npm:@99percentpeople/pi-ssh-remote",
     "npm:pi-mcp-adapter",
     "npm:pi-lsp",
-    "npm:pi-atelier"
+    "npm:pi-zentui"
   ]
 }

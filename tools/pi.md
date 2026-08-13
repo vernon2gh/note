@@ -44,7 +44,7 @@ $ pi install npm:@quintinshaw/pi-dynamic-workflows  ## workflows
 $ pi install npm:@99percentpeople/pi-ssh-remote     ## SSH
 $ pi install npm:pi-mcp-adapter                     ## MCP
 $ pi install npm:pi-lsp                             ## LSP
-$ pi install npm:pi-atelier                         ## 状态栏
+$ pi install npm:pi-zentui                          ## TUI
 ```
 
 ## 参考
