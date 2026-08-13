@@ -43,7 +43,7 @@ $ pi install npm:@czottmann/pi-automode             ## 权限自动模式
 $ pi install npm:@quintinshaw/pi-dynamic-workflows  ## workflows
 $ pi install npm:@99percentpeople/pi-ssh-remote     ## SSH
 $ pi install npm:pi-mcp-adapter                     ## MCP
-$ pi install npm:pi-lens                            ## LSP
+$ pi install npm:pi-lsp                             ## LSP
 $ pi install npm:pi-atelier                         ## 状态栏
 ```
 

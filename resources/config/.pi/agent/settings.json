@@ -11,7 +11,7 @@
     "npm:@quintinshaw/pi-dynamic-workflows",
     "npm:@99percentpeople/pi-ssh-remote",
     "npm:pi-mcp-adapter",
-    "npm:pi-lens",
+    "npm:pi-lsp",
     "npm:pi-atelier"
   ]
 }

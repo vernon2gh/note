@@ -1,0 +1,19 @@
+CompileFlags:
+  Remove:
+    - -mpreferred-stack-boundary=2
+    - -mpreferred-stack-boundary=3
+    - -mindirect-branch=thunk-extern
+    - -mindirect-branch=thunk-inline
+    - -mindirect-branch-register
+    - -mindirect-branch-cs-prefix
+    - -fno-allow-store-data-races
+    - -fzero-init-padding-bits=all
+    - -fmin-function-alignment=16
+    - -fconserve-stack
+    - -mrecord-mcount
+  Add:
+    - -Wno-enum-enum-conversion
+Diagnostics:
+  Suppress:
+    - drv_unknown_argument
+    - drv_unsupported_opt_for_target
