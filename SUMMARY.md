@@ -221,6 +221,7 @@
     * [claude code](tools/claude_code.md)
     * [codex](tools/codex.md)
     * [pi](tools/pi.md)
+    * [officecli](tools/officecli.md)
     * [http](tools/http.md)
     * [virtme](tools/virtme.md)
 * other
