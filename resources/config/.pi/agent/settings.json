@@ -11,6 +11,7 @@
     "npm:@quintinshaw/pi-dynamic-workflows",
     "npm:@99percentpeople/pi-ssh-remote",
     "npm:pi-mcp-adapter",
+    "npm:pi-web-access",
     "npm:pi-lsp",
     "npm:pi-zentui"
   ]
