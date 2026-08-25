@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 """
-tmux copy-pipe 回调：捕获光标 → 退出copy-mode → 加载环境 → AI翻译 → 浮窗展示
+tmux copy-pipe 回调：捕获光标 → 退出copy-mode → 加载环境 → AI翻译
+- 中→英：写入 tmux buffer
+- 英→中：浮窗展示
 
 依赖：pip install anthropic
 配置: 从 ~/.bashrc 加载 ANTHROPIC_* 环境变量
@@ -61,15 +63,26 @@ def load_env():
         pass
 
 
-def is_english(text: str) -> bool:
-    return not any("一" <= ch <= "鿿" for ch in text)
+def has_chinese(text: str) -> bool:
+    """是否含汉字（仅汉字本身，不含 ，。："" 等中文标点）"""
+    for ch in text:
+        cp = ord(ch)
+        if (
+            0x4E00 <= cp <= 0x9FFF      # CJK 统一汉字（基本区）
+            or 0x3400 <= cp <= 0x4DBF   # 扩展 A
+            or 0xF900 <= cp <= 0xFAFF   # 兼容汉字
+            or 0x20000 <= cp <= 0x2EBEF  # 扩展 B–F
+            or cp == 0x3007             # 〇
+        ):
+            return True
+    return False
 
 
 def translate(text: str, api_base: str, api_key: str, model: str) -> str:
-    if is_english(text):
-        source_lang, target_lang = "English", "Simplified Chinese"
-    else:
+    if has_chinese(text):
         source_lang, target_lang = "Chinese", "English"
+    else:
+        source_lang, target_lang = "English", "Simplified Chinese"
     system_prompt = (
         "You are a professional translator. "
         f"Translate the following {source_lang} text into {target_lang}.\n\n"
@@ -79,6 +92,8 @@ def translate(text: str, api_base: str, api_key: str, model: str) -> str:
         "- Preserve email quoting levels (>, >>) unchanged\n"
         "- Keep the original formatting and line breaks\n"
         "- Only translate natural language sentences, not code or technical markers\n"
+        "- If the text mixes Chinese and English, translate all natural "
+        "language into the target language\n"
         "- Make the translation natural and fluent"
     )
     client = anthropic.Anthropic(api_key=api_key, base_url=api_base)
@@ -183,19 +198,9 @@ def close_loading():
     run_cmd(f"tmux display-popup -C -t {pane}")
 
 
-def paste_to_pane(text: str, cursor_y: int):
-    """若当前 pane 是 vim/nvim，把 text 粘贴到选区结束行下方"""
-    pane = get_tmux_pane()
-    cmd = run_cmd(f"tmux display -t {pane} -p '#{{pane_current_command}}'")
-    if cmd not in ("vim", "nvim", "vi"):
-        return
-    subprocess.run("tmux load-buffer -", shell=True, input=f"\n{text.strip()}\n\n", text=True)
-    motion = "H" if cursor_y == 0 else f"H {cursor_y}gj"
-    subprocess.run(
-        f"tmux send-keys -t {pane} Escape Escape {motion} "
-        f"':r !tmux show-buffer' Enter",
-        shell=True,
-    )
+def load_to_buffer(text: str):
+    """翻译结果写入 tmux buffer"""
+    subprocess.run(["tmux", "load-buffer", "-"], input=text.strip(), text=True)
 
 
 def main():
@@ -231,10 +236,10 @@ def main():
         text = f"[翻译失败: {e}]"
     close_loading()
 
-    if is_english(sel):
-        show_chinese(text, cursor_x, cursor_y)
+    if has_chinese(sel):
+        load_to_buffer(text)
     else:
-        paste_to_pane(text, cursor_y)
+        show_chinese(text, cursor_x, cursor_y)
 
 
 if __name__ == "__main__":
