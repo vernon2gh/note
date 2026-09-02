@@ -21,10 +21,10 @@ $ virtme-configkernel --arch=x86_64 --defconfig ## 自动在  defconfig  基础�
 $ virtme-configkernel --arch=x86_64 --update    ## 自动在当前 .config 基础上补充 virtme 配置选项
 $ make                                          ## 编译内核
 
-$ virtme-ng --ssh 2222 -p 8 -m 8G --run arch/x86/boot/bzImage ## 启动指定内核
-$ virtme-ng --ssh-client 2222                                 ## 远程进入虚拟机
+$ virtme-ng --user root --ssh 2222 -p 8 -m 8G --run arch/x86/boot/bzImage ## 启动指定内核
+$ virtme-ng --user root --ssh-client 2222                                 ## 远程进入虚拟机
 or
-$ virtme-ng -p 8 -m 8G --run arch/x86/boot/bzImage -- 'xxx'   ## 启动指定内核，执行指定命令后退出
+$ virtme-ng --user root -p 8 -m 8G --run arch/x86/boot/bzImage -- 'xxx'   ## 启动指定内核，执行指定命令后退出
 ```
 
 ## 参考
