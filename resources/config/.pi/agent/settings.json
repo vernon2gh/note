@@ -8,6 +8,7 @@
   "packages": [
     "npm:@termdraw/pi",
     "npm:@czottmann/pi-automode",
+    "npm:@fradser/pi-agent-teams",
     "npm:@quintinshaw/pi-dynamic-workflows",
     "npm:@99percentpeople/pi-ssh-remote",
     "npm:pi-mcp-adapter",
