@@ -16,10 +16,14 @@ $ pip install virtme-ng
 ## 使用
 
 ```bash
-$ make x86_64_defconfig; make menuconfig        ## 手动在  defconfig  基础上补充 virtme 配置选项
-$ virtme-configkernel --arch=x86_64 --defconfig ## 自动在  defconfig  基础上补充 virtme 配置选项
-$ virtme-configkernel --arch=x86_64 --update    ## 自动在当前 .config 基础上补充 virtme 配置选项
-$ make                                          ## 编译内核
+## 自动在 defconfig 基础上补充 virtme 配置选项，再定制 x.config
+$ virtme-configkernel --arch x86_64 --defconfig --custom kernel/configs/x.config
+or
+## 自动在当前 .config 基础上补充 virtme 配置选项
+$ virtme-configkernel --arch x86_64 --update
+
+## 编译内核
+$ make
 
 $ virtme-ng --user root --ssh 2222 -p 8 -m 8G --run arch/x86/boot/bzImage ## 启动指定内核
 $ virtme-ng --user root --ssh-client 2222                                 ## 远程进入虚拟机

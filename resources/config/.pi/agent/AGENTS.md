@@ -9,7 +9,7 @@
 
 ## 配置
 
-virtme-configkernel O=build/x86_64 --arch=x86_64 --defconfig
+virtme-configkernel O=build/x86_64 --arch x86_64 --defconfig --custom kernel/configs/x.config
 
 ## 编译
 
