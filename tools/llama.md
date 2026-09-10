@@ -18,13 +18,13 @@ $ curl -LsSf https://llama.app/install.sh | sh
 ## 直接使用
 
 ```bash
-llama cli -hf ggml-org/gemma-4-e4b-it-GGUF:Q4_0
+llama cli -hf ggml-org/Qwen3.5-0.8B-GGUF
 ```
 
-启动一个大模型，在终端中与大模型对话
+从 Hugging Face 下载/启动指定大模型，然后在终端中与大模型对话
 
 ```bash
-llama serve -hf ggml-org/gemma-4-e4b-it-GGUF:Q4_0
+llama serve -hf ggml-org/Qwen3.5-0.8B-GGUF
 ```
 
 启动一个兼容 OpenAI 的服务器，并自带 Web 界面。
