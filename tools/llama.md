@@ -3,13 +3,7 @@
 llama.cpp 能够在笔记本电脑、台式机或服务器上本地运行大型语言模型，设置极少，
 性能达到业界领先水平。
 
-* 通过包管理器安装
-
-```bash
-$ sudo dnf install llama-cpp
-```
-
-* 原生安装
+## 安装
 
 ```bash
 $ curl -LsSf https://llama.app/install.sh | sh
