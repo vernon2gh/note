@@ -23,6 +23,12 @@ llama serve -hf ggml-org/Qwen3.5-0.8B-GGUF
 
 启动一个兼容 OpenAI 的服务器，并自带 Web 界面。
 
+## 参数（可选）
+
+* `--offline`     使用本地大模型，禁止通过网络下载大模型
+* `--device none` 使用 CPU，禁止使用 GPU
+* `--no-repack`   禁止 repack 成 SIMD 布局的 malloc 副本（匿名页）
+
 ## 接入到 Pi
 
 ```bash
