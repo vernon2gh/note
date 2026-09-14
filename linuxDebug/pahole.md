@@ -2,7 +2,7 @@
 pahole 命令，如下：
 
 ```bash
-$ pahole collapse_control
+$ pahole -C collapse_control [vmlinux]
 struct collapse_control {
         bool                       is_khugepaged;        /*     0     1 */
 
