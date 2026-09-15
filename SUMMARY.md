@@ -110,6 +110,7 @@
         * [ulimit](linuxSystem/common/ulimit.md)
         * [top](linuxSystem/common/top.md)
         * [delay_accounting](linuxSystem/common/delay_accounting.md)
+        * [systemd](linuxSystem/common/systemd.md)
     * ubuntu
         * [custom_kernel](linuxSystem/ubuntu/custom_kernel.md)
         * [get_cmd_src](linuxSystem/ubuntu/get_cmd_src.md)
