@@ -226,6 +226,7 @@
     * [officecli](tools/officecli.md)
     * [http](tools/http.md)
     * [virtme](tools/virtme.md)
+    * [review_prompts](tools/review_prompts.md)
 * other
     * [interview](other/interview.md)
     * [interview_c_base](other/interview_c_base.md)
