@@ -14,15 +14,3 @@
 
 
 如果以上工具均无法使用时，回退使用其他默认工具。
-
-## 配置
-
-virtme-configkernel O=build/x86_64 --arch x86_64 --defconfig --custom kernel/configs/x.config
-
-## 编译
-
-make O=build/x86_64 -j$(nproc)
-
-## 验证
-
-virtme-ng --user root -p 8 -m 8G --run build/x86_64/arch/x86/boot/bzImage -- 'xxx'
