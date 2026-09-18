@@ -15,26 +15,27 @@ description: 分析 Linux 内核的性能瓶颈，输出用户空间复现程序
 - QEMU_SMP=8
 - QEMU_MEM=8G
 
-## 注意事项
-
-- 用户空间复现程序以及内核修复补丁都保存到 $APP_MOD 目录，一个性能瓶颈对应一个新子目录。
-  用户空间复现程序包括 `.c` 源码与 shell 脚本，`.c` 源码只写最核心复现程序，其他
-  维测程序都放在 shell 脚本。内核修复补丁必须要精简，复用现有接口/机制来修复。
-- 发现的性能瓶颈不能在 $LKML 已存在类似修复patch。
-
 ## 操作步骤
 
-使用 workflows 深入研究分析 Linux 内核源码可能存在的性能瓶颈，通过构造用户空间
-复现程序以及内核修复补丁进行验证/修复。
+使用 workflows 深入研究分析 Linux 内核源码的性能瓶颈，然后构造用户空间复现程序
+通过 virtme-ng 进行验证性能瓶颈，最后再编写内核修复补丁进行修复。
 
-- 内核配置命令
+- 配置
 
 virtme-configkernel O=$KERNEL_BUILD --arch $KERNEL_ARCH --defconfig --custom $KERNEL_CONFIG
 
-- 内核编译命令
+- 编译
 
 make O=$KERNEL_BUILD -j$(nproc)
 
-- 内核测试命令
+- 测试
 
 virtme-ng --user root -p $QEMU_SMP -m $QEMU_MEM --run $KERNEL_BUILD/arch/x86/boot/bzImage -- 'xxx'
+
+## 注意事项
+
+- 用户空间复现程序以及内核修复补丁都保存到 $APP_MOD/xxx 目录。
+  用户空间复现程序包括 app.c 源码与 test.sh 脚本，app.c 源码只写最核心复现程序，
+  其他维测程序都放在 test.sh 脚本，日志文件都保存在 log 目录。内核修复补丁必须
+  以解决问题根因为目标，尽可能复用现有接口/机制进行修复。
+- 在 $LKML 已修复的性能瓶颈，直接抛弃，无需重复优化。
