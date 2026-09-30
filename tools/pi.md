@@ -44,7 +44,6 @@ $ pi install npm:@giladbarnea/pi-simple-team        ## agent teams
 $ pi install npm:@quintinshaw/pi-dynamic-workflows  ## workflows
 $ pi install npm:@99percentpeople/pi-ssh-remote     ## SSH
 $ pi install npm:@injaneity/pi-computer-use         ## computer use
-$ pi install npm:pi-mcp-adapter                     ## MCP
 $ pi install npm:pi-web-access                      ## Web
 $ pi install npm:pi-lsp                             ## LSP
 $ pi install npm:pi-zentui                          ## TUI

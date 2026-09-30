@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.87.1",
+  "lastChangelogVersion": "0.99.1",
   "theme": "dark",
   "defaultProvider": "deepseek",
   "defaultModel": "deepseek-flash",
@@ -11,7 +11,6 @@
     "npm:@giladbarnea/pi-simple-team",
     "npm:@quintinshaw/pi-dynamic-workflows",
     "npm:@99percentpeople/pi-ssh-remote",
-    "npm:pi-mcp-adapter",
     "npm:pi-web-access",
     "npm:pi-lsp",
     "npm:pi-zentui"
