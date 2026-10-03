@@ -224,6 +224,7 @@
     * [pi](tools/pi.md)
     * [llama](tools/llama.md)
     * [officecli](tools/officecli.md)
+    * [eli5](tools/eli5.md)
     * [http](tools/http.md)
     * [virtme](tools/virtme.md)
     * [review_prompts](tools/review_prompts.md)
