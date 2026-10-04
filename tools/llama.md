@@ -38,9 +38,9 @@ llama bench -hf ggml-org/Qwen3.5-0.8B-GGUF
 ## 接入到 Pi
 
 ```bash
-$ pi install git:github.com/huggingface/pi-llama ## 安装 pi-llama 插件
-$ pi                                             ## 启动 Pi
-> /model                                         ## 选择大模型
+$ pi
+> /login  ## 指定URL
+> /model  ## 选择大模型
 ```
 
 ## 参考
