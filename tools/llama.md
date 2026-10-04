@@ -18,10 +18,11 @@ llama cli -hf ggml-org/Qwen3.5-0.8B-GGUF
 从 Hugging Face 下载/启动指定大模型，然后在终端中与大模型对话
 
 ```bash
-llama serve -hf ggml-org/Qwen3.5-0.8B-GGUF
+llama serve
 ```
 
 启动一个兼容 OpenAI 的服务器，并自带 Web 界面。
+可以与 Pi 配合使用。
 
 ```bash
 llama bench -hf ggml-org/Qwen3.5-0.8B-GGUF
@@ -39,7 +40,7 @@ llama bench -hf ggml-org/Qwen3.5-0.8B-GGUF
 
 ```bash
 $ pi
-> /login  ## 指定URL
+> /login  ## 指定URL，（可选）使用 `/llama` 进行load/unload/download大模型
 > /model  ## 选择大模型
 ```
 
