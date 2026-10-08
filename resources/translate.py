@@ -1,21 +1,32 @@
 #!/usr/bin/env python3
 
 """
-tmux copy-pipe 回调：捕获光标 → 退出copy-mode → 加载环境 → AI翻译
+tmux copy-pipe 回调：捕获光标 → 退出copy-mode → AI翻译
 - 中→英：写入 tmux buffer
 - 英→中：浮窗展示
 
-依赖：pip install anthropic
-配置: 从 ~/.bashrc 加载 ANTHROPIC_* 环境变量
+依赖：pip install openai
 用法: 由 tmux copy-pipe 调用，选中文本通过 stdin 传入
 """
 
 import os
 import sys
-import re
 import subprocess
 import unicodedata
-import anthropic
+import openai
+
+# ============================== 配置 ==============================
+# OpenAI 兼容格式
+BASE_URL = "https://api.deepseek.com"
+# API Key
+API_KEY = ""
+# 模型名：deepseek-flash（推荐，1M 上下文 / 最大 384K 输出 / 关闭思维链）
+MODEL = "deepseek-flash"
+CONTEXT_WINDOW = 1000000
+MAX_OUTPUT_TOKENS = 262144
+REASONING_EFFORT = "none"
+# ================================================================
+
 
 def run_cmd(cmd: str) -> str:
     try:
@@ -49,20 +60,6 @@ def exit_copy_mode():
     run_cmd(f"tmux send-keys -t {pane} -X cancel")
 
 
-def load_env():
-    try:
-        with open(os.path.expanduser("~/.bashrc")) as f:
-            for line in f:
-                m = re.match(
-                    r"^export\s+(ANTHROPIC_[\w]+)=[\"']?(.*?)[\"']?\s*$",
-                    line,
-                )
-                if m and m.group(1) not in os.environ:
-                    os.environ[m.group(1)] = m.group(2)
-    except FileNotFoundError:
-        pass
-
-
 def has_chinese(text: str) -> bool:
     """是否含汉字（仅汉字本身，不含 ，。："" 等中文标点）"""
     for ch in text:
@@ -78,7 +75,7 @@ def has_chinese(text: str) -> bool:
     return False
 
 
-def translate(text: str, api_base: str, api_key: str, model: str) -> str:
+def translate(text: str, base_url: str, api_key: str, model: str) -> str:
     if has_chinese(text):
         source_lang, target_lang = "Chinese", "English"
     else:
@@ -96,15 +93,17 @@ def translate(text: str, api_base: str, api_key: str, model: str) -> str:
         "language into the target language\n"
         "- Make the translation natural and fluent"
     )
-    client = anthropic.Anthropic(api_key=api_key, base_url=api_base)
-    resp = client.messages.create(
+    client = openai.OpenAI(api_key=api_key, base_url=base_url or None)
+    budget = CONTEXT_WINDOW - est_tokens(system_prompt) - MAX_OUTPUT_TOKENS
+
+    resp = client.responses.create(
         model=model,
-        max_tokens=16384,
-        thinking={"type": "disabled"},
-        system=system_prompt,
-        messages=[{"role": "user", "content": text}],
+        instructions=system_prompt,
+        input=truncate_to_tokens(text, max(budget, 1)),
+        reasoning={"effort": REASONING_EFFORT},
+        max_output_tokens=MAX_OUTPUT_TOKENS,
     )
-    return next(b.text for b in resp.content if b.type == "text")
+    return resp.output_text or ""
 
 
 def _char_width(ch: str) -> int:
@@ -198,6 +197,30 @@ def close_loading():
     run_cmd(f"tmux display-popup -C -t {pane}")
 
 
+def est_tokens(text: str) -> int:
+    cjk = sum(
+        1 for ch in text
+        if "\u2e80" <= ch <= "\u9fff" or "\uf900" <= ch <= "\ufaff"
+        or "\uff00" <= ch <= "\uffef"
+    )
+    return cjk + (len(text) - cjk + 3) // 4
+
+
+def truncate_to_tokens(text: str, budget: int) -> str:
+    if est_tokens(text) <= budget:
+        return text
+    marker = "\n\n[... truncated ...]"
+    budget = max(budget - est_tokens(marker), 0)
+    lo, hi = 0, len(text)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if est_tokens(text[:mid]) <= budget:
+            lo = mid
+        else:
+            hi = mid - 1
+    return text[:lo] + marker
+
+
 def load_to_buffer(text: str):
     """翻译结果写入 tmux buffer"""
     subprocess.run(["tmux", "load-buffer", "-"], input=text.strip(), text=True)
@@ -206,32 +229,22 @@ def load_to_buffer(text: str):
 def main():
     cursor_x, cursor_y = capture_cursor()
     exit_copy_mode()
-    load_env()
 
     sel = sys.stdin.read()
     if not sel.strip():
         sys.exit(0)
-    if len(sel) > 80000:
-        sel = sel[:80000] + "\n\n[... truncated ...]"
 
-    required = ("ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_MODEL")
-    missing = [k for k in required if k not in os.environ]
-    if missing:
+    if not API_KEY or not MODEL:
         text = (
-            "请设置：\n"
-            + "\n".join(f"  echo \"export {k}=xxx\" >> ~/.bashrc" for k in missing)
+            "请设置环境变量：\n"
+            '  API_KEY = "sk-xxxx"'
         )
         show_chinese(text, cursor_x, cursor_y)
         return
 
     show_loading("正在翻译...", cursor_x, cursor_y)
     try:
-        text = translate(
-            sel,
-            os.environ["ANTHROPIC_BASE_URL"],
-            os.environ["ANTHROPIC_AUTH_TOKEN"],
-            os.environ["ANTHROPIC_MODEL"],
-        )
+        text = translate(sel, BASE_URL, API_KEY, MODEL)
     except Exception as e:
         text = f"[翻译失败: {e}]"
     close_loading()
