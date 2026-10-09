@@ -19,7 +19,7 @@ $ sudo dnf builddep kernel.spec
 
 ## configure
 $ cp /boot/config-`uname -r`* .config
-$ make oldconfig
+$ make olddefconfig
 $ make menuconfig
 ## compile
 $ make bzImage
@@ -29,9 +29,13 @@ $ make modules
 # 安装
 
 ```bash
-## install by make
+## (opts) install by make
 $ sudo make modules_install
 $ sudo make install
+## (opts) install by manually
+$ sudo make INSTALL_MOD_PATH=/ modules_install
+$ sudo make INSTALL_PATH=/boot install
+$ sudo dracut --kver <kernel_version> /boot/initramfs-<kernel_version>.img
 
 $ sudo reboot
 ```

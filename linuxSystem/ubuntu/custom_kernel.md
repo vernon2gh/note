@@ -10,7 +10,7 @@
 
 ## configure
 $ cp /boot/config-`uname -r`* .config
-$ make oldconfig
+$ make olddefconfig
 $ make menuconfig
 ## compile
 $ make bzImage
@@ -26,6 +26,10 @@ $ sudo make install
 ## (opts) install by deb
 $ make bindeb-pkg
 $ sudo dpkg -i *.deb
+## (opts) install by manually
+$ sudo make INSTALL_MOD_PATH=/ modules_install
+$ sudo make INSTALL_PATH=/boot install
+$ sudo update-initramfs -c -k <kernel_version>
 
 $ sudo reboot
 ```
