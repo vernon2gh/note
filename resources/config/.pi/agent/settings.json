@@ -5,6 +5,7 @@
   "defaultModel": "deepseek-flash",
   "defaultThinkingLevel": "max",
   "hideThinkingBlock": true,
+  "tuiMode": "regular",
   "packages": [
     "npm:@termdraw/pi",
     "npm:@czottmann/pi-automode",
