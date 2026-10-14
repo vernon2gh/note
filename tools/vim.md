@@ -84,6 +84,5 @@ vim.cmd([[autocmd BufWritePre * %s/\s\+$//e]])
 ```
 
 完整配置参考：[init.lua](../resources/config/init.lua)，
-记得先手动安装 [packer](http://neovimcraft.com/plugin/wbthomason/packer.nvim/index.html) 插件，
-然后在 nvim 中执行 `:PackerSync` 命令来安装插件
-
+第一次打开时会先自动安装 lazy.nvim 插件，然后在 nvim 中执行 `:Lazy sync`
+命令来安装插件。

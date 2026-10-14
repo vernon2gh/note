@@ -35,18 +35,10 @@ require("lazy").setup({
 		"MeanderingProgrammer/render-markdown.nvim",
 		dependencies = {
 			"nvim-treesitter/nvim-treesitter",
-			"echasnovski/mini.nvim"
+			"echasnovski/mini.nvim",
 		},
 		ft = {
-			"markdown",
-			"codecompanion"
-		}
-	},
-	{
-		"olimorris/codecompanion.nvim",
-		dependencies = {
-			"nvim-lua/plenary.nvim",
-			"nvim-treesitter/nvim-treesitter"
+			"markdown"
 		}
 	},
 	"neovim/nvim-lspconfig",
@@ -127,33 +119,6 @@ require('render-markdown').setup {
 		width = 'block',
 	},
 }
-
-require("codecompanion").setup {
-	adapters = {
-		http = {
-		deepseek = function()
-			return require("codecompanion.adapters").extend("deepseek", {
-				env = { api_key = "xxx" },
-			})
-		end,
-		},
-	},
-	strategies = {
-		-- chat = { adapter = "ollama" },
-		-- inline = { adapter = "ollama" },
-		-- agent = { adapter = "ollama" },
-		chat = { adapter = "deepseek" },
-		inline = { adapter = "deepseek" },
-		agent = { adapter = "deepseek" },
-	},
-	opts = {
-		language = "Chinese",
-	},
-}
-vim.keymap.set({'n', 'v'}, ';w', ':CodeCompanionChat Toggle<CR>', { silent = true })
-vim.keymap.set({'n', 'v'}, ';t', ':CodeCompanionChat #{buffer} Translate<CR>', {silent = true})
-vim.keymap.set({'n', 'v'}, ';e', ':CodeCompanion /explain<CR>', {silent = true})
-vim.keymap.set({'n', 'v'}, ';a', ':CodeCompanion ', opts)
 
 require("one_monokai").setup { }
 vim.api.nvim_set_hl(0, "Identifier", { link = "Normal" })
