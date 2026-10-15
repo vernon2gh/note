@@ -19,7 +19,7 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
 	{
 		"nvim-treesitter/nvim-treesitter",
-		branch = 'master',
+		branch = 'main',
 		lazy = false,
 		build = ":TSUpdate"
 	},
@@ -66,16 +66,8 @@ vim.keymap.set({'n', 'v'}, '<C-j>', 'b', opts)
 vim.keymap.set({'n', 'v'}, '<C-l>', 'w', opts)
 
 -- plugins setting
-require('nvim-treesitter.configs').setup {
-	ensure_installed = { "c", "lua", "vim", "vimdoc", "query", "markdown", "markdown_inline" },
-	sync_install = false,
-	auto_install = true,
-	highlight = {
-		enable = true,
-		disable = { "c" },
-		additional_vim_regex_highlighting = false,
-	},
-}
+require("nvim-treesitter").setup()
+require("nvim-treesitter").install({ "c", "lua", "vim", "vimdoc", "query", "markdown", "markdown_inline" })
 
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', ';ff', builtin.find_files, { desc = 'Telescope find files' })
