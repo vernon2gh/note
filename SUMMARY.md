@@ -223,6 +223,7 @@
     * [codex](tools/codex.md)
     * [pi](tools/pi.md)
     * [llama](tools/llama.md)
+    * [hf](tools/hf.md)
     * [officecli](tools/officecli.md)
     * [eli5](tools/eli5.md)
     * [http](tools/http.md)

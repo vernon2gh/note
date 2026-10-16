@@ -1,7 +1,8 @@
 ## 简介
 
-llama.cpp 能够在笔记本电脑、台式机或服务器上本地运行大型语言模型，设置极少，
-性能达到业界领先水平。
+llama.cpp 是一种 LLM 推理引擎，专门负责把训练好的大模型高效地跑起来（不负责训练），
+主要能够在笔记本电脑、台式机或服务器上运行本地大模型，设置极少，性能达到业界
+领先水平。
 
 ## 安装
 
@@ -12,20 +13,32 @@ $ curl -LsSf https://llama.app/install.sh | sh
 ## 直接使用
 
 ```bash
-llama cli -hf ggml-org/Qwen3.5-0.8B-GGUF
+$ llama cli -cl
+```
+
+查询当前本地有哪些大模型
+
+```bash
+$ llama download -hf ggml-org/Qwen3.5-0.8B-GGUF
+```
+
+从 Hugging Face 下载指定大模型到本地
+
+```bash
+$ llama cli -hf ggml-org/Qwen3.5-0.8B-GGUF
 ```
 
 从 Hugging Face 下载/启动指定大模型，然后在终端中与大模型对话
 
 ```bash
-llama serve
+$ llama serve
 ```
 
 启动一个兼容 OpenAI 的服务器，并自带 Web 界面。
 可以与 Pi 配合使用。
 
 ```bash
-llama bench -hf ggml-org/Qwen3.5-0.8B-GGUF
+$ llama bench -hf ggml-org/Qwen3.5-0.8B-GGUF
 ```
 
 对 prompt 处理和文本生成速度（tokens/s）进行基准测试
