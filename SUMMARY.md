@@ -121,6 +121,7 @@
         * [cockpit](linuxSystem/ubuntu/cockpit.md)
         * [nfs](linuxSystem/ubuntu/nfs.md)
         * [tftp](linuxSystem/ubuntu/tftp.md)
+        * [cron](linuxSystem/ubuntu/cron.md)
         * [misc](linuxSystem/ubuntu/misc.md)
     * fedora
         * [system_upgrade](linuxSystem/fedora/system_upgrade.md)
