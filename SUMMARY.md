@@ -83,6 +83,7 @@
     * [sequentially_execute](linuxDebug/sequentially_execute.md)
     * [dynamic_debug](linuxDebug/dynamic_debug.md)
     * [research_linuxKernel_by_patch](linuxDebug/research_linuxKernel_by_patch.md)
+    * [delay_accounting](linuxDebug/delay_accounting.md)
     * [tracefs](linuxDebug/tracefs.md)
     * [ebpf](linuxDebug/ebpf.md)
     * [bpftrace](linuxDebug/bpftrace.md)
@@ -109,7 +110,6 @@
         * [psi](linuxSystem/common/psi.md)
         * [ulimit](linuxSystem/common/ulimit.md)
         * [top](linuxSystem/common/top.md)
-        * [delay_accounting](linuxSystem/common/delay_accounting.md)
         * [systemd](linuxSystem/common/systemd.md)
     * ubuntu
         * [custom_kernel](linuxSystem/ubuntu/custom_kernel.md)
