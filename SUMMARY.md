@@ -99,17 +99,17 @@
     * [static_analysers](linuxDebug/static_analysers.md)
     * [pahole](linuxDebug/pahole.md)
     * [syzbot](linuxDebug/syzbot.md)
+    * [procfs](linuxDebug/procfs.md)
+    * [proc_sys_vm](linuxDebug/proc_sys_vm.md)
+    * [cmd_ps](linuxDebug/cmd_ps.md)
+    * [top](linuxDebug/top.md)
+    * [psi](linuxDebug/psi.md)
 * linuxSystem
     * common
         * [system_version](linuxSystem/common/system_version.md)
-        * [procfs](linuxSystem/common/procfs.md)
-        * [proc_sys_vm](linuxSystem/common/proc_sys_vm.md)
-        * [cmd_ps](linuxSystem/common/cmd_ps.md)
         * [makefile](linuxSystem/common/makefile.md)
         * [file_descriptor](linuxSystem/common/fd.md)
-        * [psi](linuxSystem/common/psi.md)
         * [ulimit](linuxSystem/common/ulimit.md)
-        * [top](linuxSystem/common/top.md)
         * [systemd](linuxSystem/common/systemd.md)
     * ubuntu
         * [custom_kernel](linuxSystem/ubuntu/custom_kernel.md)
