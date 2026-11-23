@@ -22,7 +22,8 @@
 	diffFilter = delta --color-only
 [delta]
 	navigate = true
-	tabs = 0
+	side-by-side = true
+	tabs = 8
 [merge]
 	conflictstyle = diff3
 [diff]
