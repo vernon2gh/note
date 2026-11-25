@@ -1,8 +1,8 @@
 {
-  "lastChangelogVersion": "1.5.2",
+  "lastChangelogVersion": "1.6.0",
   "extensionChangelogVersions": {
-    "{\"source\":\"npm:@czottmann/pi-automode\",\"scope\":\"user\"}": "1.17.0",
-    "{\"source\":\"npm:pi-web-access\",\"scope\":\"user\"}": "0.47.0"
+    "{\"source\":\"npm:@czottmann/pi-automode\",\"scope\":\"user\"}": "1.18.0",
+    "{\"source\":\"npm:pi-web-access\",\"scope\":\"user\"}": "0.48.0"
   },
   "theme": "dark",
   "defaultProvider": "deepseek",
