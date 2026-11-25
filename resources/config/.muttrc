@@ -8,14 +8,17 @@ set smtp_pass = "xxx"
 set ssl_force_tls = yes # Require encrypted connection
 
 # ================  Composition  ====================
-set editor = "vim"
+set realname = "xxx"
+set from = "xxx@gmail.com"
+set use_from = yes
+set editor = "vim					\
+  -c 'iabbrev rvb Reviewed-by: $realname <$from>'	\
+  -c 'iabbrev ackb Acked-by: $realname <$from>'		\
+  -c 'iabbrev tstb Tested-by: $realname <$from>'"
 set edit_headers = yes  # See the headers when editing
 set charset = UTF-8     # value of $LANG; also fallback for send_charset
 # Sender, email address, and sign-off line must match
 unset use_domain
-set realname = "xxx"
-set from = "xxx@gmail.com"
-set use_from = yes
 
 # ================  Others  ====================
 set sort = threads
